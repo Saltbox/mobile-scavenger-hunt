@@ -1,0 +1,23 @@
+{% extends "user_layout.html" %}
+{% block userbody %}
+<div id="getstarted-prompt">
+  Welcome to the SalesCorp Team-Building Scavenger Hunt<br>
+  If you don't think you're supposed to do this, tap on 'Oops'.<br>
+  Otherwise, tap on 'Get Started'<br>
+
+  <br>
+  <div class="btn-group btn-group-justified">
+    <form action="/get_started" method="GET" id="getstarted-form">
+      <label for="get_started"></label>
+      <button class="btn btn-default btn-lg" type="submit" id="getstarted">
+        Get Started
+      </button>
+    </form>
+
+    <form action="/oops" method="POST" name="oops" id="oops">
+      <label for="oops"></label>
+      <button class="btn btn-default btn-lg" type="submit">Oops</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

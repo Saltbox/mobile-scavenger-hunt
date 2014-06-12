@@ -1,0 +1,33 @@
+{% extends "admin_layout.html" %}
+{% block adminbody %}
+  {% if session.logged_in %}
+    <span>
+      <h3>Scavenger Hunt List</h3>
+      <a class="btn btn-default pull-right" href="/new_hunt">Create New Hunt</a>
+    </span>
+    <table class="table table-striped table-hover">
+      <thead>
+        <tr>
+          <th>Hunt Name</th>
+          <th>QR Codes</th>
+          <th>Date Created</th>
+          <th>Last Modified</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for hunt in hunts %}
+        <tr>
+          <td><a href="/hunts/{{hunt.hunt_id}}/">{{ hunt.name }}</a></td>
+          <td>
+            <button class="btn btn-default btn-sm">Print QR Codes</button>
+          </td>
+          <td>{{ hunt.date_created }}</td>
+          <td>{{ hunt.last_modified }}</td>
+        </tr>
+      {% else %}
+        <em>No scavenger hunts have been created yet
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

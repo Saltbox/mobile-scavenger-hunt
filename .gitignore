@@ -52,3 +52,9 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+include/
+
+# Planning/Design documentation
+*.ep
+hunt.db
+huntschema.sql

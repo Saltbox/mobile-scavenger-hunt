@@ -1,0 +1,3 @@
+V$(document).ready(function(){var items=[];var tdCheckbox=function(index){return"<td><input type='checkbox' id='item'"+index+"></td>";};var tdItem=function(item_name){return"<td>"+item_name+"</td>";}; $("#add-item").on("click",(function(){var item_name=$('input[name=item]').val();if(item_name){$('tbody').append("<tr>"+tdCheckbox+tdItem(item_name)+"</tr>");$('input[name=item]').val('');items.push({'name':item_name});}}));$(".requireditem :checkbox").change(function(t,e){console.log('t e',t,e);});});
+p1
+.

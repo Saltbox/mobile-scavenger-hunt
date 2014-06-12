@@ -1,0 +1,11 @@
+{% extends "user_layout.html" %}
+{% block userbody %}
+<div class="userinfo">
+  Enter your name and email
+  <form action="/new_scavenger" method="POST" id="userinfo-form">
+    <input type="text" name="username" placeholder="Name or Alias">
+    <input type="email" name="email" placeholder="Email">
+    <input type="submit" value="Submit">
+  </form>
+</div>
+{% endblock %}

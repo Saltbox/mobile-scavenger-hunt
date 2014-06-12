@@ -1,0 +1,14 @@
+{% extends "user_layout.html" %}
+{% block userbody %}
+  <ul>
+  <h2>item name</h2>
+  {% for item in items %}
+    <li>{{item.item_name}}</li></br>
+  {% endfor %}
+  </ul>
+  <br>
+  for testing
+  <form action="/oops" method="POST">
+    <button class="btn" type="submit">restart session</button>
+  </form>
+{% endblock %}
