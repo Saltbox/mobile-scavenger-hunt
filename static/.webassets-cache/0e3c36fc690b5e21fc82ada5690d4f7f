@@ -1,3 +1,0 @@
-V$(document).ready(function(){var items=[];var tdCheckbox=function(){return"<td><input type='checkbox'></td>";};var tdItem=function(item_name){return"<td>"+item_name+"</td>";};$("#add-item").on("click",(function(){var item_name=$('input[name=item]').val();if(items){$('table').css('display');}\u000aif(item_name){$('tbody').append("<tr>"+tdCheckbox+<td></td></tr>"\u000a      );\u000a      $('input[name=item]').val('');\u000a      items.push({\u000a        'name': item_name\u000a      });\u000a    }\u000a  }));\u000a});
-p1
-.

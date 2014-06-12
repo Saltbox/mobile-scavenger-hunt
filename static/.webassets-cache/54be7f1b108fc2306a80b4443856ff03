@@ -1,3 +1,0 @@
-Vconsole.log('loaded');$(document).ready(function(){var items=[];$("#add-item").on("click",(function(){var item_name=$('input[name=item]').val();console.log('item name',item_name);$('tbody').append("<tr>\u000a        <td></td>\u000a        <td>"+item_name+"</td>\u000a        <td></td>\u000a      </tr>");}));});
-p1
-.

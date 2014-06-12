@@ -1,3 +1,0 @@
-V$(document).ready(function(){var items=[];$("#add-item").on("click",(function(){var item_name=$('input[name=item]').val();if(item_name){$('tbody').append("<tr><td></td><td>"+item_name+"</td><td></td></tr>");$('input[name=item]').val('');}}));});
-p1
-.
