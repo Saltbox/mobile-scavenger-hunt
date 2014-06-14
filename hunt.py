@@ -140,7 +140,7 @@ def new_hunt():
 def login():
     error = None
     form = AdminLoginForm(request.form)
-    if request.method == 'POST':
+    if request.method == 'POST' and form.validate():
         #  change later
         if form.username.data != app.config['USERNAME']:
             error = 'Invalid username'
