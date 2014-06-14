@@ -5,16 +5,37 @@
     {% if error %}
       <p class="alert">Error: {{error}}</p>
     {% endif %}
+    {% if form.errors %}
+        <ul class="errors">
+            {% for field_name, field_errors in form.errors|dictsort if field_errors %}
+                {% for error in field_errors %}
+                    <li>{{ form[field_name].label }}: {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    {% endif %}
     <div class="row">
-      <div class="form-group">
-        <label for="hunt-name-field" class="control-label">Hunt Name</label><br>
-        <input id="hunt-name-field" class="form-control" type="text" name="name" required><br>
+      <div class="col-md-4">
+        <div class="form-group">
+          <!-- <label for="hunt-name-field" class="control-label">Hunt Name</label><br> -->
+          <!-- <input id="hunt-name-field" class="form-control" type="text" name="name" required><br> -->
+          <div>{{form.name.label(class="control-label")}}</div>
+          <div>{{form.name(class="form-control", required=true)}}</div>
+        </div>
       </div>
     </div>
     <div class="row">
-      <div class="form-group">
-        <label class="control-label">Participant Email</label>
-        <input class="form-control" type="email" name="participants" required><br>
+      <div class="col-md-4">
+        <div class="form-group">
+  <!--         <label class="control-label">Participant Email</label>
+          <input class="form-control" type="email" name="participants" required><br> -->
+          <div>{{form.participants.label(class="control-label")}}</div>
+          <div>
+            {% for participant in form.participants %}
+              {{participant(class="form-control")}}
+            {% endfor %}
+          </div>
+        </div>
       </div>
     </div>
     <div class="row">

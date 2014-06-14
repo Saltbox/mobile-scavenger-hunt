@@ -3,8 +3,8 @@
 <div class="userinfo">
   Enter your name and email
   <form action="/new_scavenger" method="POST" id="userinfo-form">
-    <input type="text" name="username" placeholder="Name or Alias">
-    <input type="email" name="email" placeholder="Email">
+    {{form.username(placeholder="Name or Alias")}}
+    {{form.email(placeholder="email@example.org")}}
     <input type="submit" value="Submit">
   </form>
 </div>

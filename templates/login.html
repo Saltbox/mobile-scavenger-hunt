@@ -1,18 +1,20 @@
 {% extends "admin_layout.html" %}
 {% block adminbody %}
   <h2>Login</h2>
-  {% if error %}<p class="alert"><strong>Error:</strong> {{ error }}{% endif %}
+  {% if error %}
+    <p class="alert"><strong>Error:</strong> {{ error }}
+  {% endif %}
   <form action="{{ url_for('login') }}" method="post">
     <dl>
-      <dt>Username:
-      <dd><input type="text" id="username" name="username" autofocus required>
+      <dt>{{form.username.label}}
+      <dd>{{form.username(type="text", id="username", autofocus=true, required=true)}}
       <script>
         if (!("autofocus" in document.createElement("input"))) {
           document.getElementById("username").focus();
         }
       </script>
-      <dt>Password:
-      <dd><input type=password name="password" required>
+      <dd>{{form.password.label}}
+      <dd>{{form.password(type="password", required=true)}}
       <dd><input type=submit value="Login">
     </dl>
   </form>

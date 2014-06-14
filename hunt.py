@@ -6,8 +6,9 @@ from flask import Flask, request, session, render_template, abort, flash, \
     redirect, url_for, make_response
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.assets import Environment, Bundle
-
 from functools import wraps
+
+from forms import HuntForm, AdminLoginForm, ParticipantLoginForm
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -75,46 +76,48 @@ def root():
 @login_required
 def hunts():
     if request.method == 'POST':
-        hunt_name = request.form['name']
+        form = HuntForm(request.form)
+        if form.validate():
+            hunt_name = form.name.data
+            hunt_query = Hunt.query.filter(Hunt.name == hunt_name).first()
+            if hunt_query:
+                logger.info('hunt name already exists returning to hunt form')
+                flash('a hunt named {} already exists'.format(
+                    hunt_name), 'danger')
+                return render_template('new_hunt.html', form=form)
 
-        hunt_query = Hunt.query.filter(Hunt.name == 'hunt_name').first()
-        if hunt_query:
-            logger.info('hunt name already exists returning to hunt form')
-            flash('a hunt named {} already exists'.format(
-                hunt_name), 'danger')
-            return render_template('new_hunt.html')
+            hunt = Hunt(name=hunt_name)
 
-        hunt = Hunt(name=hunt_name)
+            for email in form.participants.data:
+                hunt.participants.append(Participant(email))
 
-        for email in request.form.getlist('participants'):
-            hunt.participants.append(Participant(email))
+            for name in form.items.data:
+                hunt.items.append(Item(name))
 
-        for name in request.form.getlist('items'):
-            hunt.items.append(Item(name))
+            all_required = form.all_required.data
+            hunt.date_created = hunt.last_modified = datetime.datetime.now()
 
-        hunt.date_created = hunt.last_modified = datetime.datetime.now()
+            try:
+                db.session.add(hunt)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                # should make sure fields that were ok stay populated
+                flash(
+                    "There was an error saving your new hunt. "
+                    "Please try again.", "danger"
+                )
+                logger.debug(
+                    "error trying to save hunt, %s, to database: %s",
+                    hunt_name, e)
+                return render_template('new_hunt.html', form=form)
 
-        all_required = request.form['all_required']
-        hunt.all_required = True if all_required.lower() == 'true' else False
-
-        try:
-            db.session.add(hunt)
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            # should make sure fields that were ok stay populated
-            flash(
-                "There was an error saving your new hunt. "
-                "Please try again.", "danger"
-            )
-            logger.debug(
-                "error trying to save hunt, %s, to database: %s", hunt_name, e)
-            return render_template('new_hunt.html')
-
-        # error category (2nd arg) corresponds with bootstrap terminology
-        flash('New scavenger hunt added', 'success')
-        return redirect(url_for('root'))
-    elif request.method == 'GET':
+            # error category (2nd arg) corresponds with bootstrap terminology
+            flash('New scavenger hunt added', 'success')
+            return redirect(url_for('root'))
+        else:
+            return render_template('new_hunt.html', form=form)
+    else:   # request.method == 'GET':
         hunts = Hunt.query.all()
         return render_template('hunts.html', hunts=hunts)
 
@@ -122,7 +125,6 @@ def hunts():
 @app.route('/hunts/<int:hunt_id>/')
 def show_hunt(hunt_id):
     hunt = Hunt.query.filter(Hunt.hunt_id == hunt_id).first()
-    logger.debug("hunt: %s", hunt)
     if hunt:
         return render_template('show_hunt.html', hunt=hunt)
     flash('That hunt does not exist', 'danger')
@@ -131,24 +133,26 @@ def show_hunt(hunt_id):
 
 @app.route('/new_hunt', methods=['GET'])
 def new_hunt():
-    return render_template('new_hunt.html')
+    return render_template('new_hunt.html', form=HuntForm())
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
+    form = AdminLoginForm(request.form)
     if request.method == 'POST':
         #  change later
-        if request.form['username'] != app.config['USERNAME']:
+        if form.username.data != app.config['USERNAME']:
             error = 'Invalid username'
-        elif request.form['password'] != app.config['PASSWORD']:
+        elif form.password.data != app.config['PASSWORD']:
             error = 'Invalid password'
         else:
             session['logged_in'] = True
             flash('You were logged in')
-
+            # figure out how to redirect to whatever page they want to go to
+            # probably a request var
             return redirect(url_for('hunts'))
-    return render_template('login.html', error=error)
+    return render_template('login.html', error=error, form=form)
 
 
 @app.route('/logout')
@@ -196,7 +200,8 @@ def show_item(hunt_id, item_id):
 
 @app.route('/get_started', methods=['GET'])
 def get_started():
-    return render_template('get_started.html')
+    return render_template(
+        'get_started.html', form=ParticipantLoginForm())
 
 
 @app.route('/new_scavenger', methods=['POST'])
@@ -214,7 +219,6 @@ def new_scavenger():
     email = request.form['email']
 
     resp = make_response(redirect(redirect_url))
-    logger.debug('type of hunt_id: %s', type(hunt_id))
     resp.set_cookie('user_id', str(uuid.uuid4()))
     resp.set_cookie('username', username)
     logger.info(
