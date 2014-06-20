@@ -9,7 +9,7 @@ import datetime
 import uuid
 import os
 
-from hunt import app
+from hunt import app, logger
 
 
 #################### ADMIN ROUTES ####################
@@ -46,13 +46,13 @@ def hunts():
         else:
             return render_template('new_hunt.html', form=form)
     else:   # request.method == 'GET':
-        hunts = Hunt.query.all()
+        hunts = db.session.query(Hunt).all()
         return render_template('hunts.html', hunts=hunts)
 
 
 @app.route('/hunts/<int:hunt_id>/')
 def show_hunt(hunt_id):
-    hunt = Hunt.query.filter(Hunt.hunt_id == hunt_id).first()
+    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
     if hunt:
         return render_template('show_hunt.html', hunt=hunt)
     else:
@@ -92,11 +92,18 @@ def logout():
 
 #################### USER ROUTES ####################
 
+def set_session_ids(hunt_id, item_id):
+    session['hunt_id'] = hunt_id  # probably better way to do this
+    session['item_id'] = item_id
+
 
 @app.route('/hunts/<int:hunt_id>/items', methods=['GET'])
 def index_items(hunt_id):
-    if request.cookies.get('user_id'):
+    set_session_ids(hunt_id, None)
+    if session.get('user_id'):
         # hm. using session here but elsewhere just using model
+        logger.info(
+            'preparing to render items for hunt_id, {}'.format(hunt_id))
         items = db.session.query(Item).filter(
             Item.hunt_id == hunt_id)
         return render_template('items.html', items=items)
@@ -105,7 +112,7 @@ def index_items(hunt_id):
 
 @app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
 def show_item(hunt_id, item_id):
-    if request.cookies.get('user_id'):
+    if session.get('user_id'):
         logger.info(
             'user id, %s, found. preparing requested item information.',
             hunt_id
@@ -114,15 +121,14 @@ def show_item(hunt_id, item_id):
             Item.hunt_id == hunt_id, Item.item_id == item_id).first()
 
         resp = make_response(render_template(
-            'item.html', item=item, username=request.cookies['username']))
-        resp.set_cookie('hunt_id', hunt_id)  # probably better way to do this
-        resp.set_cookie('item_id', item_id)
+            'item.html', item=item, username=session['name']))
+
+        set_session_ids(hunt_id, item_id)
         return resp
 
     logger.info('user id not found. requesting information from user.')
     resp = make_response(render_template('welcome.html'))
-    resp.set_cookie('hunt_id', hunt_id)  # probably better way to do this
-    resp.set_cookie('item_id', item_id)
+    set_session_ids(hunt_id, item_id)
     return resp
 
 
@@ -134,30 +140,33 @@ def get_started():
 
 @app.route('/new_scavenger', methods=['POST'])
 def new_scavenger():
-    hunt_id = request.cookies.get('hunt_id')
-    item_id = request.cookies.get('item_id')
+    hunt_id = session.get('hunt_id')
+    item_id = session.get('item_id')
 
-    redirect_url = '/hunts/{}/items/{}'.format(hunt_id, item_id)
+    if item_id:
+        redirect_url = '/hunts/{}/items/{}'.format(hunt_id, item_id)
+    else:
+        redirect_url = 'hunts/{}/items'.format(hunt_id)
 
     logger.info('preparing to redirect to: %s', redirect_url)
 
     # currently there's client-side check that these are not empty
     # but need to put in serverside validations
-    username = request.form['username']
-    email = request.form['email']
-
+    name = request.form.get('name')
+    email = request.form.get('email')
+    logger.debug('name, email: %s, %s', name, email)
     resp = make_response(redirect(redirect_url))
-    resp.set_cookie('user_id', str(uuid.uuid4()))
-    resp.set_cookie('username', username)
+    session['user_id'] = str(uuid.uuid4())
+    session['name'] = name
     logger.info(
-        "user id, username, and email set to %s, %s, and %s\n"
+        "user id, name, and email set to %s, %s, and %s\n"
         "preparing requested item information.",
-        str(uuid.uuid4()), username, email)
+        str(uuid.uuid4()), name, email)
     return resp
 
 
 @app.route('/oops', methods=['POST'])
 def oops():
     resp = make_response(render_template('goodbye.html'))
-    resp.set_cookie('user_id', '', expires=0)  # for testing. delete later.
+    session['user_id'] = ''  # for testing. delete later.
     return resp
