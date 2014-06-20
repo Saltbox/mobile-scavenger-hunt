@@ -8,7 +8,7 @@ class Admin(db.Model):
     admin_id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50))
     last_name = db.Column(db.String(50))
-    email = db.Column(db.String(320))
+    email = db.Column(db.String(320), unique=True)
     password = db.Column(db.String(50))
     hunts = db.relationship('Hunt', backref='hunts')
 
@@ -27,7 +27,7 @@ class Hunt(db.Model):
     all_required = db.Column(db.Boolean)
     num_required = db.Column(db.Integer)
 
-    owner = db.relationship('Admin', backref='admins')
+    owner = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
 
     def __repr__(self):
         return '<Hunt %r>' % self.name
