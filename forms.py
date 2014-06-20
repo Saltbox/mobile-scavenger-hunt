@@ -1,4 +1,12 @@
-from wtforms import Form, BooleanField, StringField, FieldList, validators
+from wtforms import Form, StringField, FieldList, validators, \
+    FormField  # need validators?
+from wtforms_alchemy import ModelFieldList, model_form_factory
+
+ModelForm = model_form_factory(Form)
+
+import models
+
+from hunt import db
 
 
 class LoginForm(Form):
@@ -9,13 +17,21 @@ class AdminLoginForm(LoginForm):
     password = StringField('Password')
 
 
-class ParticipantLoginForm(LoginForm):
-    email = StringField('Email', [validators.Email()])
+class ItemForm(ModelForm):
+    class Meta:
+        model = models.Item
 
 
-class HuntForm(Form):
-    name = StringField('Hunt Name', [validators.required()])
-    participants = FieldList(
-        StringField('Participant Emails', [validators.Email()]), min_entries=1)
-    items = FieldList(StringField('Items', []), min_entries=1)
-    all_required = BooleanField('All Items Required', [])
+class ParticipantLoginForm(ModelForm):
+    class Meta:
+        model = models.Participant
+        exclude = ['name']
+
+
+class HuntForm(ModelForm):
+    class Meta:
+        model = models.Hunt
+
+    participants = ModelFieldList(
+        FormField(ParticipantLoginForm), min_entries=1)
+    items = ModelFieldList(FormField(ItemForm), min_entries=1)

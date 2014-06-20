@@ -15,11 +15,6 @@ class Hunt(db.Model):
     all_required = db.Column(db.Boolean)
     num_required = db.Column(db.Integer)
 
-    def __init__(self, name, participants=[], items=[]):
-        self.name = name
-        self.participants = participants
-        self.items = items
-
     def __repr__(self):
         return '<Hunt %r>' % self.name
 
@@ -31,9 +26,6 @@ class Participant(db.Model):
     email = db.Column(db.String(50))
     hunt_id = db.Column(db.Integer, db.ForeignKey('hunt.hunt_id'))
 
-    def __init__(self, email):
-        self.email = email
-
     def __repr__(self):
         return '<Participant %r>' % self.email
 
@@ -44,9 +36,6 @@ class Item(db.Model):
     name = db.Column(db.String(50))
     hunt_id = db.Column(db.Integer, db.ForeignKey('hunt.hunt_id'))
     required = db.Column(db.Boolean)
-
-    def __init__(self, name):
-        self.name = name
 
     def __repr__(self):
         return '<Item %r>' % self.name
