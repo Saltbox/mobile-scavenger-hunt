@@ -7,7 +7,8 @@
   <form action="{{ url_for('login') }}" method="post">
     <dl>
       <dt>{{form.username.label}}
-      <dd>{{form.username(type="text", id="username", autofocus=true, required=true)}}
+      <dd>{{form.username(type="text", id="username",
+                          autofocus=true, required=true)}}
       <script>
         if (!("autofocus" in document.createElement("input"))) {
           document.getElementById("username").focus();

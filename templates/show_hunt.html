@@ -1,6 +1,6 @@
 {% extends "admin_layout.html" %}
 {% block adminbody %}
-
+  {% if session.logged_in %}
   <div>
     {{hunt.name}}<br>
 <!--     {% for p in hunt.participants %}
@@ -11,4 +11,5 @@
     {{hunt.last_modified}}
     {{hunt.all_required}}
   </div>
+  {% endif %}
 {% endblock %}

@@ -1,10 +1,10 @@
 {% extends "user_layout.html" %}
 {% block userbody %}
+  <h2>item names</h2>
   <ul>
-  <h2>item name</h2>
-  {% for item in items %}
-    <li>{{item.item_name}}</li></br>
-  {% endfor %}
+    {% for item in items %}
+      <li>{{item.name}}</li></br>
+    {% endfor %}
   </ul>
   <br>
   for testing

@@ -6,19 +6,17 @@
       <p class="alert">Error: {{error}}</p>
     {% endif %}
     {% if form.errors %}
-        <ul class="errors">
-            {% for field_name, field_errors in form.errors|dictsort if field_errors %}
-                {% for error in field_errors %}
-                    <li>{{ form[field_name].label }}: {{ error }}</li>
-                {% endfor %}
-            {% endfor %}
-        </ul>
+      <ul class="errors">
+        {% for field_name, field_errors in form.errors|dictsort if field_errors %}
+          {% for error in field_errors %}
+              <li>{{ form[field_name].label }}: {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
     {% endif %}
     <div class="row">
       <div class="col-md-4">
         <div class="form-group">
-          <!-- <label for="hunt-name-field" class="control-label">Hunt Name</label><br> -->
-          <!-- <input id="hunt-name-field" class="form-control" type="text" name="name" required><br> -->
           <div>{{form.name.label(class="control-label")}}</div>
           <div>{{form.name(class="form-control", required=true)}}</div>
         </div>
@@ -27,12 +25,10 @@
     <div class="row">
       <div class="col-md-4">
         <div class="form-group">
-  <!--         <label class="control-label">Participant Email</label>
-          <input class="form-control" type="email" name="participants" required><br> -->
           <div>{{form.participants.label(class="control-label")}}</div>
           <div>
             {% for participant in form.participants %}
-              {{participant(class="form-control")}}
+              {{participant.email(class="form-control", placeholder="email@example.com")}}
             {% endfor %}
           </div>
         </div>
@@ -41,31 +37,33 @@
     <div class="row">
       <div class="col-md-4">
         <div class="form-group">
-          <input type="radio" name="all_required" value="true" required>
+          <label class="control-label">
             Require finding all items for success
-          </input></br>
-          <input type="radio" name="all_required" value="false">
+          </label>
+          {{ form.all_required(type="radio", value="true") }}
+          <label class="control-label">
             Require finding only some items for success
-          </input></br>
+          </label>
+          {{ form.all_required(type="Radio", value="false")}}
+          </br>
         </div>
         <div class="form-group">
-          <div class="col-md-5">
-            <label>Number of items required</label>
-          </div>
-          <div class="col-md-7">
-            <input type="number" name="num_required" class="form-control">
-          </div>
+          <label>Number of items required</label>
+          <input type="number" name="num_required" class="form-control">
         </div>
         <div class="form-group">
-          <label class="control-label">Items</label>
+          <label>Add items</label>
+          {% for item in form.items %}
           <div class="input-group">
-            <input type="text" name="item" class="form-control">
+            {{item(class="form-control")}}
             <span class="input-group-btn">
               <button class="btn btn-default" type="button" id="add-item">
                 Add
               </button>
             </span>
-          </div><!-- /input-group -->
+          </div>
+          {% endfor %}
+
         </div>
       </div>
       <div class="col-md-8">
