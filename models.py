@@ -2,6 +2,12 @@ import os
 
 from hunt import db
 
+hunt_participants = db.Table(
+    'hunt_participants',
+    db.Column('hunt_hunt_id', db.Integer, db.ForeignKey('participants.participant_id')),
+    db.Column('participant_participant_id', db.Integer, db.ForeignKey('hunts.hunt_id'))
+)
+
 
 class Admin(db.Model):
     __tablename__ = 'admins'
@@ -17,7 +23,7 @@ class Hunt(db.Model):
     __tablename__ = 'hunts'
     hunt_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
-    participants = db.relationship('Participant', backref='hunts')
+    participants = db.relationship('Participant', secondary=hunt_participants)
     items = db.relationship('Item', backref='hunts')
     # do i care about timezone aware?
     date_created = db.Column(db.TIMESTAMP, server_default=db.func.now())
@@ -38,7 +44,8 @@ class Participant(db.Model):
     participant_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50))
     email = db.Column(db.String(50))
-    hunt_id = db.Column(db.Integer, db.ForeignKey('hunts.hunt_id'))
+    # hunt_id = db.Column(db.Integer, db.ForeignKey('hunts.hunt_id'))
+    hunts = db.relationship('Hunt', secondary=hunt_participants)
 
     def __repr__(self):
         return '<Participant %r>' % self.email
