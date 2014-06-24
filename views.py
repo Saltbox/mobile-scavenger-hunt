@@ -53,6 +53,25 @@ def root():
     return login()
 
 
+# create or list admins who can create hunts
+@app.route('/admins', methods=['GET', 'POST'])
+def admins():
+    admin = Admin()
+    form = AdminForm(request.form)
+    if request.method == 'POST':
+        if form.validate():
+            form.populate_obj(admin)
+            db.session.add(admin)
+            db.session.commit()
+            flash('Successfully created admin')
+            hunts = db.session.query(Hunt).all()
+            return render_template('hunts.html', hunts=hunts)
+
+        flash(
+            'There was an error creating your admin profile. Please try again')
+    return render_template('admin_signup.html', form=form)
+
+
 # create or list hunts
 @app.route('/hunts', methods=['GET', 'POST'])
 @login_required

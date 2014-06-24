@@ -1,0 +1,31 @@
+{% extends "admin_layout.html" %}
+{% block adminbody %}
+  <h2>Admin Signup</h2>
+  {% if error %}
+    <p class="alert"><strong>Error:</strong> {{ error }}
+  {% endif %}
+  <form action="{{ url_for('admins') }}" method="post">
+    <dl>
+      <dt>{{form.first_name.label}}
+      <dd>{{form.first_name(type="text", id="first",
+                       autofocus=true, required=true)}}
+      <dt>{{form.last_name.label}}
+      <dd>{{form.last_name(type="text", id="last", required=true)}}
+      <dt>{{form.email.label}}</dt>
+      {% if form.email.errors %}
+        {% for error in form.email.errors %}
+          {{error}}
+        {% endfor %}
+      {% endif %}
+      <dd>{{form.email(type="email", id="email", required=true)}}
+      <dt>{{form.password.label}}
+      <dd>{{form.password(type="password", id="password", required=true)}}
+      <script>
+        if (!("autofocus" in document.createElement("input"))) {
+          document.getElementById("first").focus();
+        }
+      </script>
+      <dd><input type=submit value="Login">
+    </dl>
+  </form>
+{% endblock %}
