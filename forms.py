@@ -13,8 +13,14 @@ class LoginForm(Form):
     username = StringField('Username')
 
 
+# update me now that there's an actual admin
 class AdminLoginForm(LoginForm):
     password = StringField('Password')
+
+
+class AdminForm(ModelForm):
+    class Meta:
+        model = models.Admin
 
 
 class ItemForm(ModelForm):
@@ -22,10 +28,9 @@ class ItemForm(ModelForm):
         model = models.Item
 
 
-class ParticipantLoginForm(ModelForm):
+class ParticipantForm(ModelForm):
     class Meta:
         model = models.Participant
-        exclude = ['name']
 
 
 class HuntForm(ModelForm):
@@ -33,5 +38,5 @@ class HuntForm(ModelForm):
         model = models.Hunt
 
     participants = ModelFieldList(
-        FormField(ParticipantLoginForm), min_entries=1)
+        FormField(ParticipantForm), min_entries=1)
     items = ModelFieldList(FormField(ItemForm), min_entries=1)
