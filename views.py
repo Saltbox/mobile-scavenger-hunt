@@ -139,16 +139,18 @@ def show_item(hunt_id, item_id):
             return make_response(render_template(
                 'item.html', item=item, username=session['name']))
         else:
-            return render_template('welcome.html', hunt_id=hunt_id)
+            return render_template(
+                'welcome.html', hunt_id=hunt_id, item_id=item_id)
     else:
         abort(404)
 
 
 # form for scavenger hunt participant to enter email and name
-@app.route('/get_started/<int:hunt_id>', methods=['GET'])
-def get_started(hunt_id):
+@app.route('/get_started/hunts/<int:hunt_id>/items/<int:item_id>', methods=['GET'])
+def get_started(hunt_id, item_id):
     return render_template('get_started.html',
-                           form=ParticipantForm(), hunt_id=hunt_id)
+                           form=ParticipantForm(),
+                           hunt_id=hunt_id, item_id=item_id)
 
 
 # check scavenger is on whitelist and set user_id
@@ -156,17 +158,13 @@ def get_started(hunt_id):
 def new_participant():
     # currently there's client-side check that these are not empty
     # but need to put in serverside validations
-    logger.debug('args: %s', request.args)
-    logger.debug('forms: %s', request.form)
     email = request.form['email']
     hunt_id = request.args['hunt_id']
 
     # check that the participant is on this hunt's whitelist
-    participant = db.session.query(Participant).filter(
-        Participant.hunt_id == hunt_id).first()
-
-    if participant:
-        logger.debug('participant: %s', participant)
+    listed_participant = db.session.query(Participant)\
+        .filter(Participant.hunt_id == hunt_id, Participant.email == email).first()
+    if listed_participant:
 
         name = request.form.get('name')
 
@@ -188,7 +186,7 @@ def new_participant():
 
         return make_response(redirect(redirect_url))
     else:
-        return 'you are on the list of participants for this hunt' # make template
+        return 'you are not on the list of participants for this hunt' # make template
 
 
 @app.route('/oops', methods=['POST'])
