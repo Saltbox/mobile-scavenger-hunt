@@ -1,16 +1,28 @@
 import unittest
 import uuid
-import hunt
 
-from hunt import db
+from flask import g
 
-USERNAME = hunt.app.config['USERNAME']
-PASSWORD = hunt.app.config['PASSWORD']
+from hunt import db, app
 
 
 class HuntTestCase(unittest.TestCase):
+    def email(self):
+        return '{}@example.com'.format(uuid.uuid4().hex)
+
     def setUp(self):
-        self.app = hunt.app.test_client()
+        self.app = app.test_client()
+        db.create_all()
+        email = self.email()
+        password = uuid.uuid4().hex
+        self.create_admin(email=email, password=password)
+        self.admin = {'email': email, 'password': password}
+        self.logout()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        db.create_all()
 
     def login(self, username, password):
         return self.app.post('/login', data=dict(
@@ -23,49 +35,61 @@ class HuntTestCase(unittest.TestCase):
     ### TESTS! ###
 
     def test_login_logout(self):
-        response = self.login(USERNAME, PASSWORD)
-        assert 'You were logged in' in response.data
+        response = self.login(self.admin['email'], self.admin['password'])
+        self.assertIn('You were logged in', response.data)
 
         response = self.logout()
-        assert 'You were logged out' in response.data
+        self.assertIn('log in', response.data)
 
     def test_admin_login(self):
-        response = self.app.get('/')
-        assert 'Scavenger Hunt List' not in response.data
+        response = self.app.get('/hunts')
+        self.assertNotIn('Scavenger Hunt List', response.data)
 
-        response = self.login(USERNAME, PASSWORD)
-        assert 'Scavenger Hunt List' in response.data
+        response = self.login(self.admin['email'], self.admin['password'])
 
-    def create_hunt(self, name=str(uuid.uuid4().hex)):
-        email = '{}@example.com'.format(uuid.uuid4().hex)
-        item = str(uuid.uuid4().hex)
-        all_required = "true"  # this is how the form submits
-        response = self.app.post('/hunts', data=dict(
-            name=name,
-            participants=[email],
-            items=[item],
-            all_required=True,
-        ), follow_redirects=True)
-        return response
+        self.assertIn('Scavenger Hunt List', response.data)
 
-    def test_create_hunt(self):
-        self.login(USERNAME, PASSWORD)
-        name = str(uuid.uuid4().hex)
-        response = self.create_hunt(name=name)
-        assert name in response.data
+    def create_hunt(self,
+                    name=uuid.uuid4().hex,
+                    participants=[email(None)],
+                    items=[uuid.uuid4().hex], all_required=True):
+        return self.app.post(
+            '/hunts',
+            data=dict(
+                name=name, participants=participants,
+                items=items, all_required=all_required),
+            follow_redirects=True)
 
-    def test_create_and_show_hunt(self):
-        self.login(USERNAME, PASSWORD)
-        name = str(uuid.uuid4().hex)
-        self.create_hunt(name=name)
+    def create_admin(
+            self, first_name=uuid.uuid4().hex, last_name=uuid.uuid4().hex,
+            email=email(None),
+            password=uuid.uuid4().hex):
+        return self.app.post('/admins', data=dict(
+            first_name=first_name, last_name=last_name, email=email,
+            password=password
+        ))
 
-        from models import Hunt
-        hunt_id = Hunt.query.first().hunt_id  #currently always 1
-        #hm. this goes to real data/hunt not test data
-        response = self.app.get('/hunts/{}'.format(
-            hunt_id), follow_redirects=True)
-        assert response.status_code == 200
-        assert name in response.data
+    def test_create_admin(self):
+        response = self.app.get('/admins')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Admin Signup', response.data)
+
+        email = self.email()
+        password = uuid.uuid4().hex
+
+        response = self.create_admin(email=email, password=password)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Successfully created admin', response.data)
+
+        self.logout()
+        response = self.login(email, password)
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_started(self):
+        self.create_hunt()
+        response = self.app.get('/get_started/hunts/1/items/1', follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Enter your name and email', response.data)
 
 
 if __name__ == '__main__':

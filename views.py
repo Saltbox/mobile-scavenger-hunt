@@ -24,21 +24,24 @@ def login_required(f):
     return decorated_function
 
 
+def get_admin(email, password):
+    return db.session.query(Admin).filter(
+        Admin.email == email,
+        Admin.password == password
+    ).first()
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     form = AdminLoginForm(request.form)
     if request.method == 'POST' and form.validate():
         #  change later
-        admin = db.session.query(Admin).filter(
-            Admin.email == form.username.data,
-            Admin.password == form.password.data
-        ).first()
-
+        admin = get_admin(form.username.data, form.password.data)
         if admin:
             session['logged_in'] = True
             flash('You were logged in')
-            session['admin_id'] = admin.admin_id
+            session['admin_email'] = admin.email
             return redirect(url_for('hunts'))
         flash('Invalid email or password')
     return render_template('login.html', error=error, form=form)
@@ -68,7 +71,7 @@ def admins():
 
             session['logged_in'] = True
             flash('Successfully created admin')
-
+            session['admin_email'] = form.email.data
             return render_template('hunts.html')
 
         flash(
@@ -81,10 +84,11 @@ def admins():
 @login_required
 def hunts():
     if request.method == 'POST':
+        logger.debug('request form: %s', request.form)
         hunt = Hunt()
         form = HuntForm(request.form, hunt)  # why do i need obj?
         if form.validate():
-            hunt.owner = session['admin_id']
+            hunt.owner = session['admin_email']
             form.populate_obj(hunt)
 
             # todo: session manager
@@ -98,7 +102,7 @@ def hunts():
             return render_template('new_hunt.html', form=form)
     else:   # request.method == 'GET':
         hunts = db.session.query(Hunt).filter(
-            Hunt.owner == session['admin_id']).all()
+            Hunt.owner == session['admin_email']).all()
         return render_template('hunts.html', hunts=hunts)
 
 
@@ -168,7 +172,8 @@ def new_participant():
 
     # check that the participant is on this hunt's whitelist
     listed_participant = db.session.query(Participant)\
-        .filter(Participant.hunt_id == hunt_id, Participant.email == email).first()
+        .filter(Participant.hunt_id == hunt_id,
+                Participant.email == email).first()
     if listed_participant:
 
         name = request.form.get('name')

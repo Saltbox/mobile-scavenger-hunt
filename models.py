@@ -27,7 +27,7 @@ class Hunt(db.Model):
     all_required = db.Column(db.Boolean)
     num_required = db.Column(db.Integer)
 
-    owner = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
+    owner = db.Column(db.String(50), db.ForeignKey('admins.email'))
 
     def __repr__(self):
         return '<Hunt %r>' % self.name
