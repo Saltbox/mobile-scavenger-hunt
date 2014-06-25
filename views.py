@@ -30,15 +30,17 @@ def login():
     form = AdminLoginForm(request.form)
     if request.method == 'POST' and form.validate():
         #  change later
-        if form.username.data != app.config['USERNAME']:
-            error = 'Invalid username'
-        elif form.password.data != app.config['PASSWORD']:
-            error = 'Invalid password'
-        else:
+        admin = db.session.query(Admin).filter(
+            Admin.email == form.username.data,
+            Admin.password == form.password.data
+        ).first()
+
+        if admin:
             session['logged_in'] = True
             flash('You were logged in')
-
+            session['admin_id'] = admin.admin_id
             return redirect(url_for('hunts'))
+        flash('Invalid email or password')
     return render_template('login.html', error=error, form=form)
 
 
@@ -53,7 +55,7 @@ def root():
     return login()
 
 
-# create or list admins who can create hunts
+# create or list admins who can create hunts # probably rename to signup
 @app.route('/admins', methods=['GET', 'POST'])
 def admins():
     admin = Admin()
@@ -63,9 +65,11 @@ def admins():
             form.populate_obj(admin)
             db.session.add(admin)
             db.session.commit()
+
+            session['logged_in'] = True
             flash('Successfully created admin')
-            hunts = db.session.query(Hunt).all()
-            return render_template('hunts.html', hunts=hunts)
+
+            return render_template('hunts.html')
 
         flash(
             'There was an error creating your admin profile. Please try again')
@@ -80,7 +84,7 @@ def hunts():
         hunt = Hunt()
         form = HuntForm(request.form, hunt)  # why do i need obj?
         if form.validate():
-
+            hunt.owner = session['admin_id']
             form.populate_obj(hunt)
 
             # todo: session manager
@@ -93,7 +97,8 @@ def hunts():
         else:
             return render_template('new_hunt.html', form=form)
     else:   # request.method == 'GET':
-        hunts = db.session.query(Hunt).all()
+        hunts = db.session.query(Hunt).filter(
+            Hunt.owner == session['admin_id']).all()
         return render_template('hunts.html', hunts=hunts)
 
 
