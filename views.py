@@ -37,19 +37,24 @@ def login():
     form = AdminLoginForm(request.form)
     if request.method == 'POST' and form.validate():
         #  change later
-        admin = get_admin(form.username.data, form.password.data)
-        if admin:
+        matched_admin = get_admin(form.username.data, form.password.data)
+        if matched_admin:
             session['logged_in'] = True
             flash('You were logged in')
-            session['admin_email'] = admin.email
+            logger.debug('you were logged in')
+            session['admin_id'] = matched_admin.admin_id
             return redirect(url_for('hunts'))
+        logger.debug('invalid email or password')
         flash('Invalid email or password')
+    logger.debug('rendering login page')
     return render_template('login.html', error=error, form=form)
 
 
 @app.route('/logout')
 def logout():
     session.pop('logged_in', None)
+    session.pop('admin_id', None)
+    logger.debug('logout session: %s', session)
     return redirect(url_for('login'))
 
 
@@ -64,6 +69,7 @@ def admins():
     admin = Admin()
     form = AdminForm(request.form)
     if request.method == 'POST':
+        logger.debug('attempting to create admin')
         if form.validate():
             form.populate_obj(admin)
             db.session.add(admin)
@@ -71,11 +77,15 @@ def admins():
 
             session['logged_in'] = True
             flash('Successfully created admin')
-            session['admin_email'] = form.email.data
+
+            session['admin_id'] = get_admin(
+                form.email.data, form.password.data).admin_id
+            logger.debug('valid admin form session: %s', session)
             return render_template('hunts.html')
 
         flash(
             'There was an error creating your admin profile. Please try again')
+    logger.debug('rendering admin signup')
     return render_template('admin_signup.html', form=form)
 
 
@@ -83,33 +93,47 @@ def admins():
 @app.route('/hunts', methods=['GET', 'POST'])
 @login_required
 def hunts():
+    logger.debug('/hunts session: %s', session)
     if request.method == 'POST':
-        logger.debug('request form: %s', request.form)
+        logger.debug('request form in create hunts: %s', request.form)
         hunt = Hunt()
-        form = HuntForm(request.form, hunt)  # why do i need obj?
+        form = HuntForm(request.form)
         if form.validate():
-            hunt.owner = session['admin_email']
+            hunt.owner = session['admin_id']
             form.populate_obj(hunt)
 
-            # todo: session manager
+            # this was the only way i could get this to work in tests
+            # but if i remove this section it would still work in the
+            # interface/browser
+            hunt.participants = []
+            for email in request.form.getlist('participants'):
+                p = Participant()
+                p.email = email
+                hunt.participants.append(p)
 
+            # todo: session manager
             db.session.add(hunt)
             db.session.commit()
+            logger.debug('hunt p: %s', hunt.participants)
 
             flash('New scavenger hunt added', 'success')
             return redirect(url_for('hunts'))
         else:
+            flash('some error msg about invalid form')
             return render_template('new_hunt.html', form=form)
     else:   # request.method == 'GET':
+        logger.debug('rendering hunts table')
         hunts = db.session.query(Hunt).filter(
-            Hunt.owner == session['admin_email']).all()
+            Hunt.owner == session['admin_id']).all()
         return render_template('hunts.html', hunts=hunts)
 
 
 # edit and/or view hunt
-@app.route('/hunts/<int:hunt_id>/')
+@app.route('/hunts/<hunt_id>')
 @login_required
 def show_hunt(hunt_id):
+    logger.debug('showing hunt: %s', hunt_id)
+    hunt_id = int(hunt_id)
     hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
     if hunt:
         return render_template('show_hunt.html', hunt=hunt)
@@ -120,6 +144,7 @@ def show_hunt(hunt_id):
 # form to create new hunt
 @app.route('/new_hunt', methods=['GET'])
 def new_hunt():
+    logger.debug('rendering new hunt page')
     return render_template('new_hunt.html', form=HuntForm())
 
 
@@ -132,8 +157,10 @@ def index_items(hunt_id):
     logger.info(
         'preparing to render items for hunt_id, {}'.format(hunt_id))
     items = db.session.query(Item).filter(
-        Item.hunt_id == hunt_id)
-    return render_template('items.html', items=items, hunt_id=hunt_id)
+        Item.hunt_id == hunt_id).all()
+    if items:
+        return render_template('items.html', items=items, hunt_id=hunt_id)
+    abort(404)
 
 
 # information about one item for scavenger to read
@@ -180,7 +207,7 @@ def new_participant():
 
         user_id = str(uuid.uuid4())
 
-        session['user_id'] = user_id    # i don't remember why i need this
+        session['user_id'] = user_id
         session['name'] = name
 
         # replace with wtf
@@ -202,5 +229,7 @@ def new_participant():
 @app.route('/oops', methods=['POST'])
 def oops():
     resp = make_response(render_template('goodbye.html'))
-    session['user_id'] = ''  # for testing. delete later.
+    # for testing. delete later.
+    session['user_id'] = ''
+    session['admin_id'] = ''
     return resp

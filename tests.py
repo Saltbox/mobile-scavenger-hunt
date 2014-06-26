@@ -5,6 +5,8 @@ from flask import g
 
 from hunt import db, app
 
+app.config['DEBUG'] = True
+
 
 class HuntTestCase(unittest.TestCase):
     def email(self):
@@ -20,6 +22,7 @@ class HuntTestCase(unittest.TestCase):
         self.logout()
 
     def tearDown(self):
+        self.logout()
         db.session.remove()
         db.drop_all()
         db.create_all()
@@ -86,10 +89,34 @@ class HuntTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_get_started(self):
+        self.login(self.admin['email'], self.admin['password'])
         self.create_hunt()
-        response = self.app.get('/get_started/hunts/1/items/1', follow_redirects=True)
+        response = self.app.get(
+            '/get_started/hunts/1/items/1', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn('Enter your name and email', response.data)
+
+    def test_create_and_show_hunt(self):
+        self.login(self.admin['email'], self.admin['password'])
+        name = uuid.uuid4().hex
+
+        participants = [self.email() for _ in xrange(2)]
+        items = [uuid.uuid4().hex for _ in xrange(2)]
+
+        create_hunt_response = self.create_hunt(
+            name=name, participants=participants, items=items)
+
+        self.assertEqual(create_hunt_response.status_code, 200)
+
+        # currently this always goes to 1 because it's a clean db
+        show_hunt_response = self.app.get('/hunts/1', follow_redirects=True)
+        self.assertEqual(show_hunt_response.status_code, 200)
+
+        self.assertIn(name, show_hunt_response.data)
+
+        # this doesn't work here but it works in the interface
+        for participant in participants:
+            self.assertIn(participant, show_hunt_response.data)
 
 
 if __name__ == '__main__':
