@@ -105,11 +105,18 @@ def hunts():
             # this was the only way i could get this to work in tests
             # but if i remove this section it would still work in the
             # interface/browser
-            hunt.participants = []
+            hunt.participants = []  # to overide the blank participant
             for email in request.form.getlist('participants'):
                 p = Participant()
                 p.email = email
                 hunt.participants.append(p)
+
+            hunt.items = []  # to overide the blank item
+            for item_name in request.form.getlist('items'):
+                item = Item()
+                item.name = item_name
+                hunt.items.append(item)
+
 
             # todo: session manager
             db.session.add(hunt)

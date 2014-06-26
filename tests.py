@@ -56,6 +56,7 @@ class HuntTestCase(unittest.TestCase):
                     name=uuid.uuid4().hex,
                     participants=[email(None)],
                     items=[uuid.uuid4().hex], all_required=True):
+        # this is the real problem. not sure how to send in the data correctly
         return self.app.post(
             '/hunts',
             data=dict(
@@ -117,6 +118,9 @@ class HuntTestCase(unittest.TestCase):
         # this doesn't work here but it works in the interface
         for participant in participants:
             self.assertIn(participant, show_hunt_response.data)
+
+        for item in items:
+            self.assertIn(item, show_hunt_response.data)
 
 
 if __name__ == '__main__':
