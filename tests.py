@@ -2,21 +2,26 @@ import unittest
 import uuid
 
 from flask import g
+from werkzeug.datastructures import ImmutableMultiDict
 
 from hunt import db, app
 
 app.config['DEBUG'] = True
 
 
+def identifier():
+    return uuid.uuid4().hex
+
+
 class HuntTestCase(unittest.TestCase):
     def email(self):
-        return '{}@example.com'.format(uuid.uuid4().hex)
+        return '{}@example.com'.format(identifier())
 
     def setUp(self):
         self.app = app.test_client()
         db.create_all()
         email = self.email()
-        password = uuid.uuid4().hex
+        password = identifier()
         self.create_admin(email=email, password=password)
         self.admin = {'email': email, 'password': password}
         self.logout()
@@ -25,7 +30,7 @@ class HuntTestCase(unittest.TestCase):
         self.logout()
         db.session.remove()
         db.drop_all()
-        db.create_all()
+        # db.create_all()  # for interface
 
     def login(self, username, password):
         return self.app.post('/login', data=dict(
@@ -47,27 +52,34 @@ class HuntTestCase(unittest.TestCase):
     def test_admin_login(self):
         response = self.app.get('/hunts')
         self.assertNotIn('Scavenger Hunt List', response.data)
-
         response = self.login(self.admin['email'], self.admin['password'])
 
         self.assertIn('Scavenger Hunt List', response.data)
 
     def create_hunt(self,
-                    name=uuid.uuid4().hex,
+                    name=identifier(),
                     participants=[email(None)],
-                    items=[uuid.uuid4().hex], all_required=True):
-        # this is the real problem. not sure how to send in the data correctly
+                    items=[identifier()], all_required=True):
+
+        participants = [
+            ('participants-{}-email'.format(index), email)
+            for (index, email) in enumerate(participants)
+        ]
+        items = [
+            ('items-{}-name'.format(index), itemname)
+            for (index, itemname) in enumerate(items)
+        ]
+        forminfo = participants + items + [('all_required', True), ('name', name)]
+        imdict = ImmutableMultiDict(forminfo)
         return self.app.post(
             '/hunts',
-            data=dict(
-                name=name, participants=participants,
-                items=items, all_required=all_required),
+            data=imdict,
             follow_redirects=True)
 
     def create_admin(
-            self, first_name=uuid.uuid4().hex, last_name=uuid.uuid4().hex,
+            self, first_name=identifier(), last_name=identifier(),
             email=email(None),
-            password=uuid.uuid4().hex):
+            password=identifier()):
         return self.app.post('/admins', data=dict(
             first_name=first_name, last_name=last_name, email=email,
             password=password
@@ -79,7 +91,7 @@ class HuntTestCase(unittest.TestCase):
         self.assertIn('Admin Signup', response.data)
 
         email = self.email()
-        password = uuid.uuid4().hex
+        password = identifier()
 
         response = self.create_admin(email=email, password=password)
         self.assertEqual(response.status_code, 200)
@@ -99,11 +111,9 @@ class HuntTestCase(unittest.TestCase):
 
     def test_create_and_show_hunt(self):
         self.login(self.admin['email'], self.admin['password'])
-        name = uuid.uuid4().hex
-
+        name = identifier()
         participants = [self.email() for _ in xrange(2)]
-        items = [uuid.uuid4().hex for _ in xrange(2)]
-
+        items = [identifier() for _ in xrange(2)]
         create_hunt_response = self.create_hunt(
             name=name, participants=participants, items=items)
 
@@ -114,7 +124,6 @@ class HuntTestCase(unittest.TestCase):
         self.assertEqual(show_hunt_response.status_code, 200)
 
         self.assertIn(name, show_hunt_response.data)
-
         # this doesn't work here but it works in the interface
         for participant in participants:
             self.assertIn(participant, show_hunt_response.data)

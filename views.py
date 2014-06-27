@@ -46,7 +46,7 @@ def login():
             return redirect(url_for('hunts'))
         logger.debug('invalid email or password')
         flash('Invalid email or password')
-    logger.debug('rendering login page')
+    logger.debug('rendering login page: %s', session)
     return render_template('login.html', error=error, form=form)
 
 
@@ -93,7 +93,6 @@ def admins():
 @app.route('/hunts', methods=['GET', 'POST'])
 @login_required
 def hunts():
-    logger.debug('/hunts session: %s', session)
     if request.method == 'POST':
         logger.debug('request form in create hunts: %s', request.form)
         hunt = Hunt()
@@ -102,37 +101,23 @@ def hunts():
             hunt.owner = session['admin_id']
             form.populate_obj(hunt)
 
-            # this was the only way i could get this to work in tests
-            # but if i remove this section it would still work in the
-            # interface/browser
-            hunt.participants = []  # to overide the blank participant
-            for email in request.form.getlist('participants'):
-                p = Participant()
-                p.email = email
-                hunt.participants.append(p)
-
-            hunt.items = []  # to overide the blank item
-            for item_name in request.form.getlist('items'):
-                item = Item()
-                item.name = item_name
-                hunt.items.append(item)
-
-
             # todo: session manager
             db.session.add(hunt)
             db.session.commit()
             logger.debug('hunt p: %s', hunt.participants)
-
+            logger.debug('hunt i: %s', hunt.items)
             flash('New scavenger hunt added', 'success')
             return redirect(url_for('hunts'))
         else:
             flash('some error msg about invalid form')
             return render_template('new_hunt.html', form=form)
     else:   # request.method == 'GET':
-        logger.debug('rendering hunts table')
-        hunts = db.session.query(Hunt).filter(
-            Hunt.owner == session['admin_id']).all()
-        return render_template('hunts.html', hunts=hunts)
+        if session.get('logged_in'):  # why was this necessary?
+            logger.debug('rendering hunts table: %s', session)
+            hunts = db.session.query(Hunt).filter(
+                Hunt.owner == session['admin_id']).all()
+            return render_template('hunts.html', hunts=hunts)
+        return render_template('hunts.html')
 
 
 # edit and/or view hunt
@@ -233,7 +218,7 @@ def new_participant():
         return 'you are not on the list of participants for this hunt' # make template
 
 
-@app.route('/oops', methods=['POST'])
+@app.route('/oops', methods=['GET', 'POST'])
 def oops():
     resp = make_response(render_template('goodbye.html'))
     # for testing. delete later.
