@@ -18,8 +18,8 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('logged_in'):
-            redirect(url_for('login'))
             flash('login required')
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -111,12 +111,10 @@ def hunts():
             flash('some error msg about invalid form')
             return render_template('new_hunt.html', form=form)
     else:   # request.method == 'GET':
-        if session.get('logged_in'):  # why was this necessary?
-            logger.debug('rendering hunts table: %s', session)
-            hunts = db.session.query(Hunt).filter(
-                Hunt.owner == session['admin_id']).all()
-            return render_template('hunts.html', hunts=hunts)
-        return render_template('hunts.html')
+        logger.debug('rendering hunts table: %s', session)
+        hunts = db.session.query(Hunt).filter(
+            Hunt.owner == session['admin_id']).all()
+        return render_template('hunts.html', hunts=hunts)
 
 
 # edit and/or view hunt

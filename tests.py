@@ -24,6 +24,7 @@ class HuntTestCase(unittest.TestCase):
         password = identifier()
         self.create_admin(email=email, password=password)
         self.admin = {'email': email, 'password': password}
+        print self.admin
         self.logout()
 
     def tearDown(self):
@@ -50,11 +51,15 @@ class HuntTestCase(unittest.TestCase):
         self.assertIn('log in', response.data)
 
     def test_admin_login(self):
-        response = self.app.get('/hunts')
-        self.assertNotIn('Scavenger Hunt List', response.data)
+        # test that admin can login
         response = self.login(self.admin['email'], self.admin['password'])
-
         self.assertIn('Scavenger Hunt List', response.data)
+
+    def test_pages_requiring_login(self):
+        self.create_hunt()
+        for route in ['/hunts', 'hunts/1']:
+            response = self.app.get('/hunts', follow_redirects=True)
+            self.assertIn('login required', response.data)
 
     def create_hunt(self,
                     name=identifier(),
@@ -72,9 +77,7 @@ class HuntTestCase(unittest.TestCase):
         forminfo = participants + items + [('all_required', True), ('name', name)]
         imdict = ImmutableMultiDict(forminfo)
         return self.app.post(
-            '/hunts',
-            data=imdict,
-            follow_redirects=True)
+            '/hunts', data=imdict, follow_redirects=True)
 
     def create_admin(
             self, first_name=identifier(), last_name=identifier(),
@@ -148,12 +151,14 @@ class HuntTestCase(unittest.TestCase):
                 'name': username
             },
             follow_redirects=True)
+
         self.assertEqual(response.status_code, 200)
         self.assertIn(
             "{}! you found {}".format(username, item_name),
             response.data
         )
 
+    def test_prevent_unlisted_new_participant(self):
         # participant is not on the whitelist
         response = self.app.post(
             '/new_participant',
@@ -161,7 +166,7 @@ class HuntTestCase(unittest.TestCase):
                 'email': self.email(),
                 'hunt_id': 1,
                 'item_id': 1,
-                'name': username
+                'name': 'some name'
             },
             follow_redirects=True)
         self.assertEqual(response.status_code, 200)
