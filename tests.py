@@ -1,7 +1,6 @@
 import unittest
 import uuid
 
-from flask import g
 from werkzeug.datastructures import ImmutableMultiDict
 
 from hunt import db, app
@@ -31,7 +30,7 @@ class HuntTestCase(unittest.TestCase):
         self.logout()
         db.session.remove()
         db.drop_all()
-        # db.create_all()  # for interface
+        db.create_all()  # for interface
 
     def login(self, username, password):
         return self.app.post('/login', data=dict(
