@@ -66,8 +66,8 @@ class HuntTestCase(unittest.TestCase):
             for (index, email) in enumerate(participants)
         ]
         items = [
-            ('items-{}-name'.format(index), itemname)
-            for (index, itemname) in enumerate(items)
+            ('items-{}-name'.format(index), item_name)
+            for (index, item_name) in enumerate(items)
         ]
         forminfo = participants + items + [('all_required', True), ('name', name)]
         imdict = ImmutableMultiDict(forminfo)
@@ -131,6 +131,44 @@ class HuntTestCase(unittest.TestCase):
         for item in items:
             self.assertIn(item, show_hunt_response.data)
 
+    def test_new_participant(self):
+        self.login(self.admin['email'], self.admin['password'])
+        username = identifier()
+        email = self.email()
+        item_name = identifier()
+        self.create_hunt(participants=[email], items=[item_name])
+
+        # participant is on the whitelist
+        response = self.app.post(
+            '/new_participant',
+            data={
+                'email': email,
+                'hunt_id': 1,
+                'item_id': 1,
+                'name': username
+            },
+            follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            "{}! you found {}".format(username, item_name),
+            response.data
+        )
+
+        # participant is not on the whitelist
+        response = self.app.post(
+            '/new_participant',
+            data={
+                'email': self.email(),
+                'hunt_id': 1,
+                'item_id': 1,
+                'name': username
+            },
+            follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            'you are not on the list of participants for this hunt',
+            response.data
+        )
 
 if __name__ == '__main__':
     unittest.main()

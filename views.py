@@ -104,8 +104,7 @@ def hunts():
             # todo: session manager
             db.session.add(hunt)
             db.session.commit()
-            logger.debug('hunt p: %s', hunt.participants)
-            logger.debug('hunt i: %s', hunt.items)
+
             flash('New scavenger hunt added', 'success')
             return redirect(url_for('hunts'))
         else:
@@ -186,8 +185,10 @@ def get_started(hunt_id, item_id):
 def new_participant():
     # currently there's client-side check that these are not empty
     # but need to put in serverside validations
+    logger.debug('partip form: %s', request.form)
     email = request.form['email']
-    hunt_id = request.args['hunt_id']
+    # hunt_id = request.args['hunt_id']
+    hunt_id = request.form['hunt_id']
 
     # check that the participant is on this hunt's whitelist
     listed_participant = db.session.query(Participant)\
@@ -203,7 +204,8 @@ def new_participant():
         session['name'] = name
 
         # replace with wtf
-        item_id = request.args.get('item_id')
+        # item_id = request.args.get('item_id')
+        item_id = request.form['item_id']
         redirect_url = '/hunts/{}/items/{}'.format(hunt_id, item_id)
 
         logger.info(
