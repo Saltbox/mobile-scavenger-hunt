@@ -58,6 +58,7 @@ def logout():
     for prop in ['admin_id', 'user_id', 'logged_in', 'name']:
         session.pop(prop, None)
     # logger.debug('logout session: %s', session)
+
     return redirect(url_for('login'))
 
 
@@ -200,7 +201,7 @@ def show_item(hunt_id, item_id):
     item = db.session.query(Item)\
         .filter(Hunt.hunt_id == hunt_id) \
         .filter(Item.item_id == item_id).first()
-
+    logger.debug('session: %s', session)
     if item:
         if session.get('user_id'):
             return make_response(render_template(
@@ -262,4 +263,5 @@ def oops():
     # for testing. delete later.
     session['user_id'] = ''
     session['admin_id'] = ''
+
     return resp
