@@ -30,7 +30,7 @@ class HuntTestCase(unittest.TestCase):
         self.logout()
         db.session.remove()
         db.drop_all()
-        db.create_all()  # for interface
+        # db.create_all()  # for interface
 
     def login(self, username, password):
         return self.app.post('/login', data=dict(
@@ -49,10 +49,9 @@ class HuntTestCase(unittest.TestCase):
         response = self.logout()
         self.assertIn('log in', response.data)
 
-    def test_admin_login(self):
-        # test that admin can login
-        response = self.login(self.admin['email'], self.admin['password'])
-        self.assertIn('Scavenger Hunt List', response.data)
+    def test_login_invalid_username(self):
+        response = self.login(identifier(), identifier())
+        self.assertIn('Invalid email or password', response.data)
 
     def test_pages_requiring_login(self):
         self.create_hunt()
@@ -65,6 +64,7 @@ class HuntTestCase(unittest.TestCase):
                     participants=[email(None)],
                     items=[identifier()], all_required=True):
 
+        # this is how wtforms-alchemy expects data
         participants = [
             ('participants-{}-email'.format(index), email)
             for (index, email) in enumerate(participants)
@@ -126,12 +126,20 @@ class HuntTestCase(unittest.TestCase):
         self.assertEqual(show_hunt_response.status_code, 200)
 
         self.assertIn(name, show_hunt_response.data)
-        # this doesn't work here but it works in the interface
         for participant in participants:
             self.assertIn(participant, show_hunt_response.data)
 
         for item in items:
             self.assertIn(item, show_hunt_response.data)
+
+    def submit_new_participant(self, email, username):
+        return self.app.post(
+            '/new_participant?hunt_id=1&item_id=1',
+            data={
+                'email': email,
+                'name': username
+            },
+            follow_redirects=True)
 
     def test_new_participant(self):
         self.login(self.admin['email'], self.admin['password'])
@@ -141,15 +149,7 @@ class HuntTestCase(unittest.TestCase):
         self.create_hunt(participants=[email], items=[item_name])
 
         # participant is on the whitelist
-        response = self.app.post(
-            '/new_participant',
-            data={
-                'email': email,
-                'hunt_id': 1,
-                'item_id': 1,
-                'name': username
-            },
-            follow_redirects=True)
+        response = self.submit_new_participant(email, username)
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(
@@ -159,20 +159,16 @@ class HuntTestCase(unittest.TestCase):
 
     def test_prevent_unlisted_new_participant(self):
         # participant is not on the whitelist
-        response = self.app.post(
-            '/new_participant',
-            data={
-                'email': self.email(),
-                'hunt_id': 1,
-                'item_id': 1,
-                'name': 'some name'
-            },
-            follow_redirects=True)
+        response = self.submit_new_participant(self.email(), identifier())
         self.assertEqual(response.status_code, 200)
         self.assertIn(
             'you are not on the list of participants for this hunt',
             response.data
         )
+
+    def test_no_email_for_new_participant(self):
+        response = self.submit_new_participant(None, identifier())
+        self.assertEqual(response.status_code, 400)
 
 if __name__ == '__main__':
     unittest.main()

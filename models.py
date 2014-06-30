@@ -37,7 +37,7 @@ class Participant(db.Model):
     __tablename__ = 'participants'
     participant_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50))
-    email = db.Column(db.String(50))
+    email = db.Column(db.String(50), nullable=False)
     hunt_id = db.Column(db.Integer, db.ForeignKey('hunts.hunt_id'))
 
     def __repr__(self):
@@ -47,7 +47,7 @@ class Participant(db.Model):
 class Item(db.Model):
     __tablename__ = 'items'
     item_id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50))
+    name = db.Column(db.String(50), nullable=False)
     hunt_id = db.Column(db.Integer, db.ForeignKey('hunts.hunt_id'))
     required = db.Column(db.Boolean)
 

@@ -2,12 +2,10 @@
 {% block userbody %}
 <div class="userinfo">
   Enter your name and email
-  <form action="/new_participant"
+  <form action="/new_participant?hunt_id={{hunt_id}}&item_id={{item_id}}"
         method="POST" id="userinfo-form">
     {{form.name(placeholder="Name or Alias")}}
     {{form.email(placeholder="email@example.org")}}
-    <input type="hidden" name="hunt_id" value="{{hunt_id}}">
-    <input type="hidden" name="item_id" value="{{item_id}}">
     <input type="submit" value="Submit">
   </form>
 </div>
