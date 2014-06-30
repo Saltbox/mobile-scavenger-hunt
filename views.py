@@ -1,15 +1,18 @@
 from flask import session, abort, flash, url_for, make_response, request, \
-    render_template, redirect
+    render_template, redirect, send_file
 from functools import wraps
 
-from models import *
-from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm
 
 import datetime
 import uuid
+import io
 import os
 
+from models import Hunt, Participant, Item, Admin, db
+from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm
 from hunt import app, logger
+
+import qrcode
 
 
 #################### ADMIN ROUTES ####################
@@ -135,6 +138,44 @@ def show_hunt(hunt_id):
 def new_hunt():
     logger.debug('rendering new hunt page')
     return render_template('new_hunt.html', form=HuntForm())
+
+
+def item_path(hunt_id, item_id):
+    app_root = os.path.dirname(os.path.abspath(__file__))
+    return "{}/hunts/{}/items/{}".format(app_root, hunt_id, item_id)
+
+
+@app.route('/hunts/<hunt_id>/qrcodes')
+def show_item_codes(hunt_id):
+    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
+    if hunt:
+        # must figure out how to get multiple on one page without google
+        item_paths = [
+            {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
+            for item in hunt.items
+        ]
+        return make_response(render_template(
+            'qrcodes.html', item_paths=item_paths))
+    else:
+        abort(404)
+
+
+def create_qrcode_binary(qrcode):
+    output = io.BytesIO()
+    qrcode.save(output, 'PNG')
+    return output.getvalue()
+
+
+@app.route('/hunts/<int:hunt_id>/items/<int:item_id>/qrcode', methods=['GET'])
+def show_item_code(hunt_id, item_id):
+    # add check for hunt id and item id
+    code = qrcode.make(item_path(hunt_id, item_id))
+    hex_data = create_qrcode_binary(code)
+
+    response = make_response(hex_data)
+    response.headers['Content-Type'] = 'image/png'
+    response.headers['Content-Disposition'] = 'filename=qrcode-hunt-{}-item-{}.jpg'.format(hunt_id, item_id)
+    return response
 
 
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
