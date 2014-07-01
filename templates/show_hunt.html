@@ -1,13 +1,50 @@
 {% extends "admin_layout.html" %}
 {% block adminbody %}
   {% if session.logged_in %}
-  <div>
-    {{hunt.name}}<br>
-    {{hunt.hunt_id}}
-    {{hunt.participants}}
-    {{hunt.items}}
-    {{hunt.last_modified}}
-    {{hunt.all_required}}
+  <div class="container content">
+    <h2>Hunt: {{hunt.name}}</h2>
+    Created: {{hunt.date_created}} <!-- filter me later -->
+    <h3>Participants</h3>
+      <table class="table table-condensed">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for participant in hunt.participants %}
+          <tr>
+            <td>{{participant.name or "(blank)"}}</td>
+            <td>{{participant.email}}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    <h3>Items</h3>
+    {% if hunt.all_required %}
+      All items required for participant to be successful
+    {% else %}
+      Only some items required for participant to be successful
+    {% endif %}
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th>Required</th>
+          <th>Item Name</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in hunt.items %}
+        <tr>
+          <td>{{item.required}}</td>
+          <td>{{item.name}}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+
   {% endif %}
 {% endblock %}
