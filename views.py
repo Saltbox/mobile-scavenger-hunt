@@ -74,7 +74,7 @@ def admins():
     admin = Admin()
     form = AdminForm(request.form)
     if request.method == 'POST':
-        # logger.debug('attempting to create admin')
+        # logger.debug('attempting to create admin: %s', request.form)
         if form.validate():
             form.populate_obj(admin)
             db.session.add(admin)
