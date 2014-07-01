@@ -1,3 +1,12 @@
+@font-face {
+  font-family: 'SegoeUI';
+  src: url('../fonts/segoeui.ttf');
+}
+
+* {
+  font-family: 'SegoeUI', Helvetica Neue, Helvetica, Arial !important;
+}
+
 body {
   padding-top: 50px;
 }
@@ -8,6 +17,11 @@ span.participant-list-item {
 
 div.container {
   margin: 0;
+}
+
+div.container.content{
+  padding: 40px;
+  font-size: 20px;
 }
 
 .disabled-link:hover {
@@ -41,7 +55,9 @@ input.form-control {
   border-radius: 0;
 }
 
-/*********** login page ***********/
+.form-group > div {
+  padding-left: 0;
+}
 
 div.user.container {
   background: url('../img/loginbg.jpg') no-repeat center center fixed;
@@ -57,5 +73,3 @@ div.user.container {
   opacity:0.9;
   margin-top:30px;
 }
-
-/*.form-group.last { margin-bottom:0px; }*/
