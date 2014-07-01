@@ -1,5 +1,22 @@
-
+<div>
+  <button class="btn btn-default" onclick="printCodes()">Print QR Codes</button>
+</div>
+<div id="qrcodes">
 {% for item in item_paths %}
-    Item: {{item.name}}
-    <img src='https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=' + "{{item.path}}">
+  Item: {{item.name}}
+  <img src='https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=' + "{{item.path}}">
 {% endfor %}
+</div>
+  <script type="text/javascript">
+    // thanks! http://stackoverflow.com/questions/12997123/print-specific-part-of-webpage
+    function printCodes() {
+      var codes = document.getElementById("qrcodes");
+      console.log(codes);
+      var sectionPrint = window.open('', '', 'letf=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+      sectionPrint.document.write(codes.innerHTML);
+      sectionPrint.document.close();
+      sectionPrint.focus();
+      sectionPrint.print();
+      // sectionPrint.close();
+    }
+  </script>

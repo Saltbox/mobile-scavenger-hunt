@@ -6,7 +6,6 @@ from functools import wraps
 import datetime
 import uuid
 import io
-import os
 
 from models import Hunt, Participant, Item, Admin, db
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm
@@ -143,8 +142,7 @@ def new_hunt():
 
 
 def item_path(hunt_id, item_id):
-    app_root = os.path.dirname(os.path.abspath(__file__))
-    return "{}/hunts/{}/items/{}".format(app_root, hunt_id, item_id)
+    return "{}/hunts/{}/items/{}".format(request.path, hunt_id, item_id)
 
 
 @app.route('/hunts/<hunt_id>/qrcodes')
