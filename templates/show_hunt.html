@@ -2,48 +2,69 @@
 {% block adminbody %}
   {% if session.logged_in %}
   <div class="container content">
-    <h2>Hunt: {{hunt.name}}</h2>
-    Created: {{hunt.date_created}} <!-- filter me later -->
-    <h3>Participants</h3>
-      <table class="table table-condensed">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for participant in hunt.participants %}
-          <tr>
-            <td>{{participant.name or "(blank)"}}</td>
-            <td>{{participant.email}}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
-    <h3>Items</h3>
-    {% if hunt.all_required %}
-      All items required for participant to be successful
-    {% else %}
-      Only some items required for participant to be successful
-    {% endif %}
-    <table class="table table-condensed">
-      <thead>
-        <tr>
-          <th>Required</th>
-          <th>Item Name</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in hunt.items %}
-        <tr>
-          <td>{{item.required}}</td>
-          <td>{{item.name}}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="row">
+      <div class="panel-default titlerow col-md-12">
+        <div>
+          <h1>Hunt: {{hunt.name}}</h1>
+          Created: {{hunt.date_created}} <!-- filter me later -->
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 half">
+        <div class="panel-default">
+          <div class="panel-body">
+            <h3>Participants</h3>
+            <table class="table table-condensed">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for participant in hunt.participants %}
+                <tr>
+                  <td>{{participant.name or "<em>blank</em>"|safe}}</td>
+                  <td>{{participant.email}}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 half">
+        <div class="panel-default">
+          <div class="panel-body">
+            <h3>Items</h3>
+            <table class="table table-condensed">
+              <thead>
+                <tr>
+                  <th>Required</th>
+                  <th>Item Name</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in hunt.items %}
+                <tr>
+                  <td>{{item.required}}</td>
+                  <td>{{item.name}}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <span style="font-size: 18px;">
+            {% if hunt.all_required %}
+              All items required for participant to be successful
+            {% else %}
+              Only some items required for participant to be successful
+            {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   {% endif %}

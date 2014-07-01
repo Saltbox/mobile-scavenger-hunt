@@ -26,19 +26,11 @@ div.container {
 
 div.container.content{
   padding: 40px;
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .content .form-group {
   margin-bottom: 25px;
-}
-
-.form-group .table {
-  margin-top: 25px;
-}
-
-.disabled-link:hover {
-  color: initial;
 }
 
 button.btn {
@@ -51,8 +43,46 @@ button.btn-default {
   border-color: lightgray;
 }
 
-.table {
-  font-size: 18px;
+.titlerow {
+  background-color: #0D48FF;
+  color: white;
+  padding-top: 50px;
+}
+
+.titlerow * {
+  vertical-align: bottom;
+}
+
+/*curse you min-height!*/
+
+div.row {
+  margin-top: 10px;
+  margin-right: 0;
+  margin-left: 0;
+}
+
+div.half {
+  min-height: 300px;
+}
+
+div.col-md-6.half,
+.titlerow {
+  padding-top: 10px;
+  padding-left: 0;
+}
+
+div.col-md-6.half:first-child {
+  padding-right: 20px;
+}
+
+@media (max-width: 900px) {
+  div.col-md-6.half:first-child {
+    padding-right: 0;
+  }
+}
+
+div.col-md-6.half:last-child {
+  padding-right: 0;
 }
 
 div.panel {
@@ -63,9 +93,11 @@ div.panel-default {
   border: none;
 }
 
-div.panel-default > .panel-heading {
+div.panel-default > .panel-heading,
+.panel-body {
   background: #60c4e2;
   border: none;
+  color: white;
 }
 
 input.form-control {
@@ -86,7 +118,23 @@ div.user.container {
   height: 600px;
 }
 
-.panel-default {
-  opacity:0.9;
-  margin-top:30px;
+.form-group .table {
+  margin-top: 25px;
+}
+
+.table {
+  font-size: 20px;
+}
+
+.table > thead > tr .th {
+  vertical-align: middle;
+}
+
+nav.navbar-inverse {
+  background: none; /*override previous*/
+  background-color: black; /*then set new*/
+}
+
+nav.navbar-inverse .navbar-brand {
+  color: white;
 }
