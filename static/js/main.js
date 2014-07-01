@@ -21,9 +21,6 @@ $(document).ready(function() {
     var fieldInput = $('input#' + fieldType + '-template');
     var fieldValue = fieldInput.val();
 
-    //  note for monday or saturday or whenever. names aren't being submitted to participant or item. i think it's count related
-
-
     if (fieldValue) {
       // find smarter way to do this
       if (fieldType == 'items') {
@@ -38,7 +35,7 @@ $(document).ready(function() {
         var validEmailRegex = /[\w-]+@([\w-]+\.)+[\w-]+/;
         if (validEmailRegex.test(fieldValue)) {
           $('#participant-names').append(
-            '<span class="participant-list-item">' + fieldValue + '</span>'
+            '<li>' + fieldValue + '</li>'
           );
           var newField = '<input type="hidden" name="participants-' + participantCount +'-email" value="' + fieldValue +'">';
           $('#items-group .input-group').append(newField);
@@ -79,6 +76,4 @@ $(document).ready(function() {
   $("td.requireditem :checkbox").change(function (t, e) {
     console.log('t e', t, e);
   });
-
-
 });

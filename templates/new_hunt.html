@@ -1,97 +1,94 @@
 {% extends "admin_layout.html" %}
 {% block adminbody %}
   {% if session.logged_in %}
-  <form action="{{ url_for('hunts') }}" method="post" class="form-horizontal" role="form">
-    {% if error %}
-      <p class="alert">Error: {{error}}</p>
-    {% endif %}
-    {% if form.errors %}
-      <ul class="errors">
-        {% for field_name, field_errors in form.errors|dictsort if field_errors %}
-          {% for error in field_errors %}
-              <li>{{ form[field_name].label }}: {{ error }}</li>
+  <div class="container content">
+    <form action="{{ url_for('hunts') }}" method="post" class="form-horizontal" role="form">
+      {% if error %}
+        <p class="alert">Error: {{error}}</p>
+      {% endif %}
+      {% if form.errors %}
+        <ul class="errors">
+          {% for field_name, field_errors in form.errors|dictsort if field_errors %}
+            {% for error in field_errors %}
+                <li>{{ form[field_name].label }}: {{ error }}</li>
+            {% endfor %}
           {% endfor %}
-        {% endfor %}
-      </ul>
-    {% endif %}
-    <div class="row">
-      <div class="col-md-4">
-        <div class="form-group">
-          <label>Hunt Name</label>
-          <div>{{form.name(class="form-control", required=true)}}</div>
+        </ul>
+      {% endif %}
+      <div class="col-md-6 col-md-offset-3">
+        <div class="row">
+          <div class="form-group">
+            <label>Hunt Name</label>
+            {{form.name(class="form-control", required=true)}}
+          </div>
         </div>
-      </div>
-      <div class="col-md-4" id="participant-names">
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-4">
-        <div class="form-group" id="participants-group">
-          <label>Participant Emails</label>
+        <div class="row">
+          <div class="form-group" id="participants-group">
+            <label>Participant Emails</label>
             <div class="input-group">
-            <input class="form-control" type="email" id="participants-template">
-            <span class="input-group-btn">
-              <button class="btn btn-default" type="button" id="add-participant">
-                Add
-              </button>
-            </span>
+              <input class="form-control" type="email" id="participants-template">
+              <span class="input-group-btn">
+                <button class="btn btn-default" type="button" id="add-participant">
+                  Add
+                </button>
+              </span>
+            </div>
+            <ul id="participant-names">
+            </ul>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-4">
-        <div class="form-group">
-          <label class="control-label">
-            Require finding all items for success
-          </label>
-          {{ form.all_required(type="radio", value="true") }}
-          <label class="control-label">
-            Require finding only some items for success
-          </label>
-          {{ form.all_required(type="Radio", value="false")}}
-          </br>
-        </div>
-        <div class="form-group">
-          <label>Number of items required</label>
-          <input type="number" name="num_required" class="form-control" min=0>
-        </div>
-        <div class="form-group" id="items-group">
-          <label>Add items</label>
-          <div class="input-group">
-            <input class="form-control" type="text" id="items-template">
-            <span class="input-group-btn">
-              <button class="btn btn-default" type="button" id="add-item">
-                Add
-              </button>
-            </span>
+        <div class="row">
+          <div class="form-group">
+            {{ form.all_required(type="radio", value="true") }}
+            <label class="control-label">
+              Require finding all items for success
+            </label></br>
+            {{ form.all_required(type="radio", value="false")}}
+            <label class="control-label">
+              Require finding only some items for success
+            </label>
+          </div>
+          <div class="form-group">
+            <label>Number of items required</label>
+            <input type="number" name="num_required" class="form-control" min=0>
+          </div>
+          <div class="form-group" id="items-group">
+            <label>Add items</label>
+            <div class="input-group">
+              <input class="form-control" type="text" id="items-template">
+              <span class="input-group-btn">
+                <button class="btn btn-default" type="button" id="add-item">
+                  Add
+                </button>
+              </span>
+            </div>
+            <table class="table table-condensed">
+              <thead>
+                <tr>
+                  <th class="requireditem">Required</th>
+                  <th>Item Name</th>
+                  <!-- <th>QR Code</th> -->
+                </tr>
+              </thead>
+              <tbody id="item-tbody">
+                <tr>
+                  <td class="requireditem">
+                    <input type="checkbox" checked="checked" disabled>
+                  </td>
+                  <td><em>ex. Accounting Department</em></td>
+                  <!-- <td><button class="btn btn-default"><em>View</em></button></td> -->
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
-      <div class="col-md-8">
-        <table class="table table-condensed">
-          <thead>
-            <tr>
-              <th class="requireditem">Required</th>
-              <th>Item Name</th>
-              <!-- <th>QR Code</th> -->
-            </tr>
-          </thead>
-          <tbody id="item-tbody">
-            <tr>
-              <td class="requireditem">
-                <input type="checkbox" checked="checked" disabled>
-              </td>
-              <td><em>ex. Accounting Department</em></td>
-              <!-- <td><button class="btn btn-default"><em>View</em></button></td> -->
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <div class="form-group">
+          <button class="btn btn-primary pull-right" type="submit">
+            Submit Hunt
+          </button>
+        </div>
+      </form>
     </div>
-    <div class="form-group">
-      <button class="btn btn-default" type="submit">Submit Hunt</button>
-    </div>
-  </form>
+  </div>
   {% endif %}
 {% endblock %}

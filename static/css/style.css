@@ -15,6 +15,11 @@ span.participant-list-item {
   margin: 10px;
 }
 
+ul#participant-names {
+  margin: 15px 0;
+  white-space: normal;
+}
+
 div.container {
   margin: 0;
 }
@@ -22,6 +27,14 @@ div.container {
 div.container.content{
   padding: 40px;
   font-size: 20px;
+}
+
+.content .form-group {
+  margin-bottom: 25px;
+}
+
+.form-group .table {
+  margin-top: 25px;
 }
 
 .disabled-link:hover {
@@ -36,6 +49,10 @@ button.btn {
 
 button.btn-default {
   border-color: lightgray;
+}
+
+.table {
+  font-size: 18px;
 }
 
 div.panel {

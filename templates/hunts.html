@@ -1,6 +1,7 @@
 {% extends "admin_layout.html" %}
 {% block adminbody %}
   {% if session.logged_in %}
+  <div class="container">
     <span>
       <h3>Scavenger Hunt List</h3>
       <a class="btn btn-default pull-right" href="/new_hunt">Create New Hunt</a>
@@ -25,9 +26,10 @@
           <td>{{ hunt.last_modified }}</td>
         </tr>
       {% else %}
-        <em>No scavenger hunts have been created yet
+        <em>No scavenger hunts have been created yet</em>
       {% endfor %}
       </tbody>
     </table>
+  </div>
   {% endif %}
 {% endblock %}
