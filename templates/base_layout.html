@@ -11,13 +11,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <script src="{{ url_for('static', filename='js/vendor/modernizr-2.6.2-respond-1.1.0.min.js') }}"></script>
-    <link rel="stylesheet" href="/static/dist/css_all.css"/>
+    <!-- <link rel="stylesheet" href="/static/dist/css_all.css"/> -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-theme.min.css">
   </head>
   <nav class="navbar navbar-fixed-top navbar-inverse" role="navigation">
     <div class="container">
       <div class="navbar-header">
         {% if session.logged_in %}
           <a href="/hunts" class="navbar-brand">Mobile Scavenger Hunt</a>
+        {% else %}
+          <span class="navbar-brand disabled-link">Mobile Scavenger Hunt</span>
         {% endif %}
       </div>
       <div class="pull-right">
@@ -30,28 +35,19 @@
     </div>
   </nav>
   <body>
-  <div class="container">
-    <!-- Example row of columns -->
-    <div class="row">
-      <div class="col-md-12" id="main">
-        {% for category, message in get_flashed_messages(with_categories=true) %}
-          <p class="bg-{{category}}">{{ message }}</p>
-        {% endfor %}
-        {% block body %}{% endblock %}
-      </div>
-    </div>
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <p class="bg-{{category}}">{{ message }}</p>
+    {% endfor %}
+    {% block body %}{% endblock %}
 
-    <hr>
-
-    <footer>
+<!--     <footer>
       <p>&copy; Saltbox 2014</p>
-    </footer>
-  </div> <!-- /container -->
+    </footer> -->
 
-  <script type="text/javascript" src="static/js/vendor/jquery-1.11.0.min.js"></script>
-  <script type="text/javascript" src="static/js/vendor/bootstrap.min.js"></script>
-  {% assets "my_js" %}
-    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-  {% endassets %}
+    <script type="text/javascript" src="static/js/vendor/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="static/js/vendor/bootstrap.min.js"></script>
+    {% assets "my_js" %}
+      <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %}
   </body>
 </html>
