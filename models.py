@@ -27,6 +27,9 @@ class Hunt(db.Model):
     all_required = db.Column(db.Boolean)
     num_required = db.Column(db.Integer)
 
+    welcome_message = db.Column(db.String(500))
+    congratulations_message = db.Column(db.String(500))
+
     owner = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
 
     def __repr__(self):

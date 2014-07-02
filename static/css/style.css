@@ -15,8 +15,8 @@ span.participant-list-item {
   margin: 10px;
 }
 
-label {
-  font-size: 24px;
+.container.content label {
+  font-size: 20px;
 }
 
 ul#participant-names {
@@ -126,6 +126,10 @@ div.panel-default > .panel-heading,
   background: #60c4e2;
   border: none;
   color: white;
+}
+
+.panel-body {
+  min-height: 215px;
 }
 
 .panel-rect {

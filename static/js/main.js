@@ -20,14 +20,14 @@ $(document).ready(function() {
     var fieldName = createName(count);
     var fieldInput = $('input#' + fieldType + '-template');
     var fieldValue = fieldInput.val();
-
+    var newField;
     if (fieldValue) {
       // find smarter way to do this
       if (fieldType == 'items') {
         $('#item-tbody').append(
           "<tr>" + tdCheckbox(itemCount) + tdItem(fieldValue) + "</tr>"
         );
-        var newField = '<input type="hidden" name="items-' + itemCount +'-name" value="' + fieldValue +'">';
+        newField = '<input type="hidden" name="items-' + itemCount +'-name" value="' + fieldValue +'">';
         $('#participants-group .input-group').append(newField);
         itemCount += 1;
       }
@@ -37,7 +37,7 @@ $(document).ready(function() {
           $('#participant-names').append(
             '<li>' + fieldValue + '</li>'
           );
-          var newField = '<input type="hidden" name="participants-' + participantCount +'-email" value="' + fieldValue +'">';
+          newField = '<input type="hidden" name="participants-' + participantCount +'-email" value="' + fieldValue +'">';
           $('#items-group .input-group').append(newField);
           participantCount += 1;
         }
@@ -73,7 +73,29 @@ $(document).ready(function() {
     }
   });
 
-  $("td.requireditem :checkbox").change(function (t, e) {
+  $("td.requireditem :checkbox").change(function(t, e) {
     console.log('t e', t, e);
+  });
+
+  $('input[name=messagetoggle]').change(function(event) {
+    if (event.target.value == 'default') {
+      $('textarea[name=welcome_message]').val(
+        "Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'."
+      );
+    }
+    else {
+      $('textarea[name=welcome_message]').val('');
+    }
+  });
+
+  $('input[name=congratulationstoggle]').change(function(event) {
+    if (event.target.value == 'default') {
+      $('textarea[name=congratulations_message]').val(
+        "Congratulations! You have successfully completed the scavenger hunt."
+      );
+    }
+    else {
+      $('textarea[name=congratulations_message]').val('');
+    }
   });
 });
