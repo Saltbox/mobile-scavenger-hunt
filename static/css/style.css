@@ -15,6 +15,10 @@ span.participant-list-item {
   margin: 10px;
 }
 
+label {
+  font-size: 24px;
+}
+
 ul#participant-names {
   margin: 15px 0;
   white-space: normal;

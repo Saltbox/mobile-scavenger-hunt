@@ -49,7 +49,8 @@ def login():
         # logger.debug('invalid email or password')
         flash('Invalid email or password')
     # logger.debug('rendering login page: %s', session)
-    return render_template('login.html', error=error, form=form)
+    return render_template(
+        'login.html', error=error, form=form, display_login_link=True)
 
 
 @app.route('/logout')
@@ -91,7 +92,8 @@ def admins():
         flash(
             'There was an error creating your admin profile. Please try again')
     # logger.debug('rendering admin signup')
-    return render_template('admin_signup.html', form=form)
+    return render_template(
+        'admin_signup.html', form=form, display_login_link=True)
 
 
 # create or list hunts

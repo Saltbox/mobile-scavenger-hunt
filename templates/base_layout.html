@@ -26,10 +26,12 @@
         {% endif %}
       </div>
       <div class="pull-right">
-        {% if not session.logged_in %}
-          <a href="{{ url_for('login') }}">log in</a>
-        {% else %}
-          <a href="{{ url_for('logout') }}">log out</a>
+        {% if not display_login_link %}
+          {% if not session.logged_in %}
+            <a href="{{ url_for('login') }}">log in</a>
+          {% else %}
+            <a href="{{ url_for('logout') }}">log out</a>
+          {% endif %}
         {% endif %}
       </div>
     </div>
