@@ -3,10 +3,10 @@
   {% if session.logged_in %}
   <div class="container content">
     <div class="row">
-      <div class="panel-default titlerow col-md-12">
-        <div>
+      <div class="panel-default titlerow">
+        <div class="panel-rect fullwidth">
           <h1>Hunt: {{hunt.name}}</h1>
-          Created: {{hunt.date_created}} <!-- filter me later -->
+          <span>Created: {{hunt.date_created}}</span> <!-- filter me later -->
         </div>
       </div>
     </div>

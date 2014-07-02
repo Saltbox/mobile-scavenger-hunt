@@ -4,7 +4,6 @@
 }
 
 * {
-  font-family: 'SegoeUI', Helvetica Neue, Helvetica, Arial !important;
 }
 
 body {
@@ -20,13 +19,17 @@ ul#participant-names {
   white-space: normal;
 }
 
+.center {
+  text-align: center;
+  vertical-align: middle;
+}
+
 div.container {
   margin: 0;
 }
 
 div.container.content{
   padding: 40px;
-  font-size: 24px;
 }
 
 .content .form-group {
@@ -43,14 +46,34 @@ button.btn-default {
   border-color: lightgray;
 }
 
-.titlerow {
-  background-color: #0D48FF;
-  color: white;
-  padding-top: 50px;
+.hugeicon {
+  font-size: 60px;
 }
 
-.titlerow * {
-  vertical-align: bottom;
+.titlerow {
+  padding-top: 50px;
+  margin-bottom: 10px;
+}
+
+div.titlerow.col-md-12 {
+  padding-left: 0;
+}
+
+.titlerow h3, .titlerow h1, .titlerow span {
+  padding-left: 15px;
+  padding-bottom: 5px;
+}
+
+.titlerow .fullwidth {
+  width: 100%;
+}
+
+.titlerow div:first-child {
+  background-color: #0D48FF;
+}
+
+.titlerow div {
+  display: inline-block;
 }
 
 /*curse you min-height!*/
@@ -98,6 +121,26 @@ div.panel-default > .panel-heading,
   background: #60c4e2;
   border: none;
   color: white;
+}
+
+.panel-rect {
+  padding: 15px;
+  min-width: 125px;
+  min-height: 125px;
+  vertical-align: bottom;
+  color: white;
+}
+
+.rect8 {
+  width: 75%;
+}
+
+.rect2 {
+  width: 24%;
+}
+
+.secondary {
+  background-color: #0DFFB2;
 }
 
 input.form-control {
