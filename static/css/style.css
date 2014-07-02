@@ -90,7 +90,7 @@ div.row {
 }
 
 div.half {
-  min-height: 300px;
+  min-height: 250px;
 }
 
 div.col-md-6.half,
@@ -115,6 +115,8 @@ div.col-md-6.half:last-child {
 
 div.panel {
   border-radius: 0;
+  padding-left: 0;
+  box-shadow: none;
 }
 
 div.panel-default {
@@ -126,10 +128,6 @@ div.panel-default > .panel-heading,
   background: #60c4e2;
   border: none;
   color: white;
-}
-
-.panel-body {
-  min-height: 215px;
 }
 
 .panel-rect {
@@ -149,7 +147,23 @@ div.panel-default > .panel-heading,
 }
 
 .secondary {
-  background-color: #0DFFB2;
+  background-color: #60c4e2;
+}
+
+.tertiary {
+  background-color: #FF7F00;
+}
+
+.tertiary a {
+  color: white;
+}
+
+.lists .panel-body.secondary {
+  min-height: 215px;
+}
+
+.messages .panel-body.tertiary {
+  min-height: 100px;
 }
 
 input.form-control {

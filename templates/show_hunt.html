@@ -10,10 +10,10 @@
         </div>
       </div>
     </div>
-    <div class="row">
+    <div class="row lists">
       <div class="col-md-6 half">
         <div class="panel-default">
-          <div class="panel-body">
+          <div class="panel-body secondary">
             <h3>Participants</h3>
             <table class="table table-condensed">
               <thead>
@@ -36,7 +36,7 @@
       </div>
       <div class="col-md-6 half">
         <div class="panel-default">
-          <div class="panel-body">
+          <div class="panel-body secondary">
             <h3>Items</h3>
             <table class="table table-condensed">
               <thead>
@@ -63,6 +63,32 @@
             </span>
           </div>
         </div>
+      </div>
+    </div>
+    <div class="row messages">
+      <div class="col-md-8 panel">
+        <div class="panel-default">
+          <div class="panel-body tertiary">
+            <h3>Welcome Message</h3>
+            {{hunt.welcome_message}}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        placeholder
+      </div>
+    </div>
+    <div class="row messages">
+      <div class="col-md-8 panel">
+        <div class="panel-default">
+          <div class="panel-body tertiary">
+            <h3>Congratulation Message</h3>
+            {{hunt.congratulations_message}}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        placeholder
       </div>
     </div>
   </div>
