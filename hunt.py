@@ -24,24 +24,20 @@ css_all = Bundle(
     output='dist/css_all.css'
 )
 
-my_js = Bundle(
-    'js/*.js',
+js_all = Bundle(
+    'js/vendor/jquery-1.11.0.min.js',  # order matters
+    'js/vendor/*.js', 'js/*.js',
     filters='jsmin',
-    output='dist/my_js.js'
+    output='dist/js_all.js'
 )
 
-vendor_js = Bundle(
-    'js/vendor/*.js',
-    output='dist/vendor_js.js'
-)
-
+assets.register('js_all', js_all)
 assets.register('css_all', css_all)
-assets.register('my_js', my_js)
 
+assets.add(js_all)
 assets.add(css_all)
-assets.add(my_js)
 
-my_js.build()
+js_all.build()
 css_all.build()
 
 

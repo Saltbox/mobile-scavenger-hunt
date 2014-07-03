@@ -11,10 +11,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <script src="{{ url_for('static', filename='js/vendor/modernizr-2.6.2-respond-1.1.0.min.js') }}"></script>
-    <!-- <link rel="stylesheet" href="/static/dist/css_all.css"/> -->
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/static/css/bootstrap-theme.min.css">
+
+    {% assets "css_all" %}
+      <link rel="stylesheet" href="{{ ASSET_URL }}">
+    {% endassets %}
   </head>
   <nav class="navbar navbar-fixed-top navbar-inverse" role="navigation">
     <div class="container">
@@ -42,13 +42,7 @@
     {% endfor %}
     {% block body %}{% endblock %}
 
-<!--     <footer>
-      <p>&copy; Saltbox 2014</p>
-    </footer> -->
-
-    <script type="text/javascript" src="static/js/vendor/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="static/js/vendor/bootstrap.min.js"></script>
-    {% assets "my_js" %}
+    {% assets "js_all" %}
       <script type="text/javascript" src="{{ ASSET_URL }}"></script>
     {% endassets %}
   </body>
