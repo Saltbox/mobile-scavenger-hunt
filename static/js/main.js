@@ -12,42 +12,59 @@ $(document).ready(function() {
     return "<td>" + item_name + "</td>";
   };
 
-  var createName = function(itemCount) {
+  var itemName = function(itemCount) {
     return 'items-' + itemCount + '-name';
   };
 
+  var addItemRow = function(itemCount, fieldValue) {
+    $('#item-tbody').append(
+      "<tr>" + tdCheckbox(itemCount) + tdItem(fieldValue) + "</tr>"
+    );
+  };
+
+  var addParticipantLi = function(fieldValue) {
+    $('#participant-emails').append('<li>' + fieldValue + '</li>');
+  };
+
+  var addNewField = function(fieldType, name, fieldValue) {
+    var newField = $('<input type="hidden">').attr('name', name)
+                                             .attr('value', fieldValue);
+    $('#' + fieldType + '-group .input-group').append(newField);
+  };
+
   var addInput = function(fieldType, count) {
-    var fieldName = createName(count);
+    var fieldName = itemName(count);
     var fieldInput = $('input#' + fieldType + '-template');
     var fieldValue = fieldInput.val();
     var newField;
+
     if (fieldValue) {
       // find smarter way to do this
       if (fieldType == 'items') {
-        $('#item-tbody').append(
-          "<tr>" + tdCheckbox(itemCount) + tdItem(fieldValue) + "</tr>"
-        );
-        newField = '<input type="hidden" name="items-' + itemCount +'-name" value="' + fieldValue +'">';
-        $('#participants-group .input-group').append(newField);
+        addItemRow(itemCount, fieldValue);
+        addNewField('items', 'items-' + itemCount + "-name", fieldValue);
+
         itemCount += 1;
       }
       else {
         var validEmailRegex = /[\w-]+@([\w-]+\.)+[\w-]+/;
         if (validEmailRegex.test(fieldValue)) {
-          $('#participant-names').append(
-            '<li>' + fieldValue + '</li>'
-          );
-          newField = '<input type="hidden" name="participants-' + participantCount +'-email" value="' + fieldValue +'">';
-          $('#items-group .input-group').append(newField);
+          addParticipantLi(fieldValue);
+          addNewField('participants', 'participants-' + participantCount + '-email', fieldValue);
+
           participantCount += 1;
         }
         else {
-          // do some sort of error display
+          $('#participant-error').show();
         }
       }
       fieldInput.val('');
     }
   };
+
+  $("#participants-template").keypress(function() {
+    $('#participant-error').hide();
+  });
 
   // add item to table and list for later submission
   $("#add-item").on("click", (function() {

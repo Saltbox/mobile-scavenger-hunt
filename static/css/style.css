@@ -208,3 +208,7 @@ nav.navbar-inverse {
 nav.navbar-inverse .navbar-brand {
   color: white;
 }
+
+#participant-error {
+  color: red;
+}

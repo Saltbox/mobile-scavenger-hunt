@@ -33,7 +33,10 @@
                 </button>
               </span>
             </div>
-            <ul id="participant-names">
+            <div id="participant-error" style="display: none;">
+              Please enter a valid email address
+            </div>
+            <ul id="participant-emails">
             </ul>
           </div>
         </div>
@@ -84,9 +87,9 @@
         </div>
         <div class="row panel">
           <h3>Participant Welcome Message</h3>
-          <input type="radio" name="messagetoggle" value="default">
+          <input type="radio" name="messagetoggle" value="default" required>
           <label class="control-label">Use default welcome message</label><br>
-          <input type="radio" name="messagetoggle" value="custom">
+          <input type="radio" name="messagetoggle" value="custom" required>
           <label class="control-label">Create custom welcome message</label>
 
           <div class="form-group">
@@ -95,9 +98,9 @@
         </div>
         <div class="row">
           <h3>Participant Congratulations Message</h3>
-          <input type="radio" name="congratulationstoggle" value="default">
+          <input type="radio" name="congratulationstoggle" value="default" required>
           <label class="control-label">Use default congratulations message</label><br>
-          <input type="radio" name="congratulationstoggle" value="custom">
+          <input type="radio" name="congratulationstoggle" value="custom" required>
           <label class="control-label">Create custom congratulations message</label>
           <div class="form-group">
             <textarea name="congratulations_message" style="width: 100%; height: 100px;" maxlength=500></textarea>
