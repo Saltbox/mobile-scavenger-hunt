@@ -98,28 +98,32 @@ $(document).ready(function() {
     console.log('t e', t, e);
   });
 
-  // toggle default/custom welcome message
-  $('input[name=messagetoggle]').change(function(event) {
+  var toggleTextarea = function(textareaSelector, defaultMsg) {
+    if ($(textareaSelector).is(':hidden')) {
+      $(textareaSelector).show(500);
+    }
     if (event.target.value == 'default') {
-      $('textarea[name=welcome_message]').val(
-        "Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'."
-      );
+      $(textareaSelector).val(defaultMsg);
     }
     else {
-      $('textarea[name=welcome_message]').val('');
+      $(textareaSelector).val('');
     }
+  };
+
+  // toggle default/custom welcome message
+  $('input[name=messagetoggle]').change(function(event) {
+    toggleTextarea(
+      "textarea[name=welcome_message]",
+      "Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'."
+    );
   });
 
   // toggle default/custom congratulations message
   $('input[name=congratulationstoggle]').change(function(event) {
-    if (event.target.value == 'default') {
-      $('textarea[name=congratulations_message]').val(
-        "Congratulations! You have successfully completed the scavenger hunt."
-      );
-    }
-    else {
-      $('textarea[name=congratulations_message]').val('');
-    }
+    toggleTextarea(
+      'textarea[name=congratulations_message]',
+      "Congratulations! You have successfully completed the scavenger hunt."
+    );
   });
 
   $('.uglytime').each(function(index, e) {

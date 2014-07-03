@@ -89,8 +89,6 @@ div.titlerow.col-md-12 {
   display: inline-block;
 }
 
-/*curse you min-height!*/
-
 div.row {
   margin-top: 10px;
   margin-right: 0;
@@ -219,4 +217,9 @@ nav.navbar-inverse .navbar-brand {
 
 #participant-error {
   color: red;
+}
+
+textarea {
+  min-height: 100px;
+  width: 100%;
 }
