@@ -31,10 +31,10 @@
             <tr>
               <td><a href="/hunts/{{hunt.hunt_id}}">{{ hunt.name }}</a></td>
               <td>
-                <a href="/hunts/{{hunt.hunt_id}}/qrcodes">QR Codes</a>
+                <a href="/hunts/{{hunt.hunt_id}}/qrcodes" class="btn btn-default btn-sm">View</a>
               </td>
-              <td>{{ hunt.date_created }}</td>
-              <td>{{ hunt.last_modified }}</td>
+              <td class="uglytime">{{ hunt.date_created }}</td>
+              <td class="uglytime">{{ hunt.last_modified }}</td>
             </tr>
           {% else %}
             <em>No scavenger hunts have been created yet</em>
