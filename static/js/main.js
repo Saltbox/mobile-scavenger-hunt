@@ -4,8 +4,14 @@ $(document).ready(function() {
   var itemCount = 0;  // no. maybe make a class or something.
   var participantCount = 0;
 
+  var itemRequiredName = function(index) {
+    return "items-" + index + "-required";
+  };
+
   var tdCheckbox = function(index) {
-    return "<td><input type='checkbox' id='item" + index + "' onclick='toggleRequired(" + index + ")'></td>";
+    // return "<td><input type='checkbox' id='item" + index + "' onclick='toggleRequired(" + index + ")'></td>";
+    return "<td><input type='checkbox' class='hunt-items' name='" + itemRequiredName(index) + "'></td>";
+    // return "<td><input type='checkbox' id='item" + index +"'></td>";
   };
 
   var tdItem = function(item_name) {
@@ -94,8 +100,11 @@ $(document).ready(function() {
   });
 
   // toggle for whether or not an item is required
-  $("td.requireditem :checkbox").change(function(t, e) {
-    console.log('t e', t, e);
+  // parent needed to help detect dynamically added content
+  var $parent = $('#items-group .table.table-condensed');
+  $($parent).on("change", ".hunt-items", function(e) {
+    console.log('e', e);
+    console.log($(e).parent().index());
   });
 
   var toggleTextarea = function(textareaSelector, defaultMsg) {
