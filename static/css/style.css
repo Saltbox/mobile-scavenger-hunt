@@ -43,6 +43,7 @@ input[name=endpoint] {
 
 div.container {
   margin: 0;
+  padding: 0;
 }
 
 div.container.content{
@@ -90,7 +91,7 @@ div.titlerow.col-md-12 {
 }
 
 .titlerow div {
-  display: inline-block;
+  /*display: inline-block;*/
 }
 
 div.row {
@@ -146,14 +147,6 @@ div.panel-default > .panel-heading,
   min-height: 125px;
   vertical-align: bottom;
   color: white;
-}
-
-.rect8 {
-  width: 75%;
-}
-
-.rect2 {
-  width: 24%;
 }
 
 .secondary {

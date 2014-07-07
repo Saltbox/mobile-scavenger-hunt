@@ -28,10 +28,10 @@
       <div class="pull-right">
         {% if not display_login_link %}
           {% if not session.logged_in %}
-            <a href="{{ url_for('login') }}">log in</a>
+            <a href="{{ url_for('login') }}">Login</a>
           {% else %}
-            <a href="{{ url_for('settings') }}">Settings</a>
-            <a href="{{ url_for('logout') }}">log out</a>
+            <a href="{{ url_for('settings') }}">Settings</a> |
+            <a href="{{ url_for('logout') }}">Logout</a>
           {% endif %}
         {% endif %}
       </div>

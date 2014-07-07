@@ -3,19 +3,20 @@
   {% if session.logged_in %}
   <div class="container content">
     <form action="{{ url_for('hunts') }}" method="post" class="form-horizontal" role="form">
-      {% if error %}
-        <p class="alert">Error: {{error}}</p>
-      {% endif %}
-      {% if form.errors %}
-        <ul class="errors">
-          {% for field_name, field_errors in form.errors|dictsort if field_errors %}
-            {% for error in field_errors %}
-                <li>{{ form[field_name].label }}: {{ error }}</li>
-            {% endfor %}
-          {% endfor %}
-        </ul>
-      {% endif %}
       <div class="col-md-6 col-md-offset-3">
+        <h1>Create New Hunt</h1>
+        {% if error %}
+          <p class="alert">Error: {{error}}</p>
+        {% endif %}
+        {% if form.errors %}
+          <ul class="errors">
+            {% for field_name, field_errors in form.errors|dictsort if field_errors %}
+              {% for error in field_errors %}
+                  <li>{{ form[field_name].label }}: {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        {% endif %}
         <div class="row">
           <div class="form-group">
             <label>Hunt Name</label>
@@ -106,10 +107,12 @@
             <textarea name="congratulations_message" maxlength=500 style="display: none;"></textarea>
           </div>
         </div>
-        <div class="form-group">
-          <button class="btn btn-primary pull-right" type="submit">
-            Submit Hunt
-          </button>
+        <div class="row">
+          <div class="form-group">
+            <button class="btn btn-primary pull-right" type="submit">
+              Submit Hunt
+            </button>
+          </div>
         </div>
       </form>
     </div>

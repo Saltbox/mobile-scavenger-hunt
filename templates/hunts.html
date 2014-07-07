@@ -4,10 +4,10 @@
   <div class="container content">
     <div class="row">
       <div class="panel-default titlerow">
-        <div class="panel-rect rect8">
+        <div class="panel-rect col-sm-12 col-md-10">
           <h2>Scavenger Hunt List</h2>
         </div>
-        <div class="panel-rect tertiary center rect2 pull-right">
+        <div class="panel-rect tertiary center col-sm-12 col-md-2">
           <a class="center" href="/new_hunt">
             <i class="glyphicon glyphicon-plus hugeicon"></i><br>
             Create New Hunt
@@ -15,32 +15,35 @@
         </div>
       </div>
     </div>
-    <div class="panel-default">
-      <div class="panel-body">
-        <table class="table table-condensed">
-          <thead>
-            <tr>
-              <th>Hunt Name</th>
-              <th>QR Codes</th>
-              <th>Date Created</th>
-              <th>Last Modified</th>
-            </tr>
-          </thead>
-          <tbody>
-          {% for hunt in hunts %}
-            <tr>
-              <td><a href="/hunts/{{hunt.hunt_id}}">{{ hunt.name }}</a></td>
-              <td>
-                <a href="/hunts/{{hunt.hunt_id}}/qrcodes" class="btn btn-default btn-sm">View</a>
-              </td>
-              <td class="uglytime">{{ hunt.date_created }}</td>
-              <td class="uglytime">{{ hunt.last_modified }}</td>
-            </tr>
-          {% else %}
-            <em>No scavenger hunts have been created yet</em>
-          {% endfor %}
-          </tbody>
-        </table>
+    <div class="row">
+      <div class="panel-default">
+        <div class="panel-body">
+          <table class="table table-condensed">
+            <thead>
+              <tr>
+                <th>Hunt Name</th>
+                <th>QR Codes</th>
+                <th>Date Created</th>
+                <th>Last Modified</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for hunt in hunts %}
+              <tr>
+                <td><a href="/hunts/{{hunt.hunt_id}}">{{ hunt.name }}</a></td>
+                <td>
+                  <a href="/hunts/{{hunt.hunt_id}}/qrcodes"
+                     class="btn btn-default btn-sm">View</a>
+                </td>
+                <td class="uglytime">{{ hunt.date_created }}</td>
+                <td class="uglytime">{{ hunt.last_modified }}</td>
+              </tr>
+            {% else %}
+              <em>No scavenger hunts have been created yet</em>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
