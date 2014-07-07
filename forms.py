@@ -40,3 +40,8 @@ class HuntForm(ModelForm):
     participants = ModelFieldList(
         FormField(ParticipantForm), min_entries=1)
     items = ModelFieldList(FormField(ItemForm), min_entries=1)
+
+
+class SettingForm(ModelForm):
+    class Meta:
+        model = models.Setting

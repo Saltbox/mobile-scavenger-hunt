@@ -29,7 +29,7 @@ class Hunt(db.Model):
 
     welcome_message = db.Column(db.String(500))
     congratulations_message = db.Column(db.String(500))
-
+    # maybe change this to 'admin'
     owner = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
 
     def __repr__(self):
@@ -56,3 +56,12 @@ class Item(db.Model):
 
     def __repr__(self):
         return '<Item %r>' % self.name
+
+
+class Setting(db.Model):
+    __tablename__ = 'settings'
+    settings_id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
+    endpoint = db.Column(db.String(500))
+    login = db.Column(db.String(50))
+    password = db.Column(db.String(50))  # todo: something more private

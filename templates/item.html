@@ -1,4 +1,5 @@
 {% extends "user_layout.html" %}
 {% block userbody %}
-    {{username}}! you found {{item.name}}
+  {{username}}! you found {{item.name}}<br>
+  you still have {{total_items - num_found}} items left to find out of {{total_items}}
 {% endblock %}

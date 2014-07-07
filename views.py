@@ -6,15 +6,17 @@ from functools import wraps
 import datetime
 import uuid
 import io
+import json
 
-from models import Hunt, Participant, Item, Admin, db
-from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm
+from models import Hunt, Participant, Item, Admin, db, Setting
+from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, SettingForm
 from hunt import app, logger
 
 import qrcode
-
+import requests
 
 #################### ADMIN ROUTES ####################
+
 
 def login_required(f):
     @wraps(f)
@@ -119,6 +121,7 @@ def hunts():
             return render_template('new_hunt.html', form=form)
     else:   # request.method == 'GET':
         # logger.debug('rendering hunts table: %s', session)
+        logger.debug('session %s', session)
         hunts = db.session.query(Hunt).filter(
             Hunt.owner == session['admin_id']).all()
         return render_template('hunts.html', hunts=hunts)
@@ -176,8 +179,102 @@ def show_item_code(hunt_id, item_id):
 
     response = make_response(hex_data)
     response.headers['Content-Type'] = 'image/png'
-    response.headers['Content-Disposition'] = 'filename=qrcode-hunt-{}-item-{}.jpg'.format(hunt_id, item_id)
+    disposition = 'filename=qrcode-hunt-{}-item-{}.jpg'.format(hunt_id, item_id)
+    response.headers['Content-Disposition'] = disposition
     return response
+
+
+def get_setting(admin_id):
+    return db.session.query(Setting).filter(
+        Setting.admin_id == admin_id).first()
+
+
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    logger.debug('in settings')
+    if request.method == 'POST':
+        setting = get_setting(session['admin_id']) or Setting()
+        form = SettingForm(request.form)
+        logger.debug('here')
+        if form.validate():
+            setting.admin_id = session['admin_id']
+            form.populate_obj(setting)
+            logger.debug('setting in post: %s', setting.endpoint)
+            db.session.add(setting)
+            db.session.commit()
+            flash('settings have been updated')
+        else:
+            # get the erros from form. i think it's form.errors
+            flash('Invalid setting information. '
+                  'Please check your form entries and try again.')
+
+    setting = get_setting(session['admin_id'])
+    logger.debug('setting: %s', setting.endpoint)
+    login = getattr(setting, 'login', '')
+    password = getattr(setting, 'password', '')
+    endpoint = getattr(setting, 'endpoint', '')
+
+    return make_response(render_template(
+        'settings.html', login=login, password=password,
+        endpoint=endpoint))
+
+
+def begin_hunt_statement(actor, hunt_id):
+    return {
+        "actor": actor,
+        "verb": {
+            "id": "http://adlnet.gov/expapi/verbs/registered",
+            "display": {
+                "en-US": "registered"
+            }
+        },
+        "object": {
+            "id": "{}/hunts/{}".format(request.host_url, hunt_id),
+            "definition": {
+                "type": "{}/activities/type/scavengerhunt".format(
+                    request.host_url)
+            },
+            "objectType": "Activity"
+        }
+    }
+
+
+def found_item_statement(actor, hunt_id, item_id, parent):
+    return {
+        "actor": actor,
+        "verb": {
+            "id": "{}/verbs/found".format(request.host_url),
+            "display": {
+                "en-US": "found"
+            }
+        },
+        "object": {
+            "id": "{}/hunts/{}".format(request.host_url, hunt_id),
+            "definition": {
+                "type": "{}/activities/type/scavengerhunt".format(
+                    request.host_url)
+            },
+            "objectType": "Activity"
+        },
+        "context": {
+            "contextActivities": {
+                "parent": parent
+            }
+        }
+    }
+
+
+def send_statement(statement):
+    endpoint = 'http://127.0.0.1:6543/TCAPI/statements'  # get from config or db
+    response = requests.post(
+        endpoint,
+        headers={"Content-Type": "application/json", "x-experience-api-version": "1.0.0"},
+        data=json.dumps(statement),
+        auth=('bob', 'orange')  # get from db/config
+    )
+    logger.debug(response.status_code)
+    assert response.status_code == 200
 
 
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
@@ -188,8 +285,7 @@ def show_item_code(hunt_id, item_id):
 def index_items(hunt_id):
     logger.info(
         'preparing to render items for hunt_id, {}'.format(hunt_id))
-    items = db.session.query(Item).filter(
-        Item.hunt_id == hunt_id).all()
+    items = db.session.query(Item).filter(Item.hunt_id == hunt_id).all()
     if items:
         return render_template('items.html', items=items, hunt_id=hunt_id)
     abort(404)
@@ -201,11 +297,34 @@ def show_item(hunt_id, item_id):
     item = db.session.query(Item)\
         .filter(Hunt.hunt_id == hunt_id) \
         .filter(Item.item_id == item_id).first()
-    logger.debug('session: %s', session)
+    logger.debug('session: %s, %s', session, item)
+
+    def get_total_items():
+        return db.session.query(Item).filter(Item.hunt_id == hunt_id).count()
+
     if item:
-        if session.get('user_id'):
+        email = session['email']
+        listed_participant = db.session.query(Participant)\
+            .filter(Participant.hunt_id == hunt_id,
+                    Participant.email == email).first()
+        if listed_participant:
+            actor = {'mbox': 'mailto:{}'.format(session['email'])}
+            parent = {
+                "id": "{}/hunts/{}".format(request.host_url, hunt_id),
+                "definition": {
+                    "type": "{}/activities/type/scavengerhunt".format(request.host_url)
+                },
+                "objectType": "Activity"
+            }
+            statement = found_item_statement(actor, hunt_id, item_id, parent)
+            send_statement(statement)
+
+            #  maybe store total in db
+            total_items = session.setdefault('total_items', get_total_items())
+            num_found = session.setdefault('num_items_found', 0) + 1
             return make_response(render_template(
-                'item.html', item=item, username=session['name']))
+                'item.html', item=item, username=session['name'],
+                num_found=num_found, total_items=total_items))
         else:
             return render_template(
                 'welcome.html', hunt_id=hunt_id, item_id=item_id)
@@ -216,8 +335,7 @@ def show_item(hunt_id, item_id):
 # form for scavenger hunt participant to enter email and name
 @app.route('/get_started/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
 def get_started(hunt_id, item_id):
-    return render_template('get_started.html',
-                           form=ParticipantForm(),
+    return render_template('get_started.html', form=ParticipantForm(),
                            hunt_id=hunt_id, item_id=item_id)
 
 
@@ -240,7 +358,7 @@ def new_participant():
 
             session['user_id'] = user_id
             session['name'] = name
-
+            session['email'] = email
             item_id = request.args.get('item_id')
             redirect_url = '/hunts/{}/items/{}'.format(hunt_id, item_id)
 
@@ -251,9 +369,13 @@ def new_participant():
 
             logger.info('preparing to redirect to: %s', redirect_url)
 
+            send_statement(begin_hunt_statement(
+                {'mbox': 'mailto:{}'.format(email)}, hunt_id))
+
             return make_response(redirect(redirect_url))
         else:
-            return 'you are not on the list of participants for this hunt' # make template
+            return 'you are not on the list of participants for this hunt'
+            # make template
     abort(400)
 
 

@@ -18,18 +18,22 @@ span.participant-list-item {
 .btn.btn-default {
   border-radius: 0;
   background-repeat: no-repeat;
-  border-color: transparent;
+  border-color: lightgray;
   background-color: white;
   background-image: none;
 }
 
 .container.content label {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 ul#participant-names {
   margin: 15px 0;
   white-space: normal;
+}
+
+input[name=endpoint] {
+  min-width: 50%;
 }
 
 .center {
@@ -174,6 +178,15 @@ div.panel-default > .panel-heading,
 
 input.form-control {
   border-radius: 0;
+  width: 100% !important;
+}
+
+div.form-group {
+  width: 100%;
+}
+
+.form-horizontal div.form-group {
+  margin: 0;
 }
 
 .form-group > div {
