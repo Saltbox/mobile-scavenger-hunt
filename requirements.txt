@@ -12,6 +12,7 @@ WTForms-Components==0.9.3
 Werkzeug==0.9.6
 cssmin==0.2.0
 decorator==3.4.0
+gunicorn==19.0.0
 infinity==1.3
 intervals==0.3.0
 itsdangerous==0.24
