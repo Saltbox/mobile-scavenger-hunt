@@ -75,6 +75,7 @@ def admins():
     form = AdminForm(request.form)
     if request.method == 'POST':
         if form.validate():
+            logger.debug('valid admin form submission')
             form.populate_obj(admin)
             db.session.add(admin)
             db.session.commit()
@@ -85,7 +86,7 @@ def admins():
             session['admin_id'] = get_admin(
                 form.email.data, form.password.data).admin_id
             return render_template('hunts.html')
-
+        logger.info('Admin signup form was submitted with invalid information')
         flash(
             'There was an error creating your admin profile. Please try again')
     return render_template(
@@ -108,12 +109,12 @@ def hunts():
             db.session.commit()
 
             flash('New scavenger hunt added', 'success')
+            logger.info('hunt, %s, created for admin with id, %s', hunt.name, hunt.admin_id)
             return redirect(url_for('hunts'))
         else:
             flash('some error msg about invalid form')
             return render_template('new_hunt.html', form=form)
-    else:   # request.method == 'GET':
-        logger.debug('session %s', session)
+    else:
         hunts = db.session.query(Hunt).filter(
             Hunt.admin_id == session['admin_id']).all()
         return render_template('hunts.html', hunts=hunts)
@@ -137,7 +138,7 @@ def new_hunt():
 
 
 def item_path(hunt_id, item_id):
-    return "{}/hunts/{}/items/{}".format(request.path, hunt_id, item_id)
+    return "{}hunts/{}/items/{}".format(request.host_url, hunt_id, item_id)
 
 
 @app.route('/hunts/<hunt_id>/qrcodes')
@@ -234,6 +235,15 @@ def begin_hunt_statement(actor, hunt):
     }
 
 
+def verb_completed():
+    return {
+        "id": "http://adlnet.gov/expapi/verbs/completed",
+        "display": {
+            "en-US": "completed"
+        }
+    }
+
+
 def found_item_statement(actor, hunt, item):
     return {
         "actor": actor,
@@ -264,17 +274,16 @@ def found_item_statement(actor, hunt, item):
 def found_all_required_statement(actor, hunt):
     return {
         'actor': actor,
-        'verb': {
-            "id": "http://adlnet.gov/expapi/verbs/completed",
-            "display": {
-                "en-US": "completed"
-            }
-        },
+        'verb': verb_completed(),
         "object": {
             #activity name suggestions?
             "id": "{}/activities/findallrequired/hunts/{}".format(
                 request.host_url, hunt.hunt_id),
-            "display": "finding all required items for {}".format(hunt.name)
+            "description": {
+                "type": "{}/activities/type/scavengerhunt".format(
+                    request.host_url),
+                "name": "finding all required items for {}".format(hunt.name)
+            }
         }
     }
 
@@ -283,12 +292,7 @@ def found_all_required_statement(actor, hunt):
 def completed_hunt_statement(actor, hunt):
     return {
         'actor': actor,
-        'verb': {
-            "id": "http://adlnet.gov/expapi/verbs/completed",
-            "display": {
-                "en-US": "completed"
-            }
-        },
+        'verb': verb_completed(),
         "object": hunt_activity(hunt)
     }
 
@@ -312,6 +316,10 @@ def get_hunt(hunt_id):
     return db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
 
 
+def get_item(item_id):
+        return db.session.query(Item).filter(Item.item_id == item_id).first()
+
+
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
 
 
@@ -332,13 +340,9 @@ def show_item(hunt_id, item_id):
     item = db.session.query(Item)\
         .filter(Hunt.hunt_id == hunt_id) \
         .filter(Item.item_id == item_id).first()
-    logger.debug('session: %s, %s', session, item)
 
     def get_total_items():
         return db.session.query(Item).filter(Item.hunt_id == hunt_id).count()
-
-    def get_item():
-        return db.session.query(Item).filter(Item.item_id == item_id).first()
 
     if item:
         email = session['email']
@@ -348,7 +352,7 @@ def show_item(hunt_id, item_id):
         if listed_participant:
             actor = {'mbox': 'mailto:{}'.format(email)}
             hunt = get_hunt(hunt_id)
-            item = get_item()
+            item = get_item(item_id)
 
             logger.debug('participant found item, %s, sending statement to wax', item.name)
             send_statement(found_item_statement(actor, hunt, item), hunt.hunt_id)
