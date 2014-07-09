@@ -28,7 +28,7 @@
               </tr>
             </thead>
             <tbody>
-            {% for hunt in hunts %}
+            {% for hunt in hunts | groupby('last_modified') %}
               <tr>
                 <td><a href="/hunts/{{hunt.hunt_id}}">{{ hunt.name }}</a></td>
                 <td>

@@ -23,6 +23,10 @@ span.participant-list-item {
   background-image: none;
 }
 
+.navbar > .container .navbar-brand {
+  margin: 0;
+}
+
 .container.content label {
   font-size: 18px;
 }
@@ -132,6 +136,11 @@ div.panel {
 
 div.panel-default {
   border: none;
+  height: 100%;
+}
+
+div.panel-body {
+  height: 100%;
 }
 
 div.panel-default > .panel-heading,

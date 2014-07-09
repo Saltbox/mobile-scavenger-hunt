@@ -47,7 +47,7 @@ class HuntTestCase(unittest.TestCase):
         self.assertIn('You were logged in', response.data)
 
         response = self.logout()
-        self.assertIn('log in', response.data)
+        self.assertIn('Login', response.data)
 
     def test_login_invalid_username(self):
         response = self.login(identifier(), identifier())

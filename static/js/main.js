@@ -8,7 +8,6 @@ $(document).ready(function() {
   var allItemsRequired = $("input[name=all_required]").val();
   $("input[name=all_required]").change(function() {
     allItemsRequired = $("input[name=all_required]").val();
-    console.log(allItemsRequired);
     if (allItemsRequired) {
       $('input.hunt-items').prop('checked', true);
     }
