@@ -6,22 +6,26 @@ import requests
 
 
 def hunt_activity_id(hunt_id):
-    return "{}/hunts/{}".format(request.host_url, hunt_id)
+    return "{}hunts/{}".format(request.host_url, hunt_id)
 
 
 def hunt_activity(hunt):
     return {
         "id": hunt_activity_id(hunt.hunt_id),
         "definition": {
-            "type": "{}/activities/type/scavengerhunt".format(
+            "type": "{}activities/type/scavengerhunt".format(
                 request.host_url),
-            "name": hunt.name
+            "name": {
+                "und": hunt.name
+            }
         },
         "objectType": "Activity"
     }
 
 
 def begin_hunt_statement(actor, hunt):
+    logger.debug(
+        'participant began hunt. sending statement to Wax')
     return {
         "actor": actor,
         "verb": {
@@ -44,20 +48,24 @@ def verb_completed():
 
 
 def found_item_statement(actor, hunt, item):
+    logger.debug(
+        'participant found item, %s, sending statement to wax', item.name)
     return {
         "actor": actor,
         "verb": {
-            "id": "{}/verbs/found".format(request.host_url),
+            "id": "{}verbs/found".format(request.host_url),
             "display": {
                 "en-US": "found"
             }
         },
         "object": {
-            "id": "{}/hunts/{}".format(request.host_url, hunt.hunt_id),
+            "id": "{}hunts/{}/items/{}".format(request.host_url, hunt.hunt_id, item.item_id),
             "definition": {
-                "type": "{}/activities/type/scavengerhunt".format(
+                "type": "{}activities/type/scavengerhunt".format(
                     request.host_url),
-                "name": "found item {} from {}".format(item.name, hunt.name)
+                "name": {
+                    "und": "found item {} from {}".format(item.name, hunt.name)
+                }
             },
             "objectType": "Activity"
         },
@@ -71,17 +79,21 @@ def found_item_statement(actor, hunt, item):
 
 # participant found all required items but not all items
 def found_all_required_statement(actor, hunt):
+    logger.debug(
+        'participant found required items. sending statement to Wax')
     return {
         'actor': actor,
         'verb': verb_completed(),
         "object": {
             #activity name suggestions?
-            "id": "{}/activities/findallrequired/hunts/{}".format(
+            "id": "{}activities/findallrequired/hunts/{}".format(
                 request.host_url, hunt.hunt_id),
             "description": {
-                "type": "{}/activities/type/scavengerhunt".format(
+                "type": "{}activities/type/scavengerhunt".format(
                     request.host_url),
-                "name": "finding all required items for {}".format(hunt.name)
+                "name": {
+                    "und": "finding all required items for {}".format(hunt.name)
+                }
             }
         }
     }
@@ -89,6 +101,8 @@ def found_all_required_statement(actor, hunt):
 
 # participant found every item
 def completed_hunt_statement(actor, hunt):
+    logger.debug(
+        'participant completed hunt. sending statement to Wax')
     return {
         'actor': actor,
         'verb': verb_completed(),
@@ -106,11 +120,12 @@ def send_statement(statement, setting):
         data=json.dumps(statement),
         auth=(setting.login, setting.password)
     )
-    logger.debug('statement response status: %s', response.status_code)
+    logger.debug('statement response status %s %s for statement: %s', response.status_code, response.text, statement)
     return response
 
 
 def put_state(data, params, setting):
+    logger.debug('setting in put state: %s', setting)
     response = requests.put(
         'https://testsite.waxlrs.com/TCAPI/activities/state',
         params=params,
@@ -157,7 +172,7 @@ def get_state_response(params, setting):
 
 def default_params(email, hunt_id):
     return {
-        'agent': make_agent(email),
+        'agent': json.dumps(make_agent(email)),
         'activityId': "{}/hunts/{}".format(request.host_url, hunt_id),
         'stateId': 'hunt_progress'
     }
@@ -165,8 +180,8 @@ def default_params(email, hunt_id):
 # no. just get rid of this
 def initialize_state_doc(hunt_id, email, params, data, setting):
     params = params or default_params(email, hunt_id)
-    put_state(data, params, setting)
+    return put_state(data, params, setting)
 
 
 def make_agent(email):
-    return json.dumps({'mbox': 'mailto:{}'.format(email)})
+    return {"mbox": "mailto:{}".format(email)}
