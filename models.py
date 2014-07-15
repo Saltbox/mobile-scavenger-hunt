@@ -29,7 +29,6 @@ class Hunt(db.Model):
 
     welcome_message = db.Column(db.String(500))
     congratulations_message = db.Column(db.String(500))
-    # maybe change this to 'admin'
     admin_id = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
 
     def __repr__(self):

@@ -45,12 +45,15 @@
       <div class="col-md-6 half">
         <div class="panel-default">
           <div class="panel-body secondary">
-            <h3>Items</h3>
-            <table class="table table-condensed">
+            <table class="table table-condensed" id="items-table">
               <tbody>
                 {% for item in hunt.items %}
                 <tr>
-                  <td>{{item.required}}</td>
+                  <td class="item-required">
+                    {% if item.required %}
+                    <span class="glyphicon glyphicon-ok"></span>
+                    {% endif %}
+                  </td>
                   <td>{{item.name}}</td>
                 </tr>
                 {% endfor %}
@@ -63,6 +66,29 @@
               Only some items required for participant to be successful
             {% endif %}
             </span>
+          </div>
+        </div>
+        <div class="secondary" style="height: 45px; color: white;">
+          <div class="col-md-10">
+            <div class="input-group">
+              <label class="sr-only">New Item</label>
+              <input class="form-control" type="email" id="more-items">
+              <span class="input-group-addon">
+                <label class="label-control">
+                  <input type="checkbox" name="item-required"> required
+                </label>
+              </span>
+              <span class="input-group-btn">
+                <button class="btn btn-default" type="button" id="more-items-btn">
+                  Add
+                </button>
+              </span>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="pull-right">
+              <span class="glyphicon glyphicon-th-list" style="font-size: 35px;"></span>
+            </div>
           </div>
         </div>
       </div>

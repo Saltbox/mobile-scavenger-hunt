@@ -28,7 +28,8 @@ span.participant-list-item {
 }
 
 .container.content label {
-  font-size: 18px;
+  font-size: 12px;
+  margin-bottom: 0;
 }
 
 ul#participant-names {

@@ -15,6 +15,10 @@ def email():
     return "{}@example.com".format(uuid.uuid4().hex)
 
 
+def randomtext():
+    return uuid.uuid4().hex
+
+
 @given('a hunt')
 def create_hunt(context):
     hunt = Hunt()
@@ -153,20 +157,27 @@ def item_names(context, num):
 
 fake_data = {
     'participant': email,
-    # 'item'
+    'item': randomtext
 }
 
 
-@when('adding a {form_item}')
+step_matcher('re')
+
+
+@when('adding (?:a|an) (?P<form_item>[^"]+)')
 def add_form_item(context, form_item):
     context.added = getattr(context, form_item, {})
     data = fake_data[form_item]()
     context.added[form_item] = getattr(context.added, form_item, [])
     context.added[form_item].append(data)
+
     form = context.browser.find_element_by_css_selector(
         '#more-{}s'.format(form_item)).send_keys(data)
     btn = context.browser.find_element_by_css_selector(
         '#more-{}s-btn'.format(form_item)).click()
+
+
+step_matcher('parse')
 
 
 @when('revisiting the "{path}" page')

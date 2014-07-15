@@ -162,12 +162,13 @@ $(document).ready(function() {
     $(e).text(prettyTime);
   });
 
+  // add new participant from hunt page
   $('#more-participants-btn').click(function() {
     var newParticipantEmail = $('input#more-participants').val();
     $.ajax({
       url: '/new_participant',
       method: 'POST',
-      data: {'email': newParticipantEmail, 'hunt_id': hunt_id}
+      data: {'email': newParticipantEmail, 'hunt_id': hunt_id} // hunt_id is a var in the html
     })
     .success(function() {
       console.log('success new part.');
@@ -176,6 +177,26 @@ $(document).ready(function() {
     })
     .error(function() {
       console.log('fail new part.');
+    });
+  });
+
+  // add new item from hunt page
+  $('#more-items-btn').click(function() {
+    var newItemName = $('input#more-items').val();
+    var itemRequired = $('input[name=item-required]').prop('checked');
+    console.log("item required", itemRequired);
+    $.ajax({
+      url: '/new_item',
+      method: 'POST',
+      data: {'name': newItemName, 'required': itemRequired, 'hunt_id': hunt_id} // hunt_id is a var in the html
+    })
+    .success(function() {
+      console.log('item!');
+      $('#items-table').append(
+        "<tr><td></td><td>" + newItemName + "</td></tr>");
+    })
+    .error(function() {
+      console.log('fail new item');
     });
   });
 });

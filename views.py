@@ -10,7 +10,7 @@ import qrcode
 
 from models import Hunt, Participant, Item, Admin, db, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
-    SettingForm
+    SettingForm, ItemForm
 from hunt import app, logger
 from utils import get_admin, create_qrcode_binary, get_setting, get_hunt, \
     get_item, listed_participant, send_statements, login_required, item_path
@@ -141,6 +141,20 @@ def new_participant():
         db.session.commit()
         return make_response('', 200)
     logger.debug(form.errors)
+    abort(400)
+
+
+@app.route('/new_item', methods=['POST'])
+def new_item():
+    item = Item()
+    form = ItemForm(request.form)
+    if form.validate():
+        form.populate_obj(item)
+        item.hunt_id = request.form['hunt_id']
+        db.session.add(item)
+        db.session.commit()
+        return make_response('', 200)
+    logger.debug('item form errors: %s', form.errors)
     abort(400)
 
 
