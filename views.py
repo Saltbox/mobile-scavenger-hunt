@@ -160,7 +160,8 @@ def new_item():
 
 @app.route('/update_welcome', methods=['POST'])
 def update_welcome():
-    db.session.query(Hunt).update(
+    db.session.query(Hunt).filter(
+        Hunt.hunt_id == request.form['hunt_id']).update(
         {'welcome_message': request.form['welcome_message']})
     db.session.commit()
     return make_response('', 200)

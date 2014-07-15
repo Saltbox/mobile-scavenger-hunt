@@ -212,7 +212,7 @@ $(document).ready(function() {
     $.ajax({
       url: '/update_welcome',
       method: 'POST',
-      data: {'welcome_message': msg}
+      data: {'welcome_message': msg, 'hunt_id': hunt_id}
     })
     .success(function() {
       console.log('updated welcome');

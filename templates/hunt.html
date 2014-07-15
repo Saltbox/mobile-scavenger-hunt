@@ -4,9 +4,15 @@
   <div class="container content">
     <div class="row">
       <div class="panel-default titlerow">
-        <div class="panel-rect col-sm-12 col-md-7">
+        <div class="panel-rect col-sm-12 col-md-5">
           <h1>{{hunt.name}}</h1>
           Created:<span class="uglytime">{{hunt.date_created}}</span> <!-- filter me later -->
+        </div>
+        <div class="panel-rect tertiary center col-sm-12 col-md-2">
+          <a class="center" href="/hunts">
+            <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
+            Hunts
+          </a>
         </div>
         <div class="panel-rect quarternary center col-sm-12 col-md-2">
           <a class="center" href="/settings">
