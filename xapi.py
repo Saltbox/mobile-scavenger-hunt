@@ -52,19 +52,14 @@ def found_item_statement(actor, hunt, item):
         'participant found item, %s, sending statement to wax', item.name)
     return {
         "actor": actor,
-        "verb": {
-            "id": "{}verbs/found".format(request.host_url),
-            "display": {
-                "en-US": "found"
-            }
-        },
+        "verb": verb_completed(),
         "object": {
             "id": "{}hunts/{}/items/{}".format(request.host_url, hunt.hunt_id, item.item_id),
             "definition": {
                 "type": "{}activities/type/scavengerhunt".format(
                     request.host_url),
                 "name": {
-                    "und": "found item {} from {}".format(item.name, hunt.name)
+                    "und": "find item {} from {}".format(item.name, hunt.name)
                 }
             },
             "objectType": "Activity"
@@ -176,11 +171,6 @@ def default_params(email, hunt_id):
         'activityId': "{}/hunts/{}".format(request.host_url, hunt_id),
         'stateId': 'hunt_progress'
     }
-
-# no. just get rid of this
-def initialize_state_doc(hunt_id, email, params, data, setting):
-    params = params or default_params(email, hunt_id)
-    return put_state(data, params, setting)
 
 
 def make_agent(email):

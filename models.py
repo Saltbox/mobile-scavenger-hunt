@@ -22,7 +22,7 @@ class Hunt(db.Model):
     # do i care about timezone aware?
     date_created = db.Column(db.TIMESTAMP, server_default=db.func.now())
     last_modified = db.Column(db.TIMESTAMP, server_default=db.func.now(),
-                              onupdate=db.func.current_time())
+                              onupdate=db.func.now())
     # refers to items required
     all_required = db.Column(db.Boolean)
     num_required = db.Column(db.Integer)
