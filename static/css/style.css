@@ -9,6 +9,7 @@
 
 body {
   padding-top: 50px;
+  background-color: lightcyan;
 }
 
 span.participant-list-item {
@@ -52,7 +53,8 @@ div.container {
 }
 
 div.container.content{
-  padding: 40px;
+  padding-left: 40px;
+  padding-right: 40px;
 }
 
 .content .form-group {
@@ -71,6 +73,7 @@ button.btn-default {
 
 .hugeicon {
   font-size: 60px;
+  color: white;
 }
 
 .titlerow {
@@ -153,10 +156,13 @@ div.panel-default > .panel-heading,
 
 .panel-rect {
   padding: 15px;
-  min-width: 125px;
   min-height: 125px;
   vertical-align: bottom;
   color: white;
+}
+
+.titlerow .panel-rect:first-child {
+  margin-left: 0;
 }
 
 .secondary {
@@ -167,8 +173,39 @@ div.panel-default > .panel-heading,
   background-color: #FF7F00;
 }
 
-.tertiary a {
+.quarternary {
+  background-color: #0CE8E0;
+}
+
+.pentary {
+  background-color:#0C7BE8;
+}
+
+.panel-rect a {
   color: white;
+}
+
+.panel-rect.col-md-7 {
+  width: 64%;
+}
+
+.panel-rect.col-md-5 {
+  width: 46%;
+}
+
+.panel-rect.col-md-2 {
+  margin-left: 1%;
+  width: 17%;
+}
+
+@media(max-width: 768px) {
+  .panel-rect.col-md-2 {
+    width: 100%;
+    margin-left: 0;
+  }
+  .panel-rect.col-md-5 {
+    width: 100%;
+  }
 }
 
 .lists .panel-body.secondary {
@@ -242,3 +279,13 @@ textarea {
 textarea.update {
   color: black;
 }
+
+.table td a {
+  color: white;
+}
+
+.table td a:hover {
+  color: lightgray;
+  text-decoration: underline;
+}
+

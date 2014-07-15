@@ -16,27 +16,7 @@
       <link rel="stylesheet" href="{{ ASSET_URL }}">
     {% endassets %}
   </head>
-  <nav class="navbar navbar-fixed-top navbar-inverse" role="navigation">
-    <div class="container">
-      <div class="navbar-header">
-        {% if session.logged_in %}
-          <a href="/hunts" class="navbar-brand">Mobile Scavenger Hunt</a>
-        {% else %}
-          <span class="navbar-brand disabled-link">Mobile Scavenger Hunt</span>
-        {% endif %}
-      </div>
-      <div class="pull-right">
-        {% if not display_login_link %}
-          {% if not session.logged_in %}
-            <a href="{{ url_for('login') }}">Login</a>
-          {% else %}
-            <a href="{{ url_for('settings') }}">Settings</a> |
-            <a href="{{ url_for('logout') }}">Logout</a>
-          {% endif %}
-        {% endif %}
-      </div>
-    </div>
-  </nav>
+
   <body>
     {% for category, message in get_flashed_messages(with_categories=true) %}
       <p class="bg-{{category}}">{{ message }}</p>

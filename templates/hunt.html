@@ -4,9 +4,21 @@
   <div class="container content">
     <div class="row">
       <div class="panel-default titlerow">
-        <div class="panel-rect fullwidth">
+        <div class="panel-rect col-sm-12 col-md-7">
           <h1>{{hunt.name}}</h1>
           Created:<span class="uglytime">{{hunt.date_created}}</span> <!-- filter me later -->
+        </div>
+        <div class="panel-rect quarternary center col-sm-12 col-md-2">
+          <a class="center" href="/settings">
+            <i class="glyphicon glyphicon-cog hugeicon"></i><br>
+            Settings
+          </a>
+        </div>
+        <div class="panel-rect pentary center col-sm-12 col-md-2">
+          <a class="center" href="/logout">
+            <i class="glyphicon glyphicon-log-out hugeicon"></i><br>
+            Logout
+          </a>
         </div>
       </div>
     </div>
