@@ -161,4 +161,21 @@ $(document).ready(function() {
     var prettyTime = moment(currentTime).format("MM-DD-YYYY");
     $(e).text(prettyTime);
   });
+
+  $('#more-participants-btn').click(function() {
+    var newParticipantEmail = $('input#more-participants').val();
+    $.ajax({
+      url: '/new_participant',
+      method: 'POST',
+      data: {'email': newParticipantEmail, 'hunt_id': hunt_id}
+    })
+    .success(function() {
+      console.log('success new part.');
+      $('#participants-table').append(
+        "<tr><td></td><td>" + newParticipantEmail + "</td></tr>");
+    })
+    .error(function() {
+      console.log('fail new part.');
+    });
+  });
 });

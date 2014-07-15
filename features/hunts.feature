@@ -22,3 +22,16 @@ Feature: Hunts
       And the text, "New scavenger hunt added", appears
       And the hunt name should appear on the page
 
+    @need_admin
+    Scenario: Edit hunt - Add values
+    Given I am logged in
+      And a hunt
+      And I am on the "hunts" page
+     When clicking the hunt's name
+     Then I should be directed to the "hunts/1" page
+     When adding a participant
+     #  And adding an item
+     #  And adding a welcome message
+     #  And adding a congratulations message
+      And revisiting the "hunts/1" page
+     Then the added data should appear on the page

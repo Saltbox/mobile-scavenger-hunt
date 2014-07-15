@@ -1,4 +1,7 @@
+from flask import session
 from functools import wraps
+
+from models import Hunt, Participant, Item, Admin, db, Setting
 
 
 def login_required(f):
@@ -62,3 +65,7 @@ def send_statements(email, hunt, item, state, setting):
         xapi.send_statement(
             xapi.completed_hunt_statement(actor, hunt), setting)
         return make_response(render_template('congratulations.html'))
+
+
+def item_path(hunt_id, item_id):
+    return "{}hunts/{}/items/{}".format(request.host_url, hunt_id, item_id)

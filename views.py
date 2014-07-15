@@ -1,5 +1,5 @@
 from flask import session, abort, flash, url_for, make_response, request, \
-    render_template, redirect, send_file
+    render_template, redirect, send_file, jsonify
 
 import datetime
 import uuid
@@ -13,7 +13,7 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     SettingForm
 from hunt import app, logger
 from utils import get_admin, create_qrcode_binary, get_setting, get_hunt, \
-    get_item, listed_participant, send_statements, login_required
+    get_item, listed_participant, send_statements, login_required, item_path
 
 import xapi
 
@@ -60,7 +60,6 @@ def admins():
     form = AdminForm(request.form)
     if request.method == 'POST':
         if form.validate():
-            logger.debug('valid admin form submission')
             form.populate_obj(admin)
             db.session.add(admin)
             db.session.commit()
@@ -124,8 +123,25 @@ def new_hunt():
     return render_template('new_hunt.html', form=HuntForm())
 
 
-def item_path(hunt_id, item_id):
-    return "{}hunts/{}/items/{}".format(request.host_url, hunt_id, item_id)
+def participant_email_exists(email, hunt_id):
+    return db.session.query.filter(
+        Participant.email == email).filter(Hunt.hunt_id == hunt_id).first()
+
+
+@app.route('/new_participant', methods=['POST'])
+def new_participant():
+    participant = Participant()
+    logger.debug(request.form['hunt_id'])
+    form = ParticipantForm(request.form)
+    if form.validate():
+        form.populate_obj(participant)
+        logger.debug('pa: %s', participant.email)
+        participant.hunt_id = request.form['hunt_id'] # why was this necessary?
+        db.session.add(participant)
+        db.session.commit()
+        return make_response('', 200)
+    logger.debug(form.errors)
+    abort(400)
 
 
 @app.route('/hunts/<hunt_id>/qrcodes')

@@ -180,7 +180,6 @@ div.panel-default > .panel-heading,
 
 input.form-control {
   border-radius: 0;
-  width: 100% !important;
 }
 
 div.form-group {
@@ -214,7 +213,7 @@ div.user.container {
 }
 
 .table {
-  font-size: 20px;
+  font-size: 16px;
 }
 
 .table > thead > tr .th {

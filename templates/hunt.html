@@ -1,0 +1,99 @@
+{% extends "admin_layout.html" %}
+{% block adminbody %}
+  {% if session.logged_in %}
+  <div class="container content">
+    <div class="row">
+      <div class="panel-default titlerow">
+        <div class="panel-rect fullwidth">
+          <h1>{{hunt.name}}</h1>
+          Created:<span class="uglytime">{{hunt.date_created}}</span> <!-- filter me later -->
+        </div>
+      </div>
+    </div>
+    <div class="row lists">
+      <div class="col-md-6 half">
+        <div class="panel-default">
+          <div class="panel-body secondary">
+            <table class="table table-condensed" id="participants-table">
+              {% for participant in hunt.participants %}
+              <tr>
+                <td>{{participant.name or ''}}</td>
+                <td>{{participant.email}}</td>
+              </tr>
+              {% endfor %}
+            </table>
+          </div>
+        </div>
+        <div class="secondary" style="height: 45px; color: white;">
+          <div class="col-md-10">
+            <div class="input-group">
+              <input class="form-control" type="email" id="more-participants">
+              <span class="input-group-btn">
+                <button class="btn btn-default" type="button" id="more-participants-btn">
+                  Add
+                </button>
+              </span>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="pull-right">
+              <span class="glyphicon glyphicon-user" style="font-size: 35px;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 half">
+        <div class="panel-default">
+          <div class="panel-body secondary">
+            <h3>Items</h3>
+            <table class="table table-condensed">
+              <tbody>
+                {% for item in hunt.items %}
+                <tr>
+                  <td>{{item.required}}</td>
+                  <td>{{item.name}}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <span style="font-size: 18px;">
+            {% if hunt.all_required %}
+              All items required for participant to be successful
+            {% else %}
+              Only some items required for participant to be successful
+            {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row messages">
+      <div class="col-md-8 panel">
+        <div class="panel-default">
+          <div class="panel-body tertiary">
+            <h3>Welcome Message</h3>
+            {{hunt.welcome_message}}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        placeholder
+      </div>
+    </div>
+    <div class="row messages">
+      <div class="col-md-8 panel">
+        <div class="panel-default">
+          <div class="panel-body tertiary">
+            <h3>Congratulation Message</h3>
+            {{hunt.congratulations_message}}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        placeholder
+      </div>
+    </div>
+  </div>
+  <script>var hunt_id = '{{hunt.hunt_id}}';</script>
+  {% endif %}
+{% endblock %}

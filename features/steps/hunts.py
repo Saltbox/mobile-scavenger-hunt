@@ -33,12 +33,12 @@ def create_hunt(context):
     db.session.commit()
 
     hunt.items = [item]
-    hunt.admin_id = 1  # because db is dropped each time
+    hunt.admin_id = 1  # fresh db for each scenario
+
     db.session.add(hunt)
     db.session.commit()
 
-    assert db.session.query(Hunt).filter(Hunt.hunt_id == 1).first(), \
-        "Hunt was not created in the database"
+    context.hunt = hunt
 
 
 step_matcher('parse')
@@ -74,12 +74,17 @@ def logged_in(context):
     wait_for_page_change(context)
 
 
-@given('I am on the {pagepath} page')
+@given('I am on the "{pagepath}" page')
 def visit_page(context, pagepath):
     context.browser.get('{}/{}'.format(context.root, pagepath))
 
 
 step_matcher('re')
+
+
+@when("clicking the hunt's name")
+def click_hunt_name(context):
+    click_the_button(context, context.hunt.name)
 
 
 @when(u'clicking the "(?P<value>[^"]+)" button')
@@ -146,26 +151,50 @@ def item_names(context, num):
         field.send_keys(context.items[-1])
         context.browser.find_element_by_css_selector("#add-item").click()
 
+fake_data = {
+    'participant': email,
+    # 'item'
+}
+
+
+@when('adding a {form_item}')
+def add_form_item(context, form_item):
+    context.added = getattr(context, form_item, {})
+    data = fake_data[form_item]()
+    context.added[form_item] = getattr(context.added, form_item, [])
+    context.added[form_item].append(data)
+    form = context.browser.find_element_by_css_selector(
+        '#more-{}s'.format(form_item)).send_keys(data)
+    btn = context.browser.find_element_by_css_selector(
+        '#more-{}s-btn'.format(form_item)).click()
+
+
+@when('revisiting the "{path}" page')
+def revisit_path(context, path):
+    visit_page(context, path)
+
 
 @then('I should be directed to the "{page_path}" page')
 def directed_to(context, page_path):
-    assert context.browser.current_url.endswith(page_path), \
+    assert page_path in context.browser.current_url, \
         "Expected browser to be at the folowing url but is not: {}".format(
             page_path)
+
+
+def missing_text_msg(text):
+    return "Expected {} on the page but did not find it".format(text)
 
 
 @then('the email(s) should appear on the page')
 def participant_emails_appear(context):
     for email in context.emails:
-        assert email in context.browser.page_source, \
-            "Expected {} on the page but did not find it".format(email)
+        assert email in context.browser.page_source, missing_text_msg(email)
 
 
 @then('the item should appear on the page')
 def item_names_appear(context):
     for item in context.items:
-        assert item in context.browser.page_source, \
-            "Expected {} on the page but did not find it".format(item)
+        assert item in context.browser.page_source, missing_text_msg(item)
 
 
 @then('the "{selector_name}" {inputtype} should be displayed')
@@ -178,10 +207,17 @@ def input_selector_appears(context, selector_name, inputtype):
 @then('the hunt name should appear on the page')
 def hunt_name_appears(context):
     assert context.name in context.browser.page_source, \
-        "Expected {} on the page but did not find it".format(context.hunt)
+        missing_text_msg(context.hunt)
 
 
 @then('the text, "{text}", appears')
 def text_appears(context, text):
-    assert text in context.browser.page_source, \
-        "Expected '{}'' on the page but did not find it".format(text)
+    assert text in context.browser.page_source, missing_text_msg(text)
+
+
+@then('the added data should appear on the page')
+def added_data_present(context):
+    for typ in context.added:
+        for obj in context.added[typ]:
+            assert obj in context.browser.page_source, \
+                missing_text_msg(obj)
