@@ -1,15 +1,35 @@
 import unittest
 import uuid
+import json
 
 from werkzeug.datastructures import ImmutableMultiDict
 
 from hunt import db, app
 
+import xapi
+
+
 app.config['DEBUG'] = True
+BASIC_LOGIN = app.config['WAX_LOGIN']
+BASIC_PASSWORD = app.config['WAX_PASSWORD']
+ENDPOINT = app.config['ENDPOINT']
 
 
 def identifier():
     return uuid.uuid4().hex
+
+
+class MockSetting:
+    def __init__(self, login, password, endpoint):
+        self.login = login
+        self.password = password
+        self.endpoint = endpoint
+
+
+class MockHunt:
+    def __init__(self, hunt_id, name):
+        self.hunt_id = hunt_id
+        self.name = name
 
 
 class HuntTestCase(unittest.TestCase):
@@ -19,8 +39,8 @@ class HuntTestCase(unittest.TestCase):
     def setUp(self):
         self.app = app.test_client()
         db.create_all()
-        email = self.email()
-        password = identifier()
+        email = 'dp@email.com'#self.email()
+        password = 'password' #identifier()
         self.create_admin(email=email, password=password)
         self.admin = {'email': email, 'password': password}
         print self.admin
@@ -169,6 +189,56 @@ class HuntTestCase(unittest.TestCase):
     def test_no_email_for_new_participant(self):
         response = self.submit_new_participant(None, identifier())
         self.assertEqual(response.status_code, 400)
+
+    def test_put_state_doc(self):
+        with app.test_request_context('/'):
+            hunt_id = 1
+            session_email = 'email@example.com'
+            params = xapi.default_params(session_email, hunt_id)
+
+            data = {'required_ids': [1, 2]}
+            setting = MockSetting(BASIC_LOGIN, BASIC_PASSWORD, ENDPOINT)
+
+            response = xapi.put_state(json.dumps(data), params, setting)
+            assert response.status_code == 204
+
+            response = xapi.get_state_response(params, setting)
+            assert response.status_code == 200
+            assert response.json() == data
+
+    def test_post_state_doc(self):
+        with app.test_request_context('/'):
+            hunt = MockHunt(1, 'hunt name')
+            statement = {
+                "actor": xapi.make_agent('email@example.com'),
+                "verb": {
+                    "id": "http://adlnet.gov/expapi/verbs/registered",
+                    "display": {
+                        "en-US": "registered"
+                    }
+                },
+                "object": xapi.hunt_activity(hunt)
+            }
+            setting = MockSetting(BASIC_LOGIN, BASIC_PASSWORD, ENDPOINT)
+            response = xapi.send_statement(statement, setting)
+            assert response.status_code == 200
+
+    def test_send_begin_hunt_statement(self):
+        with app.test_request_context('/'):
+            hunt = MockHunt(1, 'hunt name')
+            statement = {
+                "actor": xapi.make_agent('email@example.com'),
+                "verb": {
+                    "id": "http://adlnet.gov/expapi/verbs/registered",
+                    "display": {
+                        "en-US": "registered"
+                    }
+                },
+                "object": xapi.hunt_activity(hunt)
+            }
+            setting = MockSetting(BASIC_LOGIN, BASIC_PASSWORD, ENDPOINT)
+            response = xapi.send_statement(statement, setting)
+            assert response.status_code == 200
 
 if __name__ == '__main__':
     unittest.main()

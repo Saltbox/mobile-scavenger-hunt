@@ -12,18 +12,21 @@ def before_feature(context, feature):
     context.root = 'localhost:5000'
 
 
-def before_tag(context, tag):
+def before_scenario(context, scenario):
     db.drop_all()
     db.create_all()
-    if tag == 'need_admin':
-        admin = Admin()
-        admin.first_name = uuid.uuid4().hex
-        admin.last_name = uuid.uuid4().hex
-        admin.email = "{}@example.com".format(uuid.uuid4().hex)
-        admin.password = uuid.uuid4().hex
-        db.session.add(admin)
-        db.session.commit()
-        context.admin = admin
+    admin = Admin()
+    admin.first_name = uuid.uuid4().hex
+    admin.last_name = uuid.uuid4().hex
+    admin.email = "{}@example.com".format(uuid.uuid4().hex)
+    admin.password = uuid.uuid4().hex
+    db.session.add(admin)
+    db.session.commit()
+    context.admin = admin
+    print context.admin.email, context.admin.password
+
+
+def before_tag(context, tag):
     if tag == 'browser':
         browser = getattr(context, 'browser', 'chrome')
 
