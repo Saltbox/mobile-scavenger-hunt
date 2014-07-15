@@ -158,6 +158,14 @@ def new_item():
     abort(400)
 
 
+@app.route('/update_welcome', methods=['POST'])
+def update_welcome():
+    db.session.query(Hunt).update(
+        {'welcome_message': request.form['welcome_message']})
+    db.session.commit()
+    return make_response('', 200)
+
+
 @app.route('/hunts/<hunt_id>/qrcodes')
 def show_item_codes(hunt_id):
     hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()

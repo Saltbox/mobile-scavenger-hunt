@@ -199,4 +199,42 @@ $(document).ready(function() {
       console.log('fail new item');
     });
   });
+
+  $('.panel.welcome').click(function(event) {
+    event.stopPropagation();
+    var el = $('#welcome-msg');
+    var welcome = el.html();
+    el.hide();
+    $('#update-welcome').val(welcome).show().focus();
+  });
+
+  var updateWelcome = function(msg) {
+    $.ajax({
+      url: '/update_welcome',
+      method: 'POST',
+      data: {'welcome_message': msg}
+    })
+    .success(function() {
+      console.log('updated welcome');
+    })
+    .error(function() {
+      console.log('fail update welcome');
+    });
+  };
+
+  var oldWelcome = currentWelcome = $('#welcome-msg').html();
+  $('#update-welcome').blur(function() {
+    currentWelcome = $('#update-welcome').val();
+    if (oldWelcome != currentWelcome) {
+      updateWelcome(currentWelcome);
+      oldWelcome = currentWelcome;
+    }
+    $('#welcome-msg').show().html(currentWelcome);
+    $('#update-welcome').hide();
+  });
+
+  $('.panel.welcome .panel-body').hover(
+    function() { $('#welcome-msg').css('color', 'lightgray'); },
+    function() { $('#welcome-msg').css('color', 'white'); }
+  );
 });

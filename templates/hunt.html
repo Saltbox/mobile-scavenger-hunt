@@ -94,11 +94,12 @@
       </div>
     </div>
     <div class="row messages">
-      <div class="col-md-8 panel">
+      <div class="col-md-4 panel welcome">
         <div class="panel-default">
           <div class="panel-body tertiary">
-            <h3>Welcome Message</h3>
-            {{hunt.welcome_message}}
+            <div id="welcome-msg">{{hunt.welcome_message}}</div>
+            <textarea style="display: none;"
+                      id="update-welcome" class="update"></textarea>
           </div>
         </div>
       </div>
@@ -107,10 +108,9 @@
       </div>
     </div>
     <div class="row messages">
-      <div class="col-md-8 panel">
+      <div class="col-md-4 panel">
         <div class="panel-default">
           <div class="panel-body tertiary">
-            <h3>Congratulation Message</h3>
             {{hunt.congratulations_message}}
           </div>
         </div>

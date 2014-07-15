@@ -166,7 +166,7 @@ step_matcher('re')
 
 @when('adding (?:a|an) (?P<form_item>[^"]+)')
 def add_form_item(context, form_item):
-    context.added = getattr(context, form_item, {})
+    context.added = getattr(context, 'added', {})
     data = fake_data[form_item]()
     context.added[form_item] = getattr(context.added, form_item, [])
     context.added[form_item].append(data)
@@ -183,6 +183,23 @@ step_matcher('parse')
 @when('revisiting the "{path}" page')
 def revisit_path(context, path):
     visit_page(context, path)
+
+
+def click_selector(context, selector):
+    context.browser.find_element_by_css_selector(selector).click()
+
+
+def send_keys(context, selector, data):
+    context.browser.find_element_by_css_selector(selector).send_keys(data)
+
+
+@when('changing the {msgtype} message')
+def change_message(context, msgtype):
+    click_selector(context, '.panel.{}'.format(msgtype))
+    context.added = getattr(context, 'added', {})
+    context.added[msgtype] = uuid.uuid4().hex
+    send_keys(context, '#update-{}'.format(msgtype), context.added[msgtype])
+    click_selector(context, 'html')  # blur triggers update
 
 
 @then('I should be directed to the "{page_path}" page')
