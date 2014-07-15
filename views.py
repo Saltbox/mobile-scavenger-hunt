@@ -1,10 +1,10 @@
 from flask import session, abort, flash, url_for, make_response, request, \
     render_template, redirect, send_file
-from functools import wraps
 
 import datetime
 import uuid
 import io
+import json
 
 import qrcode
 
@@ -12,27 +12,13 @@ from models import Hunt, Participant, Item, Admin, db, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     SettingForm
 from hunt import app, logger
+from utils import get_admin, create_qrcode_binary, get_setting, get_hunt, \
+    get_item, listed_participant, send_statements, login_required
 
 import xapi
 
+
 #################### ADMIN ROUTES ####################
-
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get('logged_in'):
-            flash('login required')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-
-def get_admin(email, password):
-    return db.session.query(Admin).filter(
-        Admin.email == email,
-        Admin.password == password
-    ).first()
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -122,12 +108,12 @@ def hunts():
 
 
 # edit and/or view hunt
-@app.route('/hunts/<hunt_id>')
+@app.route('/hunts/<hunt_id>', methods=['GET', 'PUT'])
 @login_required
-def show_hunt(hunt_id):
+def hunt(hunt_id):
     hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
     if hunt:
-        return render_template('show_hunt.html', hunt=hunt)
+        return render_template('hunt.html', hunt=hunt)
     else:
         abort(404)
 
@@ -157,12 +143,6 @@ def show_item_codes(hunt_id):
         abort(404)
 
 
-def create_qrcode_binary(qrcode):
-    output = io.BytesIO()
-    qrcode.save(output, 'PNG')
-    return output.getvalue()
-
-
 @app.route('/hunts/<hunt_id>/items/<item_id>/qrcode', methods=['GET'])
 def show_item_code(hunt_id, item_id):
     # add check for hunt id and item id
@@ -175,14 +155,6 @@ def show_item_code(hunt_id, item_id):
         hunt_id, item_id)
     response.headers['Content-Disposition'] = disposition
     return response
-
-
-def get_setting(admin_id=None, hunt_id=None):
-    if admin_id:
-        return db.session.query(Setting).filter(
-            Setting.admin_id == admin_id).first()
-    elif hunt_id:
-        return db.session.query(Setting).join(Admin).join(Hunt).first()
 
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -212,14 +184,6 @@ def settings():
         endpoint=endpoint))
 
 
-def get_hunt(hunt_id):
-    return db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
-
-
-def get_item(item_id):
-    return db.session.query(Item).filter(Item.item_id == item_id).first()
-
-
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
 
 
@@ -237,78 +201,52 @@ def index_items(hunt_id):
             logger.debug('required ids: %s', required_ids)
 
             params = xapi.default_params(session['email'], hunt_id)
+            # hm. remember to make sure settings have been set.
             setting = get_setting(hunt_id=hunt_id)
             if xapi.get_state_response(params, setting).status_code != 200:
-                data = {
+                data = json.dumps({
                     'num_found': 0,
                     'required_ids': required_ids,
                     'total_items': db.session.query(Item).filter(
                         Item.hunt_id == hunt_id).count()
-                }
-                xapi.initialize_state_doc(
-                    hunt_id, session['email'], params, data, setting)
+                })
+
+                xapi.put_state(data, params, setting)
             return render_template('items.html', items=items, hunt_id=hunt_id)
         return get_started(hunt_id)
 
     abort(404)
 
 
-def listed_participant(email, hunt_id):
-    return db.session.query(Participant).filter(
-        Participant.hunt_id == hunt_id, Participant.email == email).first()
-
-
-# later prevent resending statements if they for whatever reason scan the qrcode
-# multiple times
-def send_statements(email, hunt, item, state, setting):
-    actor = xapi.make_agent(email)
-    params = xapi.default_params(session['email'], hunt.hunt_id)
-
-    logger.debug(
-        'participant found item, %s, sending statement to wax', item.name)
-    xapi.send_statement(
-        xapi.found_item_statement(actor, hunt, item), setting)
-
-    if state['num_found'] == hunt.num_required and not state['required_ids']:
-        logger.debug(
-            'participant found required items. sending statement to Wax')
-        xapi.send_statement(
-            xapi.found_all_required_statement(actor, hunt), setting)
-
-    if state['num_found'] == state['total_items_count']:
-        logger.debug(
-            'participant completed hunt. sending statement to Wax')
-        xapi.send_statement(
-            xapi.completed_hunt_statement(actor, hunt), setting)
-        return make_response(render_template('congratulations.html'))
-
-
 # information about one item for scavenger to read
 @app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
 def show_item(hunt_id, item_id):
     def update_state(params, setting):
-        state = xapi.get_state_response(params, setting).json()
-        logger.debug('state: %s', state)
-        state['num_found'] += 1
-        if hunt_id in state['required_ids']:
-            state['required_ids'].remove(hunt_id)
-        return state
+        response = xapi.get_state_response(params, setting)
+        if response:
+            state = response.json()
+            logger.debug('state: %s', state)
+            state['num_found'] += 1
+            if hunt_id in state['required_ids']:
+                state['required_ids'].remove(hunt_id)
+            return state
+        return None
 
-    # right now ids are unique, not unique to the hunt. so i could fix this.
+    # right now ids are unique, but not unique to the hunt. so i could fix this.
     item = db.session.query(Item)\
         .filter(Hunt.hunt_id == hunt_id) \
         .filter(Item.item_id == item_id).first()
 
     if item:
         hunt = get_hunt(hunt_id)
-        email = session['email']
+        email = session.get('email')
 
-        if listed_participant(email, hunt_id):
+        if email and listed_participant(email, hunt_id):
             params = xapi.default_params(email, hunt_id)
 
-            # what if they somehow go here first?
             setting = get_setting(hunt_id=hunt_id)
 
+            # there should definitely be state by now
             state = update_state(params, setting)
             xapi.post_state(state, params, setting)
 
@@ -316,8 +254,10 @@ def show_item(hunt_id, item_id):
             return make_response(render_template(
                 'item.html', item=item, username=session['name'],
                 num_found=state['num_found'],
-                total_items=state['total_items_count']))
+                total_items=state['total_items']))
         else:
+            flash('You must already be on the scavenger hunt list'
+                  ' and registered below to participate.')
             return make_response(render_template(
                 'welcome.html',
                 action_url="/get_started/hunts/{}/items".format(hunt_id)))
@@ -335,36 +275,35 @@ def get_started(hunt_id):
 
 
 # check scavenger is on whitelist and set user_id
-@app.route('/new_participant', methods=['POST'])
-def new_participant():
+@app.route('/register_participant', methods=['POST'])
+def register_participant():
     logger.debug('partip form: %s', request.form)
     form = ParticipantForm(request.form)
     if form.validate():
         hunt_id = request.args['hunt_id']
         email = form.email.data
 
-        if listed_participant(email, hunt_id):
-            name = form.name.data
+        participant = listed_participant(email, hunt_id)
+        if participant:
             user_id = str(uuid.uuid4())
-
             session['user_id'] = user_id
-            session['name'] = name
             session['email'] = email
+            participant.name = session['name'] = form.name.data
 
-            redirect_url = 'hunts/{}/items'.format(hunt_id)
+            db.session.add(participant)
+            db.session.commit(participant)
 
             logger.info(
                 "user id, name, and email set to %s, %s, and %s\n"
                 "preparing requested item information.",
                 user_id, name, email)
 
-            logger.info('preparing to redirect to: %s', redirect_url)
+            xapi.send_statement(
+                xapi.begin_hunt_statement(
+                    xapi.make_agent(email), get_hunt(hunt_id)),
+                get_setting(hunt_id=hunt_id))
 
-            statement = xapi.begin_hunt_statement(
-                xapi.make_agent(email), get_hunt(hunt_id))
-            xapi.send_statement(statement, get_setting(hunt_id=hunt_id))
-
-            return make_response(redirect(redirect_url))
+            return make_response(redirect('hunts/{}/items'.format(hunt_id)))
         else:
             return 'you are not on the list of participants for this hunt'
             # make template
