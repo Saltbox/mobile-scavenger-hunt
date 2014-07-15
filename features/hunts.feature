@@ -32,6 +32,6 @@ Feature: Hunts
      When adding a participant
       And adding an item
       And changing the welcome message
-     #  And adding a congratulations message
+      And changing the congratulations message
       And revisiting the "hunts/1" page
      Then the added data should appear on the page

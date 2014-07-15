@@ -237,4 +237,42 @@ $(document).ready(function() {
     function() { $('#welcome-msg').css('color', 'lightgray'); },
     function() { $('#welcome-msg').css('color', 'white'); }
   );
+
+  $('.panel.congratulations').click(function(event) {
+    event.stopPropagation();
+    var el = $('#congratulations-msg');
+    var congratulations = el.html();
+    el.hide();
+    $('#update-congratulations').val(congratulations).show().focus();
+  });
+
+  var updatecongratulations = function(msg) {
+    $.ajax({
+      url: '/update_congratulations',
+      method: 'POST',
+      data: {'congratulations_message': msg, 'hunt_id': hunt_id}
+    })
+    .success(function() {
+      console.log('updated congratulations');
+    })
+    .error(function() {
+      console.log('fail update congratulations');
+    });
+  };
+
+  var oldcongratulations = currentcongratulations = $('#congratulations-msg').html();
+  $('#update-congratulations').blur(function() {
+    currentcongratulations = $('#update-congratulations').val();
+    if (oldcongratulations != currentcongratulations) {
+      updatecongratulations(currentcongratulations);
+      oldcongratulations = currentcongratulations;
+    }
+    $('#congratulations-msg').show().html(currentcongratulations);
+    $('#update-congratulations').hide();
+  });
+
+  $('.panel.congratulations .panel-body').hover(
+    function() { $('#congratulations-msg').css('color', 'lightgray'); },
+    function() { $('#congratulations-msg').css('color', 'white'); }
+  );
 });

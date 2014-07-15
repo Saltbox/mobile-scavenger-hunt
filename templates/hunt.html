@@ -126,11 +126,10 @@
       </div>
     </div>
     <div class="row messages">
-      <div class="col-md-4 panel">
+      <div class="col-md-4 panel congratulations">
         <div class="panel-default">
-          <div class="panel-body tertiary">
-            {{hunt.congratulations_message}}
-          </div>
+          <div id="congratulations-msg" class="panel-body tertiary">{{hunt.congratulations_message}}</div>
+          <textarea style="display: none;" id="update-congratulations" class="update"></textarea>
         </div>
       </div>
       <div class="col-md-4">
