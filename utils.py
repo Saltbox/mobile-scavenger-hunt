@@ -1,4 +1,4 @@
-from flask import session
+from flask import session, request
 from functools import wraps
 
 from models import Hunt, Participant, Item, Admin, db, Setting
