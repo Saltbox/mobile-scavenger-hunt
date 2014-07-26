@@ -78,6 +78,7 @@ button.btn-default {
 .titlerow {
   padding-top: 50px;
   margin-bottom: 10px;
+  min-height: 125px;
 }
 
 div.titlerow.col-md-12 {
@@ -95,10 +96,6 @@ div.titlerow.col-md-12 {
 
 .titlerow div:first-child {
   background-color: #0D48FF;
-}
-
-.titlerow div {
-  /*display: inline-block;*/
 }
 
 div.row {
@@ -158,6 +155,14 @@ div.panel-default > .panel-heading,
   min-height: 125px;
   vertical-align: bottom;
   color: white;
+}
+
+.panel-rect .row {
+  margin: 0;
+}
+
+#participant-rules .panel-rect {
+  font-size: 16px;
 }
 
 .titlerow .panel-rect:first-child {

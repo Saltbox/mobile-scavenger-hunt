@@ -260,14 +260,14 @@ $(document).ready(function() {
     });
   };
 
-  var oldcongratulations = currentcongratulations = $('#congratulations-msg').html();
+  var oldCongratulations = currentCongratulations = $('#congratulations-msg').html();
   $('#update-congratulations').blur(function() {
-    currentcongratulations = $('#update-congratulations').val();
-    if (oldcongratulations != currentcongratulations) {
-      updatecongratulations(currentcongratulations);
-      oldcongratulations = currentcongratulations;
+    currentCongratulations = $('#update-congratulations').val();
+    if (oldCongratulations != currentCongratulations) {
+      updatecongratulations(currentCongratulations);
+      oldCongratulations = currentCongratulations;
     }
-    $('#congratulations-msg').show().html(currentcongratulations);
+    $('#congratulations-msg').show().html(currentCongratulations);
     $('#update-congratulations').hide();
   });
 
@@ -275,4 +275,22 @@ $(document).ready(function() {
     function() { $('#congratulations-msg').css('color', 'lightgray'); },
     function() { $('#congratulations-msg').css('color', 'white'); }
   );
+
+  // $('table.panel-default').bind({
+  $('#participant-rules .panel-rect').bind({
+    click: function(e) {
+      console.log('e', e);
+      $(this).css('opacity', 1).siblings().css('opacity', 0.7);
+      $('.glyphicon-ok').hide();
+      $($(this).find('.glyphicon-ok')).show();
+    },
+    mouseenter: function() {
+      if ($(this).attr('opacity') != 0.7) {
+        $(this).css('opacity', 0.7);
+      }
+    },
+    mouseleave: function() {
+      $(this).css('opacity', 1.0);
+    }
+  });
 });

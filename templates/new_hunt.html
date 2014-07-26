@@ -4,7 +4,7 @@
   <div class="container content">
     <form action="{{ url_for('hunts') }}" method="post" class="form-horizontal" role="form">
       <div class="col-md-6 col-md-offset-3">
-        <h1>Create New Hunt</h1>
+        <h1>Let's create a hunt!</h1>
         {% if error %}
           <p class="alert">Error: {{error}}</p>
         {% endif %}
@@ -19,13 +19,36 @@
         {% endif %}
         <div class="row">
           <div class="form-group">
-            <label>Hunt Name</label>
+            <h3>What's your hunt's name?</h3>
             {{form.name(class="form-control", required=true)}}
+          </div>
+        </div>
+        <div class="row participant-rules">
+          <h3>Who can participate?</h3>
+          <div class="panel-default" id="participant-rules">
+            <div class="col-md-4 col-sm-4 col-xs-4 panel-rect pentary">
+              <div class="row">@{{domain}} emails</div>
+              <div class="row">
+                <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-4 panel-rect quarternary">
+              <div class="row">Anyone who finds the qrcodes</div>
+              <div class="row">
+                <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-4 panel-rect secondary">
+              <div class="row">Specific emails</div>
+              <div class="row">
+                <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
+              </div>
+            </div>
           </div>
         </div>
         <div class="row">
           <div class="form-group" id="participants-group">
-            <label>Participant Emails</label>
+            <label>Provide their emails below</label>
             <div class="input-group">
               <input class="form-control" type="email" id="participants-template">
               <span class="input-group-btn">
@@ -87,7 +110,7 @@
           </div>
         </div>
         <div class="row panel">
-          <h3>Participant Welcome Message</h3>
+          <h3>How will you welcome your participants?</h3>
           <input type="radio" name="messagetoggle" value="default" required>
           <label class="control-label">Use default welcome message</label><br>
           <input type="radio" name="messagetoggle" value="custom" required>
@@ -98,7 +121,7 @@
           </div>
         </div>
         <div class="row">
-          <h3>Participant Congratulations Message</h3>
+          <h3>And how will you congratulate them?</h3>
           <input type="radio" name="congratulationstoggle" value="default" required>
           <label class="control-label">Use default congratulations message</label><br>
           <input type="radio" name="congratulationstoggle" value="custom" required>
