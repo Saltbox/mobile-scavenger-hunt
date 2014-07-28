@@ -37,6 +37,7 @@ class HuntForm(ModelForm):
     class Meta:
         model = models.Hunt
 
+    name = StringField('Name', [validators.Length(min=4)])
     participants = ModelFieldList(
         FormField(ParticipantForm), min_entries=1)
     items = ModelFieldList(FormField(ItemForm), min_entries=1)
