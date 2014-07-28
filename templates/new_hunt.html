@@ -99,36 +99,21 @@
                 </tr>
               </thead>
               <tbody id="item-tbody">
-                <tr>
-                  <td class="requireditem">
-                    <input type="checkbox" checked="checked" disabled>
-                  </td>
-                  <td><em>ex. Accounting Department</em></td>
-                  <!-- <td><button class="btn btn-default"><em>View</em></button></td> -->
-                </tr>
+                <tr></tr>
               </tbody>
             </table>
           </div>
         </div>
         <div class="row panel">
           <h3>How will you welcome your participants?</h3>
-          <input type="radio" name="messagetoggle" value="default" required>
-          <label class="control-label">Use default welcome message</label><br>
-          <input type="radio" name="messagetoggle" value="custom" required>
-          <label class="control-label">Create custom welcome message</label>
-
           <div class="form-group">
-            <textarea name="welcome_message" maxlength=500 style="display: none;"></textarea>
+            <textarea name="welcome_message" maxlength=500>Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'.</textarea>
           </div>
         </div>
         <div class="row">
-          <h3>And how will you congratulate them?</h3>
-          <input type="radio" name="congratulationstoggle" value="default" required>
-          <label class="control-label">Use default congratulations message</label><br>
-          <input type="radio" name="congratulationstoggle" value="custom" required>
-          <label class="control-label">Create custom congratulations message</label>
+          <h3>They finished the hunt! Let's congratulate them.</h3>
           <div class="form-group">
-            <textarea name="congratulations_message" maxlength=500 style="display: none;"></textarea>
+            <textarea name="congratulations_message" maxlength=500>Congratulations! You have successfully completed the scavenger hunt.</textarea>
           </div>
         </div>
         <div class="row">

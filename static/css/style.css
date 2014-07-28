@@ -27,6 +27,10 @@ span.participant-list-item {
   margin: 0;
 }
 
+.container.content {
+  margin-bottom: 50px;
+}
+
 .container.content label {
   font-size: 12px;
   margin-bottom: 0;
@@ -276,6 +280,7 @@ nav.navbar-inverse .navbar-brand {
 textarea {
   min-height: 100px;
   width: 100%;
+  border-color: lightgrey;
 }
 
 textarea.update {
@@ -308,4 +313,8 @@ textarea.update {
 .underline {
   width: 100%;
   border-bottom: thin solid black;
+}
+
+.input-group-btn button:hover {
+  border-color: #0C7BE8;
 }
