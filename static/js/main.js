@@ -5,11 +5,14 @@ $(document).ready(function() {
   var participantCount = 0;
 
   // toggle if all items are required for success
-  var allItemsRequired = $("input[name=all_required]").val();
   $("input[name=all_required]").change(function() {
-    allItemsRequired = $("input[name=all_required]").val();
+    var allItemsRequired = $("input[name=all_required]").prop('checked');
     if (allItemsRequired) {
       $('input.hunt-items').prop('checked', true);
+      $('#num-items-group').hide('slow');
+    }
+    else {
+      $('#num-items-group').show('slow');
     }
   });
 
@@ -88,7 +91,7 @@ $(document).ready(function() {
           participantCount += 1;
         }
         else {
-          $('#participant-error').show();
+          $('#participant-error').show('slow');
         }
       }
       fieldInput.val('');
@@ -97,7 +100,7 @@ $(document).ready(function() {
 
   // hide participant email error message when typing
   $("#participants-template").keypress(function() {
-    $('#participant-error').hide();
+    $('#participant-error').hide('slow');
   });
 
   // add item to table for later submission via button
@@ -129,7 +132,7 @@ $(document).ready(function() {
   // helper function for message and congratulations toggling
   var toggleTextarea = function(textareaSelector, defaultMsg) {
     if ($(textareaSelector).is(':hidden')) {
-      $(textareaSelector).show(500);
+      $(textareaSelector).show('slow');
     }
     if (event.target.value == 'default') {
       $(textareaSelector).val(defaultMsg);
@@ -204,8 +207,8 @@ $(document).ready(function() {
     event.stopPropagation();
     var el = $('#welcome-msg');
     var welcome = el.html();
-    el.hide();
-    $('#update-welcome').val(welcome).show().focus();
+    el.hide('slow');
+    $('#update-welcome').val(welcome).show('slow').focus();
   });
 
   var updateWelcome = function(msg) {
@@ -229,8 +232,8 @@ $(document).ready(function() {
       updateWelcome(currentWelcome);
       oldWelcome = currentWelcome;
     }
-    $('#welcome-msg').show().html(currentWelcome);
-    $('#update-welcome').hide();
+    $('#welcome-msg').show('slow').html(currentWelcome);
+    $('#update-welcome').hide('slow');
   });
 
   $('.panel.welcome .panel-body').hover(
@@ -242,8 +245,8 @@ $(document).ready(function() {
     event.stopPropagation();
     var el = $('#congratulations-msg');
     var congratulations = el.html();
-    el.hide();
-    $('#update-congratulations').val(congratulations).show().focus();
+    el.hide('slow');
+    $('#update-congratulations').val(congratulations).show('slow').focus();
   });
 
   var updatecongratulations = function(msg) {
@@ -267,8 +270,8 @@ $(document).ready(function() {
       updatecongratulations(currentCongratulations);
       oldCongratulations = currentCongratulations;
     }
-    $('#congratulations-msg').show().html(currentCongratulations);
-    $('#update-congratulations').hide();
+    $('#congratulations-msg').show('slow').html(currentCongratulations);
+    $('#update-congratulations').hide('slow');
   });
 
   $('.panel.congratulations .panel-body').hover(
@@ -281,8 +284,8 @@ $(document).ready(function() {
     click: function(e) {
       console.log('e', e);
       $(this).css('opacity', 1).siblings().css('opacity', 0.7);
-      $('.glyphicon-ok').hide();
-      $($(this).find('.glyphicon-ok')).show();
+      $('.glyphicon-ok').hide('slow');
+      $($(this).find('.glyphicon-ok')).show('slow');
     },
     mouseenter: function() {
       if ($(this).attr('opacity') != 0.7) {
