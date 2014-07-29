@@ -18,6 +18,7 @@ class Hunt(db.Model):
     hunt_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
     participants = db.relationship('Participant', backref='participants')
+    participant_rule = db.Column(db.String(20))
     items = db.relationship('Item', backref='hunts')
     # do i care about timezone aware?
     date_created = db.Column(db.TIMESTAMP, server_default=db.func.now())
@@ -61,6 +62,7 @@ class Setting(db.Model):
     __tablename__ = 'settings'
     settings_id = db.Column(db.Integer, primary_key=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
+    domain = db.Column(db.String(500))
     endpoint = db.Column(db.String(500))
     login = db.Column(db.String(50))
     password = db.Column(db.String(50))  # todo: something more private

@@ -32,16 +32,16 @@ $(document).ready(function() {
   };
 
   // make new item checkbox
-  var tdCheckbox = function(index) {
-    if (allItemsRequired) {
+  var tdCheckbox = function(index, checked) {
+    if (checked) {
       return "<td><input type='checkbox' checked='on' class='hunt-items' name='" + itemRequiredName(index) + "'></td>";
     }
     return "<td><input type='checkbox' class='hunt-items' name='" + itemRequiredName(index) + "'></td>";
   };
 
   // since jquery wrap doesn't seem to work
-  var tdItem = function(item_name) {
-    return "<td class='item-required'>" + item_name + "</td>";
+  var tdItem = function(nameOfItem) {
+    return "<td class='item-required'>" + nameOfItem + "</td>";
   };
 
   // create input name property that works with wtforms
@@ -51,7 +51,8 @@ $(document).ready(function() {
 
   // add tr to item table
   var addItemRow = function(itemCount, fieldValue) {
-    var row = "<tr>" + tdCheckbox(itemCount) + tdItem(fieldValue) + "</tr>";
+    var checked = $("input[name=all_required]").prop('checked');
+    var row = "<tr>" + tdCheckbox(itemCount, checked) + tdItem(fieldValue) + itemDelete(itemCount) + "</tr>";
     $('#item-tbody').append(row);
   };
 
@@ -129,34 +130,6 @@ $(document).ready(function() {
     }
   });
 
-  // helper function for message and congratulations toggling
-  var toggleTextarea = function(textareaSelector, defaultMsg) {
-    if ($(textareaSelector).is(':hidden')) {
-      $(textareaSelector).show('slow');
-    }
-    if (event.target.value == 'default') {
-      $(textareaSelector).val(defaultMsg);
-    }
-    else {
-      $(textareaSelector).val('');
-    }
-  };
-
-  // toggle default/custom welcome message
-  $('input[name=messagetoggle]').change(function(event) {
-    toggleTextarea(
-      "textarea[name=welcome_message]",
-      "Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'."
-    );
-  });
-
-  // toggle default/custom congratulations message
-  $('input[name=congratulationstoggle]').change(function(event) {
-    toggleTextarea(
-      'textarea[name=congratulations_message]',
-      "Congratulations! You have successfully completed the scavenger hunt."
-    );
-  });
 
   // time formatter
   $('.uglytime').each(function(index, e) {
@@ -225,7 +198,7 @@ $(document).ready(function() {
     });
   };
 
-  var oldWelcome = currentWelcome = $('#welcome-msg').html();
+  var oldWelcome, currentWelcome = $('#welcome-msg').html();
   $('#update-welcome').blur(function() {
     currentWelcome = $('#update-welcome').val();
     if (oldWelcome != currentWelcome) {
@@ -279,17 +252,24 @@ $(document).ready(function() {
     function() { $('#congratulations-msg').css('color', 'white'); }
   );
 
-  // $('table.panel-default').bind({
   $('#participant-rules .panel-rect').bind({
     click: function(e) {
       console.log('e', e);
       $(this).css('opacity', 1).siblings().css('opacity', 0.7);
       $('.glyphicon-ok').hide('slow');
-      $($(this).find('.glyphicon-ok')).show('slow');
+      $($(this).find('.glyphicon-ok')).show();
+      var selectedRule = $(this).find($('input[name=participant_rule]'))
+      selectedRule.prop('checked', 'on');
+      if (selectedRule.val() == 'by_whitelist') {
+        $('#whitelist').show('slow');
+      }
+      else {
+        $('#whitelist').hide();
+      }
     },
     mouseenter: function() {
       if ($(this).attr('opacity') != 0.7) {
-        $(this).css('opacity', 0.7);
+        $(this).css('opacity', 0.7).css('cursor', 'pointer');
       }
     },
     mouseleave: function() {

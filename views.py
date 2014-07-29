@@ -67,14 +67,21 @@ def admins():
             session['logged_in'] = True
             flash('Successfully created admin')
 
+            domain = admin.email.split('@')[-1]
             session['admin_id'] = get_admin(
                 form.email.data, form.password.data).admin_id
-            return render_template('settings.html')
+            return render_template('settings.html', domain=domain)
         logger.info('Admin signup form was submitted with invalid information')
         flash(
             'There was an error creating your admin profile. Please try again')
     return render_template(
         'admin_signup.html', form=form, display_login_link=True)
+
+
+def get_domain_by_admin_id(admin_id):
+    logger.info('finding domain by admin id: %s', session['admin_id'])
+    return db.session.query(Setting).filter(
+        Setting.admin_id == session['admin_id']).first().domain
 
 
 # create or list hunts
@@ -99,7 +106,8 @@ def hunts():
             return redirect(url_for('hunts'))
         else:
             flash('some error msg about invalid form')
-            return render_template('new_hunt.html', form=form)
+            domain = get_domain_by_admin_id(session['admin_id'])
+            return render_template('new_hunt.html', form=form, domain=domain)
     else:
         hunts = db.session.query(Hunt).filter(
             Hunt.admin_id == session['admin_id']).all()
@@ -120,7 +128,8 @@ def hunt(hunt_id):
 # form to create new hunt
 @app.route('/new_hunt', methods=['GET'])
 def new_hunt():
-    return render_template('new_hunt.html', form=HuntForm())
+    domain = get_domain_by_admin_id(session['admin_id'])
+    return render_template('new_hunt.html', form=HuntForm(), domain=domain)
 
 
 def participant_email_exists(email, hunt_id):
@@ -135,7 +144,6 @@ def new_participant():
     form = ParticipantForm(request.form)
     if form.validate():
         form.populate_obj(participant)
-        logger.debug('pa: %s', participant.email)
         participant.hunt_id = request.form['hunt_id'] # why was this necessary?
         db.session.add(participant)
         db.session.commit()
@@ -223,13 +231,14 @@ def settings():
                   'Please check your form entries and try again.')
 
     setting = get_setting(admin_id=session['admin_id'])
-    login = getattr(setting, 'login', '')
-    password = getattr(setting, 'password', '') # or just None is probably fine
-    endpoint = getattr(setting, 'endpoint', '')
+    login = getattr(setting, 'login')
+    password = getattr(setting, 'password')
+    endpoint = getattr(setting, 'endpoint')
+    domain = getattr(setting, 'domain')
 
     return make_response(render_template(
         'settings.html', login=login, password=password,
-        endpoint=endpoint))
+        endpoint=endpoint, domain=domain))
 
 
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
@@ -322,6 +331,24 @@ def get_started(hunt_id):
                            hunt_id=hunt_id)
 
 
+def validated_by_participant_rule(email, hunt_id):
+    participant_rule = db.session.query(Hunt).filter(
+        Hunt.hunt_id == hunt_id).first().participant_rule
+
+    if participant_rule == 'by_domain':
+        setting = get_setting(hunt_id=hunt_id)
+        if setting and email.split('@')[-1] != setting.domain:
+            return None, "Only employees of this organization may participate"
+    elif participant_rule == 'by_whitelist':
+        return listed_participant(email, hunt_id), \
+            "You are not on the list of allowed participants"
+
+    participant = Participant()
+    participant.email = email
+    Participant.hunt_id = hunt_id
+    return participant, ""
+
+
 # check scavenger is on whitelist and set user_id
 @app.route('/register_participant', methods=['POST'])
 def register_participant():
@@ -331,20 +358,22 @@ def register_participant():
         hunt_id = request.args['hunt_id']
         email = form.email.data
 
-        participant = listed_participant(email, hunt_id)
-        if participant:
+        validated_participant, err_msg = validated_by_participant_rule(
+            email, hunt_id)
+        logger.debug('validated_participant: %s', validated_participant)
+        if validated_participant:
             user_id = str(uuid.uuid4())
             session['user_id'] = user_id
             session['email'] = email
-            participant.name = session['name'] = form.name.data
+            validated_participant.name = session['name'] = form.name.data
 
-            db.session.add(participant)
-            db.session.commit(participant)
+            db.session.add(validated_participant)
+            db.session.commit()
 
             logger.info(
                 "user id, name, and email set to %s, %s, and %s\n"
                 "preparing requested item information.",
-                user_id, name, email)
+                user_id, session['name'], email)
 
             xapi.send_statement(
                 xapi.begin_hunt_statement(
@@ -353,8 +382,7 @@ def register_participant():
 
             return make_response(redirect('hunts/{}/items'.format(hunt_id)))
         else:
-            return 'you are not on the list of participants for this hunt'
-            # make template
+            return err_msg
     abort(400)
 
 

@@ -30,24 +30,33 @@
               <div class="row">@{{domain}} emails</div>
               <div class="row">
                 <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
+                <span style="display: none;">
+                  {{ form.participant_rule(type="radio", value="by_domain") }}
+                </span>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect quarternary">
               <div class="row">Anyone who finds the qrcodes</div>
               <div class="row">
                 <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
+                <span style="display: none;">
+                  {{ form.participant_rule(type="radio", value="anyone") }}
+                </span>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect secondary">
               <div class="row">Specific emails</div>
               <div class="row">
                 <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
+                <span style="display: none;">
+                  {{ form.participant_rule(type="radio", value="by_whitelist") }}
+                </span>
               </div>
             </div>
           </div>
-          <input type="hidden" name="securityoption">
+          <input type="hidden" name="participant_rule">
         </div>
-        <div class="row">
+        <div class="row" id="whitelist" style="display: none;">
           <div class="form-group" id="participants-group">
             <label>Provide their emails below</label>
             <div class="input-group">
