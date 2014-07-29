@@ -70,20 +70,22 @@
             <div id="participant-error" style="display: none;">
               Please enter a valid email address
             </div>
-            <ul id="participant-emails">
-            </ul>
+            <table class="table table-condensed" id="participants-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+<!--                   <th>Registered</th>
+ -->                </tr>
+              </thead>
+            </table>
           </div>
         </div>
         <div class="row">
           <div class="form-group">
-            {{ form.all_required(type="radio", value="true", checked="on")}}
             <label class="control-label">
+              {{ form.all_required(type="checkbox", checked="on")}}
               Require finding all items for success
             </label></br>
-            {{ form.all_required(type="radio", value="false")}}
-            <label class="control-label">
-              Require finding only some items for success
-            </label>
           </div>
           <div class="form-group" style="display: none;" id="num-items-group">
             <label>Number of items required</label>
@@ -99,7 +101,7 @@
                 </button>
               </span>
             </div>
-            <table class="table table-condensed">
+            <table class="table table-condensed" id="items-table" style="display: none;">
               <thead>
                 <tr>
                   <th class="requireditem">Required</th>
@@ -107,7 +109,7 @@
                   <!-- <th>QR Code</th> -->
                 </tr>
               </thead>
-              <tbody id="item-tbody">
+              <tbody>
                 <tr></tr>
               </tbody>
             </table>

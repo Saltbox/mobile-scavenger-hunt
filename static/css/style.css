@@ -315,6 +315,20 @@ textarea.update {
   border-bottom: thin solid black;
 }
 
+span.glyphicon-remove {
+  color: lightgrey;
+}
+
+span.glyphicon-remove:hover {
+  color: red;
+  cursor: pointer;
+}
+
 .input-group-btn button:hover {
   border-color: #0C7BE8;
+}
+
+.panel-rect-hover {
+  opacity: 0.7;
+  cursor: pointer;
 }

@@ -49,16 +49,32 @@ $(document).ready(function() {
     return 'items-' + itemCount + '-name';
   };
 
+  // gives admin something to delete items
+  var itemDelete = function(itemCount) {
+    return '<td class="item-delete"><span class="glyphicon glyphicon-remove"></span></td>';
+  };
+
   // add tr to item table
   var addItemRow = function(itemCount, fieldValue) {
     var checked = $("input[name=all_required]").prop('checked');
     var row = "<tr>" + tdCheckbox(itemCount, checked) + tdItem(fieldValue) + itemDelete(itemCount) + "</tr>";
-    $('#item-tbody').append(row);
+    $('#items-table tbody').append(row);
   };
 
+
   // helper for addInput that displays each added participant email
-  var addParticipantLi = function(fieldValue) {
-    $('#participant-emails').append('<li>' + fieldValue + '</li>');
+  var addParticipantRow = function(email, registered) {
+    var emailTd = "<td>" + email + "</td>";
+    var checkmark;
+    //add logic for show vs new view later
+    if (registered) {
+      checkmark = "<td><span class='glyphicon glyphicon-ok'></span></td>";
+    }
+    else {
+      checkmark = '<td></td>';
+    }
+    var listRow = "<tr>" + emailTd + checkmark + "</tr>";
+    $('#participants-table').append(listRow);
   };
 
   // helper for addInput
@@ -73,7 +89,6 @@ $(document).ready(function() {
     var fieldName = itemName(count);
     var fieldInput = $('input#' + fieldType + '-template');
     var fieldValue = fieldInput.val();
-    var newField;
 
     if (fieldValue) {
       // find smarter way to do this
@@ -81,21 +96,36 @@ $(document).ready(function() {
         addItemRow(itemCount, fieldValue);
         addNewField('items', 'items-' + itemCount + "-name", fieldValue);
 
-        itemCount += 1;
+        incrementCount('items', count);
       }
       else {
         var validEmailRegex = /[\w-]+@([\w-]+\.)+[\w-]+/;
         if (validEmailRegex.test(fieldValue)) {
-          addParticipantLi(fieldValue);
-          addNewField('participants', 'participants-' + participantCount + '-email', fieldValue);
+          addParticipantRow(fieldValue, true);
+          addNewField(
+            'participants', 'participants-' + participantCount + '-email', fieldValue);
 
-          participantCount += 1;
+          incrementCount('participants', count);
         }
         else {
           $('#participant-error').show('slow');
         }
       }
       fieldInput.val('');
+    }
+  };
+
+  var incrementCount = function(countType, count) {
+    if (count < 1) {
+      $('#' + countType + '-table').show('slide', {'direction': 'up'}, 'fast');
+    }
+    count += 1;
+  };
+
+  var decrementCount = function(countType, count) {
+    count -= 1;
+    if (count < 1) {
+      $('#' + countType + '-table').hide('slow');
     }
   };
 
@@ -106,27 +136,27 @@ $(document).ready(function() {
 
   // add item to table for later submission via button
   $("#add-item").on("click", (function() {
-      addInput('items');
+      addInput('items', itemCount);
   }));
 
   // add item to table for later submission via "enter" on keyboard
   $('input#items-template').keydown(function(event) {
     if (event.keyCode == 13) {
       event.preventDefault();
-      addInput('items');
+      addInput('items', itemCount);
     }
   });
 
   // add participant to list for later submission via button
   $("#add-participant").on("click", (function() {
-      addInput('participants');
+      addInput('participants', participantCount);
   }));
 
   // add participant to list for later submission via "enter" on keyboard
   $('input#participants-template').keydown(function(event) {
     if (event.keyCode == 13) {
       event.preventDefault();
-      addInput('participants');
+      addInput('participants', participantCount);
     }
   });
 
@@ -236,7 +266,7 @@ $(document).ready(function() {
     });
   };
 
-  var oldCongratulations = currentCongratulations = $('#congratulations-msg').html();
+  var oldCongratulations, currentCongratulations = $('#congratulations-msg').html();
   $('#update-congratulations').blur(function() {
     currentCongratulations = $('#update-congratulations').val();
     if (oldCongratulations != currentCongratulations) {
@@ -252,13 +282,13 @@ $(document).ready(function() {
     function() { $('#congratulations-msg').css('color', 'white'); }
   );
 
-  $('#participant-rules .panel-rect').bind({
+  $('#participant-rules .panel-rect').on({
     click: function(e) {
-      console.log('e', e);
       $(this).css('opacity', 1).siblings().css('opacity', 0.7);
       $('.glyphicon-ok').hide('slow');
       $($(this).find('.glyphicon-ok')).show();
-      var selectedRule = $(this).find($('input[name=participant_rule]'))
+
+      var selectedRule = $(this).find($('input[name=participant_rule]'));
       selectedRule.prop('checked', 'on');
       if (selectedRule.val() == 'by_whitelist') {
         $('#whitelist').show('slow');
@@ -268,12 +298,15 @@ $(document).ready(function() {
       }
     },
     mouseenter: function() {
-      if ($(this).attr('opacity') != 0.7) {
-        $(this).css('opacity', 0.7).css('cursor', 'pointer');
-      }
+      $(this).addClass('panel-rect-hover');
     },
     mouseleave: function() {
-      $(this).css('opacity', 1.0);
+      $(this).removeClass('panel-rect-hover');
     }
+  });
+
+  $('#items-table tbody').on('click', 'td.item-delete', function() {
+    $(this).parents('tr').remove();
+    decrementCount('items', itemCount);
   });
 });
