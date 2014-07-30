@@ -11,20 +11,22 @@ $(document).ready(function() {
   // make hunt name updateable on click
   var oldName = $('input[name=name]').val();
   $('input[name=name]').on('blur', function() {
-    var newName = $(this).val();
-    if (newName != oldName) {
-      $.ajax({
-        url: '/edit_hunt/' + huntId(),
-        method: 'POST',
-        data: {'name': newName}
-      })
-      .success(function() {
-        console.log('success');
-        oldName = newName;
-      })
-      .error(function() {
-        console.log('fail');
-      });
+    if (huntId()) {
+      var newName = $(this).val();
+      if (newName != oldName) {
+        $.ajax({
+          url: '/edit_hunt/' + huntId(),
+          method: 'POST',
+          data: {'name': newName}
+        })
+        .success(function() {
+          console.log('success');
+          oldName = newName;
+        })
+        .error(function() {
+          console.log('fail');
+        });
+      }
     }
   });
 
@@ -325,7 +327,7 @@ $(document).ready(function() {
   var oldWelcome, currentWelcome = $('textarea[name=welcome_message]').val();
   $('textarea[name=welcome_message]').blur(function() {
     currentWelcome = $('textarea[name=welcome_message]').val();
-    if (oldWelcome != currentWelcome) {
+    if (oldWelcome != currentWelcome && huntId()) {
       updateWelcome(currentWelcome);
       oldWelcome = currentWelcome;
     }
@@ -350,7 +352,7 @@ $(document).ready(function() {
   var oldCongratulations = $('textarea[name=congratulations_message').html();
   $('textarea[name=congratulations_message]').blur(function() {
     currentCongratulations = $(this).val();
-    if (oldCongratulations != currentCongratulations) {
+    if (oldCongratulations != currentCongratulations && huntId()) {
       updatecongratulations(currentCongratulations);
       oldCongratulations = currentCongratulations;
     }
