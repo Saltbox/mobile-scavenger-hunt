@@ -2,141 +2,159 @@
 {% block adminbody %}
   {% if session.logged_in %}
   <div class="container content">
-    <div class="row">
-      <div class="panel-default titlerow">
-        <div class="panel-rect col-sm-12 col-md-5">
-          <h1>{{hunt.name}}</h1>
-          Created:<span class="uglytime">{{hunt.date_created}}</span> <!-- filter me later -->
-        </div>
-        <div class="panel-rect tertiary center col-sm-12 col-md-2">
-          <a class="center" href="/hunts">
-            <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
-            Hunts
-          </a>
-        </div>
-        <div class="panel-rect quarternary center col-sm-12 col-md-2">
-          <a class="center" href="/settings">
-            <i class="glyphicon glyphicon-cog hugeicon"></i><br>
-            Settings
-          </a>
-        </div>
-        <div class="panel-rect pentary center col-sm-12 col-md-2">
-          <a class="center" href="/logout">
-            <i class="glyphicon glyphicon-log-out hugeicon"></i><br>
-            Logout
-          </a>
-        </div>
-      </div>
-    </div>
-    <div class="row lists">
-      <div class="col-md-6 half">
-        <div class="panel-default">
-          <div class="panel-body secondary">
-            <table class="table table-condensed" id="participants-table">
-              {% for participant in hunt.participants %}
-              <tr>
-                <td>{{participant.name or ''}}</td>
-                <td>{{participant.email}}</td>
-              </tr>
+    <form action="{{ '' if hunt else url_for('hunts') }}" method="post"
+          class="form-horizontal" role="form" hunt_id={{hunt.hunt_id}}>
+      <div class="col-md-6 col-md-offset-3">
+        <h1>Let's create a hunt!</h1>
+        {% if error %}
+          <p class="alert">Error: {{error}}</p>
+        {% endif %}
+        {% if form.errors %}
+          <ul class="errors">
+            {% for field_name, field_errors in form.errors|dictsort if field_errors %}
+              {% for error in field_errors %}
+                  <li>{{ form[field_name].label }}: {{ error }}</li>
               {% endfor %}
-            </table>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        <div class="row hunt_name">
+          <div class="form-group">
+            <h3>What's your hunt's name?</h3>
+            {% if hunt %}
+              <span>{{hunt.name}}</span>
+            {% else %}
+              {{form.name(class="form-control", required=true)}}
+            {% endif %}
           </div>
         </div>
-        <div class="secondary" style="height: 45px; color: white;">
-          <div class="col-md-10">
+        <div class="row participant-rules">
+          <h3>Who can participate?</h3>
+          <div class="panel-default" id="participant-rules">
+            <div class="col-md-4 col-sm-4 col-xs-4 panel-rect pentary">
+              <div class="row">@{{domain}} emails</div>
+              <div class="row">
+                <span style="display: {{visible if hunt and hunt.participant_rule == 'by_domain' else none}};" class="glyphicon glyphicon-ok pull-right"></span>
+                <span style="display: none;">
+                  {{ form.participant_rule(type="radio", value="by_domain") }}
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-4 panel-rect quarternary">
+              <div class="row">Anyone who finds the qrcodes</div>
+              <div class="row">
+                <span style="display: {{visible if hunt and hunt.participant_rule == 'anyone' else none}};" class="glyphicon glyphicon-ok pull-right"></span>
+                <span style="display: none;">
+                  {{ form.participant_rule(type="radio", value="anyone") }}
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-4 panel-rect secondary">
+              <div class="row">Specific emails</div>
+              <div class="row">
+                <span style="display: {{visible if hunt and hunt.participant_rule == 'by_whitelist' else none}};" class="glyphicon glyphicon-ok pull-right"></span>
+                <span style="display: none;">
+                  {{ form.participant_rule(type="radio", value="by_whitelist") }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" name="participant_rule">
+        </div>
+        <div class="row" id="whitelist" style="display: none;">
+          <div class="form-group" id="participants-group">
+            <label>Provide their emails below</label>
             <div class="input-group">
-              <input class="form-control" type="email" id="more-participants">
+              <input class="form-control" type="email" id="participants-template">
               <span class="input-group-btn">
-                <button class="btn btn-default" type="button" id="more-participants-btn">
+                <button class="btn btn-default" type="button" id="add-participant">
                   Add
                 </button>
               </span>
             </div>
-          </div>
-          <div class="col-md-2">
-            <div class="pull-right">
-              <span class="glyphicon glyphicon-user" style="font-size: 35px;"></span>
+            <div id="participant-error" style="display: none;">
+              Please enter a valid email address
             </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 half">
-        <div class="panel-default">
-          <div class="panel-body secondary">
-            <table class="table table-condensed" id="items-table">
-              <tbody>
-                {% for item in hunt.items %}
+            <table class="table table-condensed" id="participants-table">
+              <thead>
                 <tr>
-                  <td class="item-required">
-                    {% if item.required %}
-                    <span class="glyphicon glyphicon-ok"></span>
-                    {% endif %}
-                  </td>
-                  <td>{{item.name}}</td>
+                  <th>Email</th>
+<!--                   <th>Registered</th>-->
                 </tr>
-                {% endfor %}
-              </tbody>
+              </thead>
             </table>
-            <span style="font-size: 18px;">
-            {% if hunt.all_required %}
-              All items required for participant to be successful
-            {% else %}
-              Only some items required for participant to be successful
-            {% endif %}
-            </span>
           </div>
         </div>
-        <div class="secondary" style="height: 45px; color: white;">
-          <div class="col-md-10">
+        <div class="row">
+          <div class="form-group">
+            <label class="control-label">
+              {{ form.all_required(type="checkbox", checked="on")}}
+              Require finding all items for success
+            </label></br>
+          </div>
+          <div class="form-group" style="display: none;" id="num-items-group">
+            <label>Number of items required</label>
+            <input type="number" name="num_required" class="form-control" min=0>
+          </div>
+          <div class="form-group" id="items-group">
+            <label>Add items</label>
             <div class="input-group">
-              <label class="sr-only">New Item</label>
-              <input class="form-control" type="email" id="more-items">
-              <span class="input-group-addon">
+              <input class="form-control" type="text" id="{{'ajax-items-template' if hunt else 'items-template'}}">
+              <span class="input-group-addon" style="display: {{none if hunt and hunt.all_required}};">
                 <label class="label-control">
                   <input type="checkbox" name="item-required"> required
                 </label>
               </span>
               <span class="input-group-btn">
-                <button class="btn btn-default" type="button" id="more-items-btn">
+                <button class="btn btn-default" type="button" id="{{'ajax-add-item' if hunt else 'add-item'}}">
                   Add
                 </button>
               </span>
             </div>
-          </div>
-          <div class="col-md-2">
-            <div class="pull-right">
-              <span class="glyphicon glyphicon-th-list" style="font-size: 35px;"></span>
-            </div>
+            <table class="table table-condensed" id="items-table" style="display: {{visible if hunt and hunt.hunt_id else none}};">
+              <tbody>
+                {% if hunt %}
+                  {% for item in hunt.items %}
+                  <tr class="hunt-item-row" item_id={{item.item_id}}>
+                    <td class="item-name">
+                      <span>{{item.name}}</span>{{item.item_id}}
+                      <input type="text" name="item_name" style="display: none;">
+                    </td>
+                    <td class="item-required">
+                      <input type="checkbox" item_id={{item.item_id}} checked={{item.required}} class="hunt-items" name="items-{{loop.index - 1}}-required">
+                      Required
+                    </td>
+                    <td class="item-delete"><span class="glyphicon glyphicon-remove"></span></td>
+                  </tr>
+                  {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="row messages">
-      <div class="col-md-4 panel welcome">
-        <div class="panel-default">
-          <div class="panel-body tertiary">
-            <div id="welcome-msg">{{hunt.welcome_message}}</div>
-            <textarea style="display: none;"
-                      id="update-welcome" class="update"></textarea>
+        <div class="row panel">
+          <h3>Welcome, team!</h3>
+          <div class="form-group">
+            <textarea name="welcome_message" maxlength=500>{% if hunt and hunt.welcome_message %}{{ hunt.welcome_message }}{% else %}Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'.{% endif %}</textarea>
           </div>
         </div>
-      </div>
-      <div class="col-md-4">
-        placeholder
-      </div>
-    </div>
-    <div class="row messages">
-      <div class="col-md-4 panel congratulations">
-        <div class="panel-default">
-          <div id="congratulations-msg" class="panel-body tertiary">{{hunt.congratulations_message}}</div>
-          <textarea style="display: none;" id="update-congratulations" class="update"></textarea>
+        <div class="row">
+          <h3>They finished the hunt! Let's congratulate them.</h3>
+          <div class="form-group">
+            <textarea name="congratulations_message" maxlength=500>{% if hunt and hunt.welcome_message %}{{ hunt.congratulations_message }}{% else %}Congratulations! You have successfully completed the scavenger hunt.{% endif %}</textarea>
+          </div>
         </div>
-      </div>
-      <div class="col-md-4">
-        placeholder
-      </div>
+        <div class="row">
+          {% if not hunt %}
+          <div class="form-group">
+            <button class="btn btn-primary pull-right form-control" type="submit">
+              Submit Hunt
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </form>
     </div>
   </div>
-  <script>var hunt_id = '{{hunt.hunt_id}}';</script>
   {% endif %}
 {% endblock %}

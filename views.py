@@ -107,7 +107,7 @@ def hunts():
         else:
             flash('some error msg about invalid form')
             domain = get_domain_by_admin_id(session['admin_id'])
-            return render_template('new_hunt.html', form=form, domain=domain)
+            return render_template('hunt.html', form=form, domain=domain)
     else:
         hunts = db.session.query(Hunt).filter(
             Hunt.admin_id == session['admin_id']).all()
@@ -115,12 +115,23 @@ def hunts():
 
 
 # edit and/or view hunt
-@app.route('/hunts/<hunt_id>', methods=['GET', 'PUT'])
+@app.route('/hunts/<hunt_id>', methods=['GET', 'POST'])
 @login_required
 def hunt(hunt_id):
     hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
     if hunt:
-        return render_template('hunt.html', hunt=hunt)
+        form = HuntForm(request.form)
+        if request.method == 'POST' and form.validate():
+            logger.debug('request form %s', request.form)
+            form.populate_obj(hunt)
+            logger.debug('hunt items: %s', hunt.items)
+            db.session.add(hunt)
+            db.session.commit()
+
+            flash('Scavenger updated')
+            logger.info(
+                'hunt, %s, updated', hunt.name)
+        return render_template('hunt.html', hunt=hunt, form=form)
     else:
         abort(404)
 
@@ -129,7 +140,7 @@ def hunt(hunt_id):
 @app.route('/new_hunt', methods=['GET'])
 def new_hunt():
     domain = get_domain_by_admin_id(session['admin_id'])
-    return render_template('new_hunt.html', form=HuntForm(), domain=domain)
+    return render_template('hunt.html', form=HuntForm(), domain=domain)
 
 
 def participant_email_exists(email, hunt_id):
@@ -137,25 +148,26 @@ def participant_email_exists(email, hunt_id):
         Participant.email == email).filter(Hunt.hunt_id == hunt_id).first()
 
 
-@app.route('/new_participant', methods=['POST'])
-def new_participant():
-    participant = Participant()
-    logger.debug(request.form['hunt_id'])
-    form = ParticipantForm(request.form)
-    if form.validate():
-        form.populate_obj(participant)
-        participant.hunt_id = request.form['hunt_id'] # why was this necessary?
-        db.session.add(participant)
-        db.session.commit()
-        return make_response('', 200)
-    logger.debug(form.errors)
-    abort(400)
+# @app.route('/new_participant', methods=['POST'])
+# def new_participant():
+#     participant = Participant()
+#     logger.debug(request.form['hunt_id'])
+#     form = ParticipantForm(request.form)
+#     if form.validate():
+#         form.populate_obj(participant)
+#         participant.hunt_id = request.form['hunt_id'] # why was this necessary?
+#         db.session.add(participant)
+#         db.session.commit()
+#         return make_response('', 200)
+#     logger.debug(form.errors)
+#     abort(400)
 
 
 @app.route('/new_item', methods=['POST'])
 def new_item():
     item = Item()
     form = ItemForm(request.form)
+    logger.debug('request.form: %s', request.form)
     if form.validate():
         form.populate_obj(item)
         item.hunt_id = request.form['hunt_id']
@@ -164,6 +176,13 @@ def new_item():
         return make_response('', 200)
     logger.debug('item form errors: %s', form.errors)
     abort(400)
+
+
+@app.route('/edit_item/<item_id>', methods=['POST'])
+def edit_item(item_id):
+    db.session.query(Item).filter(Item.item_id == item_id).update(request.form)
+    db.session.commit()
+    return make_response('', 200)
 
 
 @app.route('/update_welcome', methods=['POST'])
@@ -175,13 +194,13 @@ def update_welcome():
     return make_response('', 200)
 
 
-@app.route('/update_congratulations', methods=['POST'])
-def update_congraulations():
-    db.session.query(Hunt).filter(
-        Hunt.hunt_id == request.form['hunt_id']).update(
-        {'congratulations_message': request.form['congratulations_message']})
-    db.session.commit()
-    return make_response('', 200)
+# @app.route('/update_congratulations', methods=['POST'])
+# def update_congraulations():
+#     db.session.query(Hunt).filter(
+#         Hunt.hunt_id == request.form['hunt_id']).update(
+#         {'congratulations_message': request.form['congratulations_message']})
+#     db.session.commit()
+#     return make_response('', 200)
 
 
 @app.route('/hunts/<hunt_id>/qrcodes')
@@ -352,7 +371,6 @@ def validated_by_participant_rule(email, hunt_id):
 # check scavenger is on whitelist and set user_id
 @app.route('/register_participant', methods=['POST'])
 def register_participant():
-    logger.debug('partip form: %s', request.form)
     form = ParticipantForm(request.form)
     if form.validate():
         hunt_id = request.args['hunt_id']

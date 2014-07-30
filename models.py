@@ -55,7 +55,7 @@ class Item(db.Model):
     required = db.Column(db.Boolean)
 
     def __repr__(self):
-        return '<Item %r>' % self.name
+        return '<Item %r %r>' % (self.item_id, self.name)
 
 
 class Setting(db.Model):

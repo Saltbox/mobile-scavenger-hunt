@@ -1,20 +1,14 @@
 console.log('loading main.js');
 
 $(document).ready(function() {
-  var itemCount = 0;  // no. maybe make a class or something.
+  var itemCount = $('.hunt-items').length;
   var participantCount = 0;
 
-  // toggle if all items are required for success
-  $("input[name=all_required]").change(function() {
-    var allItemsRequired = $("input[name=all_required]").prop('checked');
-    if (allItemsRequired) {
-      $('input.hunt-items').prop('checked', true);
-      $('#num-items-group').hide('slow');
-    }
-    else {
-      $('#num-items-group').show('slow');
-    }
-  });
+  // show checkmarks for selected participant rule
+  var participant_rule_el = $('input[name=participant_rule][checked=on]');
+  if (participant_rule_el) {
+    $(participant_rule_el).siblings().show();
+  }
 
   // toggle for whether or not an item is required
   // parent needed to help detect dynamically added content
@@ -34,9 +28,9 @@ $(document).ready(function() {
   // make new item checkbox
   var tdCheckbox = function(index, checked) {
     if (checked) {
-      return "<td><input type='checkbox' checked='on' class='hunt-items' name='" + itemRequiredName(index) + "'></td>";
+      return "<td><input type='checkbox' checked='on' class='hunt-items' name='" + itemRequiredName(index) + "'> Required</td>";
     }
-    return "<td><input type='checkbox' class='hunt-items' name='" + itemRequiredName(index) + "'></td>";
+    return "<td><input type='checkbox' class='hunt-items' name='" + itemRequiredName(index) + "'> Required</td>";
   };
 
   // since jquery wrap doesn't seem to work
@@ -50,17 +44,38 @@ $(document).ready(function() {
   };
 
   // gives admin something to delete items
-  var itemDelete = function(itemCount) {
+  var itemDelete = function() {
     return '<td class="item-delete"><span class="glyphicon glyphicon-remove"></span></td>';
   };
 
   // add tr to item table
   var addItemRow = function(itemCount, fieldValue) {
     var checked = $("input[name=all_required]").prop('checked');
-    var row = "<tr>" + tdCheckbox(itemCount, checked) + tdItem(fieldValue) + itemDelete(itemCount) + "</tr>";
+    var row = "<tr>" + tdItem(fieldValue) + tdCheckbox(itemCount, checked) + itemDelete() + "</tr>";
     $('#items-table tbody').append(row);
   };
 
+  // toggle if all items are required for success
+  $("input[name=all_required]").change(function() {
+    var allItemsRequired = $("input[name=all_required]").prop('checked');
+    if (allItemsRequired) {
+      $('input.hunt-items').prop('checked', true);
+      $('#num-items-group').hide('slow');
+    }
+    else {
+      $('#num-items-group').show('slow');
+    }
+  });
+
+  // update item requirement when checkmark changes
+  $('input[checked][item_id]').on('change', function() {
+     var item_id = $(this).attr('item_id');
+    var data = {
+      'hunt_id': $('form[hunt_id]').attr('hunt_id'),
+      'required': $(this).prop('checked')
+    };
+    updateItem(data, item_id);
+  });
 
   // helper for addInput that displays each added participant email
   var addParticipantRow = function(email, registered) {
@@ -92,7 +107,7 @@ $(document).ready(function() {
 
     if (fieldValue) {
       // find smarter way to do this
-      if (fieldType == 'items') {
+      if (fieldType == 'items' || fieldType == 'ajax-items') {
         addItemRow(itemCount, fieldValue);
         addNewField('items', 'items-' + itemCount + "-name", fieldValue);
 
@@ -115,6 +130,15 @@ $(document).ready(function() {
     }
   };
 
+  // add input on enter
+  var addInputByKeydown = function(event, type) {
+    if (event.keyCode == 13) {
+      event.preventDefault();
+      addInput(type, itemCount);
+    }
+  };
+
+  // updates count and makes item/participant table appear with the first added row
   var incrementCount = function(countType, count) {
     if (count < 1) {
       $('#' + countType + '-table').show('slide', {'direction': 'up'}, 'fast');
@@ -122,6 +146,7 @@ $(document).ready(function() {
     count += 1;
   };
 
+  // updates count and makes item/participant table disappear on the last item deleted
   var decrementCount = function(countType, count) {
     count -= 1;
     if (count < 1) {
@@ -136,30 +161,105 @@ $(document).ready(function() {
 
   // add item to table for later submission via button
   $("#add-item").on("click", (function() {
-      addInput('items', itemCount);
+    addInput('items', itemCount);
   }));
 
   // add item to table for later submission via "enter" on keyboard
   $('input#items-template').keydown(function(event) {
+    addInputByKeydown(event, 'items');
+  });
+
+  // ajax helper for adding items
+  var addItem = function(data) {
+    $.ajax({
+      url: '/new_item',
+      method: 'POST',
+      data: data
+    })
+    .success(function() {
+      console.log('item!');
+      $('#items-table').append(
+        "<tr><td>" + data.name + "</td><td><input type='checkbox' hunt-id={{hunt.hunt_id}} checked={{item.required}} class='hunt-items'> Required</td>" + itemDelete() + "</tr>");
+    })
+    .error(function() {
+      console.log('fail new item');
+    });
+  };
+
+  // add item via ajax on enter
+  $('input#ajax-items-template').keydown(function(event) {
     if (event.keyCode == 13) {
-      event.preventDefault();
-      addInput('items', itemCount);
+      var fieldInput = $('input#ajax-items-template'); //hm
+      var fieldValue = fieldInput.val();
+      var hunt_id = $('form[hunt_id]').attr('hunt_id');
+      addItem({'name': fieldValue, 'hunt_id': hunt_id});
     }
+  });
+
+  // add new item from hunt page
+  $('#ajax-add-item').on('click', function(e) {
+    var data = {
+      'hunt_id': $('form[hunt_id]').attr('hunt_id'),
+      'name': $('input#ajax-items-template').val(),
+      'required': $("input[name=all_required]").prop('checked')
+    };
+    addItem(data);
+  });
+
+  // helper to update item attributes via ajax
+  var updateItem = function(data, item_id) {
+    $.ajax({
+      url: '/edit_item/' + item_id,
+      method: 'POST',
+      data: data
+    })
+    .success(function() {
+      console.log('success');
+    })
+    .error(function() {
+      console.log('fail');
+    });
+  };
+
+  // clicking on item name allows for editting
+  $('.item-name').on('click', function(e) {
+    var itemName = $(this).find('span').html();
+    $(this).find('span').hide();
+    $(this).find('input').val(itemName).show().focus();
+  });
+
+  // update item name when clicking outside of input
+  $('.item-name input').on('blur', function() {
+    var typedName = $(this).val();
+    var oldName = $(this).siblings('span').html();
+    $(this).hide();
+    $(this).siblings('span').show().html(typedName);
+
+    var item_id = $(this).parent().parent().attr('item_id');
+
+    if (typedName != oldName) {
+      var data = {'name': typedName};
+      updateItem(data, item_id);
+    }
+  });
+
+  // remove item from list and delete on backend
+  $('#items-table tbody').on('click', 'td.item-delete', function() {
+    $(this).parents('tr').remove();
+    decrementCount('items', itemCount);
+
+    // todo: delete on backend
   });
 
   // add participant to list for later submission via button
   $("#add-participant").on("click", (function() {
-      addInput('participants', participantCount);
+    addInput('participants', participantCount);
   }));
 
   // add participant to list for later submission via "enter" on keyboard
   $('input#participants-template').keydown(function(event) {
-    if (event.keyCode == 13) {
-      event.preventDefault();
-      addInput('participants', participantCount);
-    }
+    addInputByKeydown('participants', participantCount);
   });
-
 
   // time formatter
   $('.uglytime').each(function(index, e) {
@@ -168,57 +268,12 @@ $(document).ready(function() {
     $(e).text(prettyTime);
   });
 
-  // add new participant from hunt page
-  $('#more-participants-btn').click(function() {
-    var newParticipantEmail = $('input#more-participants').val();
-    $.ajax({
-      url: '/new_participant',
-      method: 'POST',
-      data: {'email': newParticipantEmail, 'hunt_id': hunt_id} // hunt_id is a var in the html
-    })
-    .success(function() {
-      console.log('success new part.');
-      $('#participants-table').append(
-        "<tr><td></td><td>" + newParticipantEmail + "</td></tr>");
-    })
-    .error(function() {
-      console.log('fail new part.');
-    });
-  });
-
-  // add new item from hunt page
-  $('#more-items-btn').click(function() {
-    var newItemName = $('input#more-items').val();
-    var itemRequired = $('input[name=item-required]').prop('checked');
-    console.log("item required", itemRequired);
-    $.ajax({
-      url: '/new_item',
-      method: 'POST',
-      data: {'name': newItemName, 'required': itemRequired, 'hunt_id': hunt_id} // hunt_id is a var in the html
-    })
-    .success(function() {
-      console.log('item!');
-      $('#items-table').append(
-        "<tr><td></td><td>" + newItemName + "</td></tr>");
-    })
-    .error(function() {
-      console.log('fail new item');
-    });
-  });
-
-  $('.panel.welcome').click(function(event) {
-    event.stopPropagation();
-    var el = $('#welcome-msg');
-    var welcome = el.html();
-    el.hide('slow');
-    $('#update-welcome').val(welcome).show('slow').focus();
-  });
-
+  // helper for updating welcome message via ajax
   var updateWelcome = function(msg) {
     $.ajax({
       url: '/update_welcome',
       method: 'POST',
-      data: {'welcome_message': msg, 'hunt_id': hunt_id}
+      data: {'welcome_message': msg, 'hunt_id': $('form[hunt_id]').attr('hunt_id')}
     })
     .success(function() {
       console.log('updated welcome');
@@ -228,30 +283,17 @@ $(document).ready(function() {
     });
   };
 
-  var oldWelcome, currentWelcome = $('#welcome-msg').html();
-  $('#update-welcome').blur(function() {
-    currentWelcome = $('#update-welcome').val();
+  // update welcome message when clicking outside of textarea
+  var oldWelcome, currentWelcome = $('textarea[name=welcome_message]').val();
+  $('textarea[name=welcome_message]').blur(function() {
+    currentWelcome = $('textarea[name=welcome_message]').val();
     if (oldWelcome != currentWelcome) {
       updateWelcome(currentWelcome);
       oldWelcome = currentWelcome;
     }
-    $('#welcome-msg').show('slow').html(currentWelcome);
-    $('#update-welcome').hide('slow');
   });
 
-  $('.panel.welcome .panel-body').hover(
-    function() { $('#welcome-msg').css('color', 'lightgray'); },
-    function() { $('#welcome-msg').css('color', 'white'); }
-  );
-
-  $('.panel.congratulations').click(function(event) {
-    event.stopPropagation();
-    var el = $('#congratulations-msg');
-    var congratulations = el.html();
-    el.hide('slow');
-    $('#update-congratulations').val(congratulations).show('slow').focus();
-  });
-
+  // helper to update congraulations message via ajax
   var updatecongratulations = function(msg) {
     $.ajax({
       url: '/update_congratulations',
@@ -266,22 +308,18 @@ $(document).ready(function() {
     });
   };
 
+  // update congrulations message when clicking outside of textarea
   var oldCongratulations, currentCongratulations = $('#congratulations-msg').html();
-  $('#update-congratulations').blur(function() {
-    currentCongratulations = $('#update-congratulations').val();
+  $('textarea[name=congratulations_message]').blur(function() {
+    currentCongratulations = $(this).val();
     if (oldCongratulations != currentCongratulations) {
       updatecongratulations(currentCongratulations);
       oldCongratulations = currentCongratulations;
     }
-    $('#congratulations-msg').show('slow').html(currentCongratulations);
-    $('#update-congratulations').hide('slow');
   });
 
-  $('.panel.congratulations .panel-body').hover(
-    function() { $('#congratulations-msg').css('color', 'lightgray'); },
-    function() { $('#congratulations-msg').css('color', 'white'); }
-  );
 
+  // various events for update ui upon participant rule selection
   $('#participant-rules .panel-rect').on({
     click: function(e) {
       $(this).css('opacity', 1).siblings().css('opacity', 0.7);
@@ -303,10 +341,5 @@ $(document).ready(function() {
     mouseleave: function() {
       $(this).removeClass('panel-rect-hover');
     }
-  });
-
-  $('#items-table tbody').on('click', 'td.item-delete', function() {
-    $(this).parents('tr').remove();
-    decrementCount('items', itemCount);
   });
 });
