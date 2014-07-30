@@ -57,7 +57,7 @@
           </div>
           <input type="hidden" name="participant_rule">
         </div>
-        <div class="row" id="whitelist" style="display: none;">
+        <div class="row" id="whitelist">
           <div class="form-group" id="participants-group">
             <label>Provide their emails below</label>
             <div class="input-group">
@@ -75,9 +75,27 @@
               <thead>
                 <tr>
                   <th>Email</th>
-<!--                   <th>Registered</th>-->
+                  <th>
+                  {% if hunt %}
+                    Registered
+                  {% endif %}
+                  </th>
                 </tr>
               </thead>
+              <tbody>
+              {% if hunt %}
+                {% for participant in hunt.participants %}
+                <tr>
+                  <td>{{participant.email}}</td>
+                  <td>
+                  {% if participant.required %}
+                    <span class='glyphicon glyphicon-ok'></span>
+                  {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% endif %}
+              </tbody>
             </table>
           </div>
         </div>

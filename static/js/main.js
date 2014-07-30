@@ -103,27 +103,18 @@ $(document).ready(function() {
     updateItem(data, item_id);
   });
 
-  // helper for addInput that displays each added participant email
-  var addParticipantRow = function(email, registered) {
-    var emailTd = "<td>" + email + "</td>";
-    var checkmark;
-    //add logic for show vs new view later
-    if (registered) {
-      checkmark = "<td><span class='glyphicon glyphicon-ok'></span></td>";
-    }
-    else {
-      checkmark = '<td></td>';
-    }
-    var listRow = "<tr>" + emailTd + checkmark + "</tr>";
-    $('#participants-table').append(listRow);
-  };
-
   // helper for addInput
   var addNewField = function(fieldType, name, fieldValue) {
     var newField = $('<input type="hidden">').attr('name', name)
                                              .attr('value', fieldValue);
     $('#' + fieldType + '-group .input-group').append(newField);
   };
+
+  var validEmail = function(email) {
+    var validEmailRegex = /[\w-]+@([\w-]+\.)+[\w-]+/;
+    return validEmailRegex.test(email);
+  };
+
 
   // add item or participant hidden input field that works with wtforms
   var addInput = function(fieldType, count) {
@@ -140,8 +131,7 @@ $(document).ready(function() {
         itemCount = incrementCount('items', count);
       }
       else {
-        var validEmailRegex = /[\w-]+@([\w-]+\.)+[\w-]+/;
-        if (validEmailRegex.test(fieldValue)) {
+        if (validEmail(fieldValue)) {
           addParticipantRow(fieldValue, true);
           addNewField(
             'participants', 'participants-' + participantCount + '-email', fieldValue);
@@ -157,10 +147,10 @@ $(document).ready(function() {
   };
 
   // add input on enter
-  var addInputByKeydown = function(event, type) {
+  var addInputByKeydown = function(event, type, count) {
     if (event.keyCode == 13) {
       event.preventDefault();
-      addInput(type, itemCount);
+      addInput(type, count);
     }
   };
 
@@ -182,9 +172,48 @@ $(document).ready(function() {
     return count;
   };
 
-  // hide participant email error message when typing
-  $("#participants-template").keypress(function() {
+
+  // helper for addInput that displays each added participant email
+  var addParticipantRow = function(email, registered) {
+    var emailTd = "<td>" + email + "</td>";
+    var checkmark;
+    var listRow = "<tr>" + emailTd + "<td></td></tr>";
+    $('#participants-table').append(listRow);
+  };
+
+  var addParticipant = function(data) {
+      $.ajax({
+        url: '/new_participant',
+        method: 'POST',
+        data: data
+      })
+      .success(function() {
+        console.log('success new part.');
+        $('#participants-table').append(
+          "<tr><td>" + data.email + "</td><td></td></tr>");
+      })
+      .error(function() {
+        console.log('fail new part.');
+      });
+  };
+
+  // add participant to list for later submission via button
+  $("#add-participant").on("click", (function() {
+    if (huntId()) {
+      var email = $('#participants-template').val();
+      if (validEmail(email)) {
+        addParticipant({'email': email, 'hunt_id': huntId()})
+      }
+    }
+    else {
+      addInput('participants', participantCount);
+    }
+  }));
+
+  // add participant to list for later submission via "enter" on keyboard
+  $('#participants-template').keydown(function(event) {
     $('#participant-error').hide('slow');
+    addInputByKeydown(event, 'participants', participantCount);
   });
 
   // add item to table for later submission via button
@@ -194,7 +223,7 @@ $(document).ready(function() {
 
   // add item to table for later submission via "enter" on keyboard
   $('input#items-template').keydown(function(event) {
-    addInputByKeydown(event, 'items');
+    addInputByKeydown(event, 'items', itemCount);
   });
 
   // ajax helper for adding items
@@ -289,16 +318,6 @@ $(document).ready(function() {
     }
     $(this).parents('tr').remove();
     itemCount = decrementCount('items', itemCount);
-  });
-
-  // add participant to list for later submission via button
-  $("#add-participant").on("click", (function() {
-    addInput('participants', participantCount);
-  }));
-
-  // add participant to list for later submission via "enter" on keyboard
-  $('input#participants-template').keydown(function(event) {
-    addInputByKeydown('participants', participantCount);
   });
 
   // time formatter

@@ -332,12 +332,3 @@ span.glyphicon-remove:hover {
   opacity: 0.7;
   cursor: pointer;
 }
-
-textarea:hover {
-  border-color: blue;
-  cursor: pointer;
-}
-
-textarea:focus {
-  border-color: initial;
-}

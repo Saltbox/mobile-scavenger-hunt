@@ -151,19 +151,19 @@ def participant_email_exists(email, hunt_id):
         Participant.email == email).filter(Hunt.hunt_id == hunt_id).first()
 
 
-# @app.route('/new_participant', methods=['POST'])
-# def new_participant():
-#     participant = Participant()
-#     logger.debug(request.form['hunt_id'])
-#     form = ParticipantForm(request.form)
-#     if form.validate():
-#         form.populate_obj(participant)
-#         participant.hunt_id = request.form['hunt_id'] # why was this necessary?
-#         db.session.add(participant)
-#         db.session.commit()
-#         return make_response('', 200)
-#     logger.debug(form.errors)
-#     abort(400)
+@app.route('/new_participant', methods=['POST'])
+def new_participant():
+    participant = Participant()
+    logger.debug(request.form['hunt_id'])
+    form = ParticipantForm(request.form)
+    if form.validate():
+        form.populate_obj(participant)
+        participant.hunt_id = request.form['hunt_id'] # why was this necessary?
+        db.session.add(participant)
+        db.session.commit()
+        return make_response('', 200)
+    logger.debug(form.errors)
+    abort(400)
 
 
 @app.route('/new_item', methods=['POST'])

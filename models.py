@@ -42,6 +42,7 @@ class Participant(db.Model):
     name = db.Column(db.String(50))
     email = db.Column(db.String(50), nullable=False)
     hunt_id = db.Column(db.Integer, db.ForeignKey('hunts.hunt_id'))
+    registered = db.Column(db.Boolean)
 
     def __repr__(self):
         return '<Participant %r>' % self.email
