@@ -205,13 +205,13 @@ def update_welcome():
     return make_response('', 200)
 
 
-# @app.route('/update_congratulations', methods=['POST'])
-# def update_congraulations():
-#     db.session.query(Hunt).filter(
-#         Hunt.hunt_id == request.form['hunt_id']).update(
-#         {'congratulations_message': request.form['congratulations_message']})
-#     db.session.commit()
-#     return make_response('', 200)
+@app.route('/update_congratulations', methods=['POST'])
+def update_congraulations():
+    db.session.query(Hunt).filter(
+        Hunt.hunt_id == request.form['hunt_id']).update(
+        {'congratulations_message': request.form['congratulations_message']})
+    db.session.commit()
+    return make_response('', 200)
 
 
 @app.route('/hunts/<hunt_id>/qrcodes')

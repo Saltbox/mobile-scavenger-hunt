@@ -334,7 +334,7 @@ $(document).ready(function() {
     $.ajax({
       url: '/update_congratulations',
       method: 'POST',
-      data: {'congratulations_message': msg, 'hunt_id': hunt_id}
+      data: {'congratulations_message': msg, 'hunt_id': huntId()}
     })
     .success(function() {
       console.log('updated congratulations');
@@ -345,7 +345,7 @@ $(document).ready(function() {
   };
 
   // update congrulations message when clicking outside of textarea
-  var oldCongratulations, currentCongratulations = $('#congratulations-msg').html();
+  var oldCongratulations = $('textarea[name=congratulations_message').html();
   $('textarea[name=congratulations_message]').blur(function() {
     currentCongratulations = $(this).val();
     if (oldCongratulations != currentCongratulations) {
