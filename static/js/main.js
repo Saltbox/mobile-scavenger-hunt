@@ -269,10 +269,22 @@ $(document).ready(function() {
 
   // remove item from list and delete on backend
   $('#items-table tbody').on('click', 'td.item-delete', function() {
+    // if on the edit page, delete the item on the backend
+    if (huntId()) {
+      var item_id = $(this).parents('tr').attr('item_id');
+      $.ajax({
+        url: '/delete_item/' + item_id,
+        method: 'POST'
+      })
+      .success(function() {
+        console.log('success');
+      })
+      .error(function() {
+        console.log('fail');
+      });
+    }
     $(this).parents('tr').remove();
     decrementCount('items', itemCount);
-
-    // todo: delete on backend
   });
 
   // add participant to list for later submission via button

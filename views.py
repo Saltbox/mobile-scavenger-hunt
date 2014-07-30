@@ -114,7 +114,14 @@ def hunts():
         return render_template('hunts.html', hunts=hunts)
 
 
-# view/edit hunt
+# form to create new hunt
+@app.route('/new_hunt', methods=['GET'])
+def new_hunt():
+    domain = get_domain_by_admin_id(session['admin_id'])
+    return render_template('hunt.html', form=HuntForm(), domain=domain)
+
+
+# page to view/edit hunt
 @app.route('/hunts/<hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
@@ -126,6 +133,7 @@ def hunt(hunt_id):
         abort(404)
 
 
+# endpoint to update hunt attributes
 @app.route('/edit_hunt/<hunt_id>', methods=['POST'])
 @login_required
 def edit_hunt(hunt_id):
@@ -136,13 +144,6 @@ def edit_hunt(hunt_id):
     db.session.commit()
 
     return make_response('', 200)
-
-
-# form to create new hunt
-@app.route('/new_hunt', methods=['GET'])
-def new_hunt():
-    domain = get_domain_by_admin_id(session['admin_id'])
-    return render_template('hunt.html', form=HuntForm(), domain=domain)
 
 
 def participant_email_exists(email, hunt_id):
@@ -183,6 +184,14 @@ def new_item():
 @app.route('/edit_item/<item_id>', methods=['POST'])
 def edit_item(item_id):
     db.session.query(Item).filter(Item.item_id == item_id).update(request.form)
+    db.session.commit()
+    return make_response('', 200)
+
+
+@app.route('/delete_item/<item_id>', methods=['POST'])
+@login_required
+def delete_item(item_id):
+    db.session.query(Item).filter(Item.item_id == item_id).delete()
     db.session.commit()
     return make_response('', 200)
 
