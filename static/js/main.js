@@ -81,7 +81,7 @@ $(document).ready(function() {
 
   // toggle if all items are required for success
   $("input[name=all_required]").change(function() {
-    var allItemsRequired = $("input[name=all_required]").prop('checked');
+    var allItemsRequired = $(this).prop('checked');
     if (allItemsRequired) {
       $('input.hunt-items').prop('checked', true);
       $('#num-items-group').hide('slow');
@@ -135,7 +135,7 @@ $(document).ready(function() {
         addItemRow(itemCount, fieldValue);
         addNewField('items', 'items-' + itemCount + "-name", fieldValue);
 
-        incrementCount('items', count);
+        itemCount = incrementCount('items', count);
       }
       else {
         var validEmailRegex = /[\w-]+@([\w-]+\.)+[\w-]+/;
@@ -144,7 +144,7 @@ $(document).ready(function() {
           addNewField(
             'participants', 'participants-' + participantCount + '-email', fieldValue);
 
-          incrementCount('participants', count);
+          participantCount = incrementCount('participants', count);
         }
         else {
           $('#participant-error').show('slow');
@@ -168,6 +168,7 @@ $(document).ready(function() {
       $('#' + countType + '-table').show('slide', {'direction': 'up'}, 'fast');
     }
     count += 1;
+    return count;
   };
 
   // updates count and makes item/participant table disappear on the last item deleted
@@ -176,6 +177,7 @@ $(document).ready(function() {
     if (count < 1) {
       $('#' + countType + '-table').hide('slow');
     }
+    return count;
   };
 
   // hide participant email error message when typing
@@ -284,7 +286,7 @@ $(document).ready(function() {
       });
     }
     $(this).parents('tr').remove();
-    decrementCount('items', itemCount);
+    itemCount = decrementCount('items', itemCount);
   });
 
   // add participant to list for later submission via button

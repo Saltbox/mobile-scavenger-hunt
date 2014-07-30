@@ -96,11 +96,6 @@
             <label>Add items</label>
             <div class="input-group">
               <input class="form-control" type="text" id="{{'ajax-items-template' if hunt else 'items-template'}}">
-              <span class="input-group-addon" style="display: {{none if hunt and hunt.all_required}};">
-                <label class="label-control">
-                  <input type="checkbox" name="item-required"> required
-                </label>
-              </span>
               <span class="input-group-btn">
                 <button class="btn btn-default" type="button" id="{{'ajax-add-item' if hunt else 'add-item'}}">
                   Add
@@ -128,8 +123,8 @@
             </table>
           </div>
         </div>
-        <div class="row panel">
-          <h3>Welcome, team!</h3>
+        <div class="row">
+          <h3>Welcome the team!</h3>
           <div class="form-group">
             <textarea class="form-control" name="welcome_message" maxlength=500>{% if hunt and hunt.welcome_message %}{{ hunt.welcome_message }}{% else %}Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'.{% endif %}</textarea>
           </div>
