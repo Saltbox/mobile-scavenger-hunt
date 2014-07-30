@@ -333,12 +333,11 @@ span.glyphicon-remove:hover {
   cursor: pointer;
 }
 
-textarea[name=welcome_message]:hover {
-  background-color: lightcyan;
-  opacity: 0.2;
+textarea:hover {
+  border-color: blue;
+  cursor: pointer;
 }
 
-textarea[name=welcome_message]:focus {
-  background-color: initial;
-  opacity: 1;
+textarea:focus {
+  border-color: initial;
 }

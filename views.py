@@ -114,26 +114,28 @@ def hunts():
         return render_template('hunts.html', hunts=hunts)
 
 
-# edit and/or view hunt
-@app.route('/hunts/<hunt_id>', methods=['GET', 'POST'])
+# view/edit hunt
+@app.route('/hunts/<hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
     hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
     if hunt:
         form = HuntForm(request.form)
-        if request.method == 'POST' and form.validate():
-            logger.debug('request form %s', request.form)
-            form.populate_obj(hunt)
-            logger.debug('hunt items: %s', hunt.items)
-            db.session.add(hunt)
-            db.session.commit()
-
-            flash('Scavenger updated')
-            logger.info(
-                'hunt, %s, updated', hunt.name)
         return render_template('hunt.html', hunt=hunt, form=form)
     else:
         abort(404)
+
+
+@app.route('/edit_hunt/<hunt_id>', methods=['POST'])
+@login_required
+def edit_hunt(hunt_id):
+    db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).update(
+        request.form)
+
+    logger.debug('request form %s', request.form)
+    db.session.commit()
+
+    return make_response('', 200)
 
 
 # form to create new hunt

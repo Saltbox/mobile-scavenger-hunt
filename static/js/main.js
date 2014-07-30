@@ -4,6 +4,30 @@ $(document).ready(function() {
   var itemCount = $('.hunt-items').length;
   var participantCount = 0;
 
+  var huntId = function() {
+    return $('form[hunt_id]').attr('hunt_id');
+  };
+
+  // make hunt name updateable on click
+  var oldName = $('input[name=name]').val();
+  $('input[name=name]').on('blur', function() {
+    var newName = $(this).val();
+    if (newName != oldName) {
+      $.ajax({
+        url: '/edit_hunt/' + huntId(),
+        method: 'POST',
+        data: {'name': newName}
+      })
+      .success(function() {
+        console.log('success');
+        oldName = newName;
+      })
+      .error(function() {
+        console.log('fail');
+      });
+    }
+  });
+
   // show checkmarks for selected participant rule
   var participant_rule_el = $('input[name=participant_rule][checked=on]');
   if (participant_rule_el) {
@@ -71,7 +95,7 @@ $(document).ready(function() {
   $('input[checked][item_id]').on('change', function() {
      var item_id = $(this).attr('item_id');
     var data = {
-      'hunt_id': $('form[hunt_id]').attr('hunt_id'),
+      'hunt_id': huntId(),
       'required': $(this).prop('checked')
     };
     updateItem(data, item_id);
@@ -191,7 +215,7 @@ $(document).ready(function() {
     if (event.keyCode == 13) {
       var fieldInput = $('input#ajax-items-template'); //hm
       var fieldValue = fieldInput.val();
-      var hunt_id = $('form[hunt_id]').attr('hunt_id');
+      var hunt_id = huntId();
       addItem({'name': fieldValue, 'hunt_id': hunt_id});
     }
   });
@@ -199,7 +223,7 @@ $(document).ready(function() {
   // add new item from hunt page
   $('#ajax-add-item').on('click', function(e) {
     var data = {
-      'hunt_id': $('form[hunt_id]').attr('hunt_id'),
+      'hunt_id': huntId(),
       'name': $('input#ajax-items-template').val(),
       'required': $("input[name=all_required]").prop('checked')
     };
@@ -273,7 +297,7 @@ $(document).ready(function() {
     $.ajax({
       url: '/update_welcome',
       method: 'POST',
-      data: {'welcome_message': msg, 'hunt_id': $('form[hunt_id]').attr('hunt_id')}
+      data: {'welcome_message': msg, 'hunt_id': huntId()}
     })
     .success(function() {
       console.log('updated welcome');

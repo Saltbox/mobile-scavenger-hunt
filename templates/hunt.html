@@ -3,7 +3,7 @@
   {% if session.logged_in %}
   <div class="container content">
     <form action="{{ '' if hunt else url_for('hunts') }}" method="post"
-          class="form-horizontal" role="form" hunt_id={{hunt.hunt_id}}>
+          class="form-horizontal" role="form" hunt_id={{hunt.hunt_id if hunt else ''}}>
       <div class="col-md-6 col-md-offset-3">
         <h1>Let's create a hunt!</h1>
         {% if error %}
@@ -21,11 +21,7 @@
         <div class="row hunt_name">
           <div class="form-group">
             <h3>What's your hunt's name?</h3>
-            {% if hunt %}
-              <span>{{hunt.name}}</span>
-            {% else %}
-              {{form.name(class="form-control", required=true)}}
-            {% endif %}
+            {{form.name(class="form-control hunt-name ajax" if hunt else "form-control hunt-name", required=true, value=hunt.name if hunt)}}
           </div>
         </div>
         <div class="row participant-rules">
@@ -135,13 +131,13 @@
         <div class="row panel">
           <h3>Welcome, team!</h3>
           <div class="form-group">
-            <textarea name="welcome_message" maxlength=500>{% if hunt and hunt.welcome_message %}{{ hunt.welcome_message }}{% else %}Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'.{% endif %}</textarea>
+            <textarea class="form-control" name="welcome_message" maxlength=500>{% if hunt and hunt.welcome_message %}{{ hunt.welcome_message }}{% else %}Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'.{% endif %}</textarea>
           </div>
         </div>
         <div class="row">
           <h3>They finished the hunt! Let's congratulate them.</h3>
           <div class="form-group">
-            <textarea name="congratulations_message" maxlength=500>{% if hunt and hunt.welcome_message %}{{ hunt.congratulations_message }}{% else %}Congratulations! You have successfully completed the scavenger hunt.{% endif %}</textarea>
+            <textarea class="form-control" name="congratulations_message" maxlength=500>{% if hunt and hunt.welcome_message %}{{ hunt.congratulations_message }}{% else %}Congratulations! You have successfully completed the scavenger hunt.{% endif %}</textarea>
           </div>
         </div>
         <div class="row">
