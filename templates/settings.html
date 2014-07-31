@@ -8,8 +8,10 @@
         <h2>Learning Record Store</h2>
         <form class="form-inline" role="form" action="/settings" method="POST">
           <div>
-            <p>Provide your Wax LRS site name below</p>
-            <p><em>ex. https://your_wax_lrs_site_name.waxlrs.com</em></p>
+            <p>
+              Provide your Wax LRS site name below
+              <em>ex. https://your_wax_lrs_site_name.waxlrs.com</em>
+            </p>
             <div class="form-group">
               <input class="form-control" type="text" name="wax_site" value="{{wax_site}}">
             </div>
@@ -53,14 +55,24 @@
         <p>actor@example.com completed yourhuntname with success</p>
       </div>
     </div>
-    <div class="col-md-offset-1 col-md-3">
-      <div class="row">
+    <div class="col-md-offset-1 col-md-2">
+<!--       <div class="row">
         <div class="panel-rect tertiary center">
         <a class="center" href="/reports">
           <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
           Reports
         </a>
+      </div> -->
+      {% if wax_site %}
+      <div class="row">
+        <div class="panel-rect tertiary center">
+          <a class="center" href="/new_hunt">
+            <i class="glyphicon glyphicon-plus hugeicon"></i><br>
+            Create Hunt
+          </a>
+        </div>
       </div>
+      {% endif %}
       <div class="row">
         <div class="panel-rect tertiary center">
           <a class="center" href="/hunts">
