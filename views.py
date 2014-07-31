@@ -129,7 +129,8 @@ def hunt(hunt_id):
     hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
     if hunt:
         form = HuntForm(request.form)
-        return render_template('hunt.html', hunt=hunt, form=form, domain=domain)
+        return render_template(
+            'hunt.html', hunt=hunt, form=form, domain=domain)
     else:
         abort(404)
 
@@ -138,10 +139,9 @@ def hunt(hunt_id):
 @app.route('/edit_hunt/<hunt_id>', methods=['POST'])
 @login_required
 def edit_hunt(hunt_id):
+    # error handling
     db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).update(
         request.form)
-
-    logger.debug('request form %s', request.form)
     db.session.commit()
 
     return make_response('', 200)
@@ -159,7 +159,7 @@ def new_participant():
     form = ParticipantForm(request.form)
     if form.validate():
         form.populate_obj(participant)
-        participant.hunt_id = request.form['hunt_id'] # why was this necessary?
+        participant.hunt_id = request.form['hunt_id']  # why was this necessary?
         db.session.add(participant)
         db.session.commit()
         return make_response('', 200)
@@ -246,12 +246,12 @@ def settings():
     setting = get_setting(admin_id=session['admin_id'])
     login = getattr(setting, 'login')
     password = getattr(setting, 'password')
-    endpoint = getattr(setting, 'endpoint')
+    wax_site = getattr(setting, 'wax_site')
     domain = getattr(setting, 'domain')
 
     return make_response(render_template(
         'settings.html', login=login, password=password,
-        endpoint=endpoint, domain=domain))
+        wax_site=wax_site, domain=domain))
 
 
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
@@ -265,9 +265,19 @@ def index_items(hunt_id):
 
     if get_hunt(hunt_id):
         if session.get('email'):
-            items = db.session.query(Item).filter(Item.hunt_id == hunt_id).all()
+            items = db.session.query(Item).filter(
+                Item.hunt_id == hunt_id).all()
+            params = xapi.default_params(session['email'], hunt_id)
+            setting = get_setting(hunt_id=hunt_id)
+            response = xapi.get_state_response(params, setting)
+            if response.status_code == 200:
+                state = response.json()
+                for item in items:
+                    item.found = item.item_id in state['found'] if state.get('found') else None
+                    logger.debug('item found: %s, %s', item.found, item.item_id)
 
-            return render_template('items.html', items=items, hunt_id=hunt_id)
+            return render_template(
+                'items.html', items=items, hunt_id=hunt_id)
         return get_started(hunt_id)
 
     abort(404)
@@ -276,16 +286,15 @@ def index_items(hunt_id):
 # information about one item for scavenger to read
 @app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
 def show_item(hunt_id, item_id):
-    def update_state(params, setting):
-        response = xapi.get_state_response(params, setting)
-        if response:
-            state = response.json()
-            logger.debug('state: %s', state)
+    def update_state(state, params, setting):
+        logger.debug('huh? %s %s', item_id, state['found'])
+        if item_id not in state['found']:
+            state['found'].append(int(item_id))
+            console.log('found: %s', state['found'])
             state['num_found'] += 1
-            if hunt_id in state['required_ids']:
-                state['required_ids'].remove(hunt_id)
-            return state
-        return None
+            if item_id in state['required_ids']:
+                state['required_ids'].remove(item_id)
+        return state
 
     # right now ids are unique, but not unique to the hunt. so i could fix this.
     item = db.session.query(Item)\
@@ -302,23 +311,30 @@ def show_item(hunt_id, item_id):
             # hm. remember to make sure settings have been set.
             setting = get_setting(hunt_id=hunt_id)
             response = xapi.get_state_response(params, setting)
-            if response.status_code == 404:
-                items = db.session.query(Item).filter(Item.hunt_id == hunt_id).all()
-                required_ids = [item.item_id for item in items if item.required]
-                state = json.dumps({
+            status_code = response.status_code
+            if status_code == 404:
+                items = db.session.query(Item).filter(
+                    Item.hunt_id == hunt_id).all()
+                required_ids = [
+                    item.item_id for item in items if item.required]
+
+                state = {
+                    'found': [int(item_id)],
                     'num_found': 0,
                     'required_ids': required_ids,
-                    'total_items': db.session.query(Item).filter(
-                        Item.hunt_id == hunt_id).count()
-                })
-                xapi.put_state(state, params, setting)
+                    'total_items': len(items)
+                }
+                data = json.dumps(state)
+                xapi.put_state(data, params, setting)
 
                 xapi.send_statement(
                     xapi.begin_hunt_statement(actor, hunt), setting)
-            elif response.status_code == 200:
-                state = update_state(params, setting)
+            elif status_code == 200:
+                logger.debug('found some state')
+                state = update_state(response.json(), params, setting)
                 xapi.post_state(state, params, setting)
             else:
+                logger.debug("why would this ever happen?")
                 pass
                 # ???
 
@@ -326,10 +342,9 @@ def show_item(hunt_id, item_id):
             return make_response(render_template(
                 'item.html', item=item, username=session['name'],
                 num_found=state['num_found'],
-                total_items=state['total_items']))
+                total_items=state['total_items'], hunt_id=hunt_id))
         else:
-            flash('You must already be on the scavenger hunt list'
-                  ' and registered below to participate.')
+            session['last_item_id'] = item_id
             return make_response(render_template(
                 'welcome.html',
                 action_url="/get_started/hunts/{}/items".format(hunt_id)))
@@ -389,7 +404,8 @@ def register_participant():
                 "preparing requested item information.",
                 user_id, session['name'], email)
 
-            return make_response(redirect('hunts/{}/items'.format(hunt_id)))
+            return make_response(redirect('hunts/{}/items/{}'.format(
+                hunt_id, session['last_item_id'])))
         else:
             return err_msg
     abort(400)

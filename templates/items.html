@@ -1,14 +1,22 @@
 {% extends "user_layout.html" %}
 {% block userbody %}
-  <h2>item names</h2>
-  <ul>
+  <table class="table">
+    <thead>
+      <th>Item Name</th>
+      <th>Required</th>
+      <th>Found</th>
+    </thead>
+    <tbody>
     {% for item in items %}
-      <li>{{item.name}}</li></br>
+      <tr>
+        <td>{{item.name}}</td>
+        <td>{{item.required}}</td>
+        <td>
+          <span style="display: {{visible if item.found else none}};"
+                class="glyphicon glyphicon-ok"></span>
+        </td>
+      </tr>
     {% endfor %}
-  </ul>
-  <br>
-  for testing
-  <form action="/oops" method="POST">
-    <button class="btn" type="submit">restart session</button>
-  </form>
+    </tbody>
+  </table>
 {% endblock %}

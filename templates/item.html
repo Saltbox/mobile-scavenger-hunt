@@ -2,4 +2,6 @@
 {% block userbody %}
   {{username}}! you found {{item.name}}<br>
   you still have {{total_items - num_found}} items left to find out of {{total_items}}
+  <br>
+  <a href="/hunts/{{hunt_id}}/items">See your progress</a>
 {% endblock %}
