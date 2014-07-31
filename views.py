@@ -13,7 +13,8 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     SettingForm, ItemForm
 from hunt import app, logger
 from utils import get_admin, create_qrcode_binary, get_setting, get_hunt, \
-    get_item, listed_participant, login_required, item_path
+    get_item, listed_participant, login_required, item_path, \
+    get_domain_by_admin_id, participant_email_exists
 
 import xapi
 
@@ -78,12 +79,6 @@ def admins():
         'admin_signup.html', form=form, display_login_link=True)
 
 
-def get_domain_by_admin_id(admin_id):
-    logger.info('finding domain by admin id: %s', session['admin_id'])
-    return db.session.query(Setting).filter(
-        Setting.admin_id == session['admin_id']).first().domain
-
-
 # create or list hunts
 @app.route('/hunts', methods=['GET', 'POST'])
 @login_required
@@ -135,27 +130,9 @@ def hunt(hunt_id):
         abort(404)
 
 
-# endpoint to update hunt attributes
-@app.route('/edit_hunt/<hunt_id>', methods=['POST'])
-@login_required
-def edit_hunt(hunt_id):
-    # error handling
-    db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).update(
-        request.form)
-    db.session.commit()
-
-    return make_response('', 200)
-
-
-def participant_email_exists(email, hunt_id):
-    return db.session.query.filter(
-        Participant.email == email).filter(Hunt.hunt_id == hunt_id).first()
-
-
 @app.route('/new_participant', methods=['POST'])
 def new_participant():
     participant = Participant()
-    logger.debug(request.form['hunt_id'])
     form = ParticipantForm(request.form)
     if form.validate():
         form.populate_obj(participant)
@@ -163,38 +140,7 @@ def new_participant():
         db.session.add(participant)
         db.session.commit()
         return make_response('', 200)
-    logger.debug(form.errors)
     abort(400)
-
-
-@app.route('/new_item', methods=['POST'])
-def new_item():
-    item = Item()
-    form = ItemForm(request.form)
-    logger.debug('request.form: %s', request.form)
-    if form.validate():
-        form.populate_obj(item)
-        item.hunt_id = request.form['hunt_id']
-        db.session.add(item)
-        db.session.commit()
-        return make_response('', 200)
-    logger.debug('item form errors: %s', form.errors)
-    abort(400)
-
-
-@app.route('/edit_item/<item_id>', methods=['POST'])
-def edit_item(item_id):
-    db.session.query(Item).filter(Item.item_id == item_id).update(request.form)
-    db.session.commit()
-    return make_response('', 200)
-
-
-@app.route('/delete_item/<item_id>', methods=['POST'])
-@login_required
-def delete_item(item_id):
-    db.session.query(Item).filter(Item.item_id == item_id).delete()
-    db.session.commit()
-    return make_response('', 200)
 
 
 @app.route('/hunts/<hunt_id>/qrcodes')
@@ -254,6 +200,48 @@ def settings():
         wax_site=wax_site, domain=domain))
 
 
+################################# API #################################
+
+
+# endpoint to update hunt attributes
+@app.route('/edit_hunt/<hunt_id>', methods=['POST'])
+@login_required
+def edit_hunt(hunt_id):
+    # error handling
+    db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).update(
+        request.form)
+    db.session.commit()
+
+    return make_response('', 200)
+
+
+@app.route('/new_item', methods=['POST'])
+def new_item():
+    item = Item()
+    form = ItemForm(request.form)
+    if form.validate():
+        form.populate_obj(item)
+        item.hunt_id = request.form['hunt_id']
+        db.session.add(item)
+        db.session.commit()
+        return make_response('', 200)
+    abort(400)
+
+
+@app.route('/edit_item/<item_id>', methods=['POST'])
+def edit_item(item_id):
+    db.session.query(Item).filter(Item.item_id == item_id).update(request.form)
+    db.session.commit()
+    return make_response('', 200)
+
+
+@app.route('/delete_item/<item_id>', methods=['POST'])
+@login_required
+def delete_item(item_id):
+    db.session.query(Item).filter(Item.item_id == item_id).delete()
+    db.session.commit()
+    return make_response('', 200)
+
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
 
 
@@ -274,7 +262,6 @@ def index_items(hunt_id):
                 state = response.json()
                 for item in items:
                     item.found = item.item_id in state['found'] if state.get('found') else None
-                    logger.debug('item found: %s, %s', item.found, item.item_id)
 
             return render_template(
                 'items.html', items=items, hunt_id=hunt_id)
@@ -287,7 +274,6 @@ def index_items(hunt_id):
 @app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
 def show_item(hunt_id, item_id):
     def update_state(state, params, setting):
-        logger.debug('huh? %s %s', item_id, state['found'])
         if item_id not in state['found']:
             state['found'].append(int(item_id))
             console.log('found: %s', state['found'])
@@ -330,7 +316,6 @@ def show_item(hunt_id, item_id):
                 xapi.send_statement(
                     xapi.begin_hunt_statement(actor, hunt), setting)
             elif status_code == 200:
-                logger.debug('found some state')
                 state = update_state(response.json(), params, setting)
                 xapi.post_state(state, params, setting)
             else:
@@ -389,7 +374,6 @@ def register_participant():
 
         validated_participant, err_msg = validated_by_participant_rule(
             email, hunt_id)
-        logger.debug('validated_participant: %s', validated_participant)
         if validated_participant:
             user_id = str(uuid.uuid4())
             session['user_id'] = user_id

@@ -50,3 +50,13 @@ def listed_participant(email, hunt_id):
 
 def item_path(hunt_id, item_id):
     return "{}hunts/{}/items/{}".format(request.host_url, hunt_id, item_id)
+
+
+def get_domain_by_admin_id(admin_id):
+    return db.session.query(Setting).filter(
+        Setting.admin_id == session['admin_id']).first().domain
+
+
+def participant_email_exists(email, hunt_id):
+    return db.session.query.filter(
+        Participant.email == email).filter(Hunt.hunt_id == hunt_id).first()
