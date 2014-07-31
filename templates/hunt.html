@@ -4,8 +4,10 @@
   <div class="container content">
     <form action="{{ '' if hunt else url_for('hunts') }}" method="post"
           class="form-horizontal" role="form" hunt_id={{hunt.hunt_id if hunt else ''}}>
-      <div class="col-md-6 col-md-offset-3">
-        <h1>Let's create a hunt!</h1>
+      <div class="col-md-6 col-md-offset-2">
+        {% if not hunt %}
+          <h1>Let's create a hunt!</h1>
+        {% endif %}
         {% if error %}
           <p class="alert">Error: {{error}}</p>
         {% endif %}
@@ -27,8 +29,19 @@
         <div class="row participant-rules">
           <h3>Who can participate?</h3>
           <div class="panel-default" id="participant-rules">
+            {% if hunt %}
+            <div class="col-md-12">
+              {% if hunt.participant_rule == 'by_domain' %}
+                {{domain}} emails
+              {% elif hunt.participant_rule == 'by_whitelist' %}
+                Specified emails
+              {% else %}
+                Anyone who finds the QR codes
+              {% endif %}
+            </div>
+            {% else %}
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect pentary">
-              <div class="row">@{{domain}} emails</div>
+              <div class="row"><span class="domain">{{domain}}</span> emails</div>
               <div class="row">
                 <span style="display: {{visible if hunt and hunt.participant_rule == 'by_domain' else none}};" class="glyphicon glyphicon-ok pull-right"></span>
                 <span style="display: none;">
@@ -54,11 +67,12 @@
                 </span>
               </div>
             </div>
+            <input type="hidden" name="participant_rule">
+            {% endif %}
           </div>
-          <input type="hidden" name="participant_rule">
         </div>
-        <div class="row" id="whitelist">
-          <div class="form-group" id="participants-group">
+        <div class="row">
+          <div class="form-group" id="participants-group" style="display: {{visible if hunt and hunt.participant_rule == 'by_whitelist' else none}}">
             <label>Provide their emails below</label>
             <div class="input-group">
               <input class="form-control" type="email" id="participants-template">
@@ -74,25 +88,25 @@
             <table class="table table-condensed" id="participants-table">
               <thead>
                 <tr>
-                  <th>Email</th>
-                  <th>
-                  {% if hunt %}
-                    Registered
+                  <th>Participants</th>
+                  {% if hunt and hunt.participant_rule == 'by_whitelist' %}
+                  <th>Registered</th>
                   {% endif %}
-                  </th>
                 </tr>
               </thead>
               <tbody>
               {% if hunt %}
                 {% for participant in hunt.participants %}
+                {% if (hunt.participant_rule == 'by_whitelist') or participant.registered %}
                 <tr>
                   <td>{{participant.email}}</td>
                   <td>
-                  {% if participant.required %}
+                  {% if hunt.participant_rule == 'by_whitelist' and participant.registered %}
                     <span class='glyphicon glyphicon-ok'></span>
                   {% endif %}
                   </td>
                 </tr>
+                {% endif %}
                 {% endfor %}
               {% endif %}
               </tbody>
@@ -113,14 +127,17 @@
           <div class="form-group" id="items-group">
             <label>Add items</label>
             <div class="input-group">
-              <input class="form-control" type="text" id="{{'ajax-items-template' if hunt else 'items-template'}}">
+              <input class="form-control" type="text"
+                     id="{{'ajax-items-template' if hunt else 'items-template'}}">
               <span class="input-group-btn">
-                <button class="btn btn-default" type="button" id="{{'ajax-add-item' if hunt else 'add-item'}}">
+                <button class="btn btn-default" type="button"
+                        id="{{'ajax-add-item' if hunt else 'add-item'}}">
                   Add
                 </button>
               </span>
             </div>
-            <table class="table table-condensed" id="items-table" style="display: {{visible if hunt and hunt.hunt_id else none}};">
+            <table class="table table-condensed" id="items-table"
+                   style="display: {{visible if hunt and hunt.hunt_id else none}};">
               <tbody>
                 {% if hunt %}
                   {% for item in hunt.items %}
@@ -130,7 +147,13 @@
                       <input type="text" name="item_name" style="display: none;">
                     </td>
                     <td class="item-required">
-                      <input type="checkbox" item_id={{item.item_id}} checked={{item.required}} class="hunt-items" name="items-{{loop.index - 1}}-required">
+                      {% if hunt.all_required %}
+                        <span style="display: {{visible if item.required else none}};" class="glyphicon glyphicon-ok"></span>
+                      {% else %}
+                      <input type="checkbox" item_id={{item.item_id}}
+                             checked={{item.required}} class="hunt-items"
+                             name="items-{{loop.index - 1}}-required">
+                      {% endif %}
                       Required
                     </td>
                     <td class="item-delete"><span class="glyphicon glyphicon-remove"></span></td>
@@ -162,8 +185,33 @@
           </div>
           {% endif %}
         </div>
-      </form>
-    </div>
+      </div>
+      <div class="col-md-offset-1 col-md-3">
+        <div class="row">
+<!--           <div class="panel-rect tertiary center">
+          <a class="center" href="/reports">
+            <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
+            Reports
+          </a> -->
+        </div>
+        <div class="row">
+          <div class="panel-rect tertiary center">
+            <a class="center" href="/hunts">
+              <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
+              Hunts
+            </a>
+          </div>
+        </div>
+        <div class="row">
+          <div class="panel-rect tertiary center">
+            <a class="center" href="/settings">
+              <i class="glyphicon glyphicon-cog hugeicon"></i><br>
+              Settings
+            </a>
+          </div>
+        </div>
+      </div>
+    </form>
   </div>
   {% endif %}
 {% endblock %}
