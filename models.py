@@ -64,6 +64,6 @@ class Setting(db.Model):
     settings_id = db.Column(db.Integer, primary_key=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
     domain = db.Column(db.String(500))
-    endpoint = db.Column(db.String(500))
+    wax_site = db.Column(db.String(500))
     login = db.Column(db.String(50))
     password = db.Column(db.String(50))  # todo: something more private

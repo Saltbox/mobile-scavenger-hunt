@@ -112,12 +112,13 @@ def send_statement(statement, setting):
     )
 
 
-# later prevent resending statements if they for whatever reason scan the qrcode
-# multiple times
+# later prevent resending statements if they for whatever reason scan the
+# qrcode multiple times
 def send_statements(actor, hunt, item, state, setting, params):
     send_statement(
         found_item_statement(actor, hunt, item), setting)
 
+    logger.debug('sending statements with state: %s', state)
     if state['num_found'] == hunt.num_required and not state['required_ids']:
         send_statement(
             found_all_required_statement(actor, hunt), setting)
@@ -130,7 +131,8 @@ def send_statements(actor, hunt, item, state, setting, params):
 
 def put_state(data, params, setting):
     return requests.put(
-        'https://{}.waxlrs.com/TCAPI/activities/state'.format(setting.endpoint),
+        'https://{}.waxlrs.com/TCAPI/activities/state'.format(
+            setting.wax_site),
         params=params,
         data=data,
         headers={
@@ -142,7 +144,8 @@ def put_state(data, params, setting):
 
 def post_state(data, params, setting):
     return requests.post(
-        'https://{}.waxlrs.com/TCAPI/activities/state'.format(setting.endpoint),
+        'https://{}.waxlrs.com/TCAPI/activities/state'.format(
+            setting.wax_site),
         params=params,
         data=data,
         headers={
@@ -154,7 +157,8 @@ def post_state(data, params, setting):
 
 def get_state_response(params, setting):
     return requests.get(
-        'https://{}.waxlrs.com/TCAPI/activities/state'.format(setting.endpoint),
+        'https://{}.waxlrs.com/TCAPI/activities/state'.format(
+            setting.wax_site),
         params=params,
         headers={
             "x-experience-api-version": "1.0.0"
