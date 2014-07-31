@@ -8,24 +8,31 @@ $(document).ready(function() {
     return $('form[hunt_id]').attr('hunt_id');
   };
 
+
+  var updateHunt = function(data) {
+    $.ajax({
+      url: '/edit_hunt/' + huntId(),
+      method: 'POST',
+      data: data
+    })
+    .success(function() {
+      console.log('updated hunt');
+      return true;
+    })
+    .error(function() {
+      console.log('fail update hunt');
+    });
+  };
+
   // make hunt name updateable on click
   var oldName = $('input[name=name]').val();
   $('input[name=name]').on('blur', function() {
     if (huntId()) {
       var newName = $(this).val();
       if (newName != oldName) {
-        $.ajax({
-          url: '/edit_hunt/' + huntId(),
-          method: 'POST',
-          data: {'name': newName}
-        })
-        .success(function() {
-          console.log('success');
+        if (updateHunt({'name': newName})) {
           oldName = newName;
-        })
-        .error(function() {
-          console.log('fail');
-        });
+        }
       }
     }
   });
@@ -202,7 +209,7 @@ $(document).ready(function() {
     if (huntId()) {
       var email = $('#participants-template').val();
       if (validEmail(email)) {
-        addParticipant({'email': email, 'hunt_id': huntId()})
+        addParticipant({'email': email, 'hunt_id': huntId()});
       }
     }
     else {
@@ -327,58 +334,27 @@ $(document).ready(function() {
     $(e).text(prettyTime);
   });
 
-  // helper for updating welcome message via ajax
-  var updateWelcome = function(msg) {
-    $.ajax({
-      url: '/update_welcome',
-      method: 'POST',
-      data: {'welcome_message': msg, 'hunt_id': huntId()}
-    })
-    .success(function() {
-      console.log('updated welcome');
-    })
-    .error(function() {
-      console.log('fail update welcome');
-    });
-  };
-
   // update welcome message when clicking outside of textarea
-  var oldWelcome, currentWelcome = $('textarea[name=welcome_message]').val();
+  var oldWelcome = $('textarea[name=welcome_message]').val();
   $('textarea[name=welcome_message]').blur(function() {
     currentWelcome = $('textarea[name=welcome_message]').val();
     if (oldWelcome != currentWelcome && huntId()) {
-      updateWelcome(currentWelcome);
+      updateHunt({'welcome_message': currentWelcome});
       oldWelcome = currentWelcome;
     }
   });
-
-  // helper to update congraulations message via ajax
-  var updatecongratulations = function(msg) {
-    $.ajax({
-      url: '/update_congratulations',
-      method: 'POST',
-      data: {'congratulations_message': msg, 'hunt_id': huntId()}
-    })
-    .success(function() {
-      console.log('updated congratulations');
-    })
-    .error(function() {
-      console.log('fail update congratulations');
-    });
-  };
 
   // update congrulations message when clicking outside of textarea
   var oldCongratulations = $('textarea[name=congratulations_message').html();
   $('textarea[name=congratulations_message]').blur(function() {
     currentCongratulations = $(this).val();
     if (oldCongratulations != currentCongratulations && huntId()) {
-      updatecongratulations(currentCongratulations);
+      updateHunt({'congratulations_message': currentCongratulations});
       oldCongratulations = currentCongratulations;
     }
   });
 
-
-  // various events for update ui upon participant rule selection
+  // various events for updating ui upon participant rule selection
   $('#participant-rules .panel-rect').on({
     click: function(e) {
       $(this).css('opacity', 1).siblings().css('opacity', 0.7);
@@ -386,12 +362,18 @@ $(document).ready(function() {
       $($(this).find('.glyphicon-ok')).show();
 
       var selectedRule = $(this).find($('input[name=participant_rule]'));
-      selectedRule.prop('checked', 'on');
-      if (selectedRule.val() == 'by_whitelist') {
-        $('#whitelist').show('slow');
+      if (huntId()) {
+        // updateHunt({'participant_rule': selectedRule.val()});
+        // i don't know if i want them to be able to update this
       }
       else {
-        $('#whitelist').hide();
+        selectedRule.prop('checked', 'on');
+        if (selectedRule.val() == 'by_whitelist') {
+          $('#participants-group').show('slide', {'direction': 'up'}, 'slow');
+        }
+        else {
+          $('#participants-group').hide('slide', {'direction': 'up'}, 'slow');
+        }
       }
     },
     mouseenter: function() {

@@ -125,10 +125,11 @@ def new_hunt():
 @app.route('/hunts/<hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
+    domain = get_domain_by_admin_id(session['admin_id'])
     hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
     if hunt:
         form = HuntForm(request.form)
-        return render_template('hunt.html', hunt=hunt, form=form)
+        return render_template('hunt.html', hunt=hunt, form=form, domain=domain)
     else:
         abort(404)
 
@@ -192,24 +193,6 @@ def edit_item(item_id):
 @login_required
 def delete_item(item_id):
     db.session.query(Item).filter(Item.item_id == item_id).delete()
-    db.session.commit()
-    return make_response('', 200)
-
-
-@app.route('/update_welcome', methods=['POST'])
-def update_welcome():
-    db.session.query(Hunt).filter(
-        Hunt.hunt_id == request.form['hunt_id']).update(
-        {'welcome_message': request.form['welcome_message']})
-    db.session.commit()
-    return make_response('', 200)
-
-
-@app.route('/update_congratulations', methods=['POST'])
-def update_congraulations():
-    db.session.query(Hunt).filter(
-        Hunt.hunt_id == request.form['hunt_id']).update(
-        {'congratulations_message': request.form['congratulations_message']})
     db.session.commit()
     return make_response('', 200)
 
@@ -375,7 +358,8 @@ def validated_by_participant_rule(email, hunt_id):
 
     participant = Participant()
     participant.email = email
-    Participant.hunt_id = hunt_id
+    participant.hunt_id = hunt_id
+    participant.registered = True
     return participant, ""
 
 
