@@ -71,26 +71,6 @@ def found_item_statement(actor, hunt, item):
     }
 
 
-# participant found all required items but not all items
-def found_all_required_statement(actor, hunt):
-    return {
-        'actor': actor,
-        'verb': verb_completed(),
-        "object": {
-            #activity name suggestions?
-            "id": "{}activities/findallrequired/hunts/{}".format(
-                request.host_url, hunt.hunt_id),
-            "description": {
-                "type": "{}activities/type/scavengerhunt".format(
-                    request.host_url),
-                "name": {
-                    "und": "finding all required items for {}".format(hunt.name)
-                }
-            }
-        }
-    }
-
-
 # participant found every item
 def completed_hunt_statement(actor, hunt):
     return {
@@ -120,10 +100,6 @@ def send_statements(actor, hunt, item, state, setting, params):
 
     logger.debug('sending statements with state: %s', state)
     if state['num_found'] == hunt.num_required and not state['required_ids']:
-        send_statement(
-            found_all_required_statement(actor, hunt), setting)
-
-    if state['num_found'] == state['total_items']:
         send_statement(
             completed_hunt_statement(actor, hunt), setting)
         return make_response(render_template('congratulations.html'))
