@@ -1,5 +1,5 @@
 from hunt import logger
-from flask import request
+from flask import request, make_response, render_template
 
 import json
 import requests
@@ -48,13 +48,12 @@ def verb_completed():
 
 
 def found_item_statement(actor, hunt, item):
-    logger.debug(
-        'participant found item, %s, sending statement to wax', item.name)
     return {
         "actor": actor,
         "verb": verb_completed(),
         "object": {
-            "id": "{}hunts/{}/items/{}".format(request.host_url, hunt.hunt_id, item.item_id),
+            "id": "{}hunts/{}/items/{}".format(
+                request.host_url, hunt.hunt_id, item.item_id),
             "definition": {
                 "type": "{}activities/type/scavengerhunt".format(
                     request.host_url),
@@ -74,8 +73,6 @@ def found_item_statement(actor, hunt, item):
 
 # participant found all required items but not all items
 def found_all_required_statement(actor, hunt):
-    logger.debug(
-        'participant found required items. sending statement to Wax')
     return {
         'actor': actor,
         'verb': verb_completed(),
@@ -96,8 +93,6 @@ def found_all_required_statement(actor, hunt):
 
 # participant found every item
 def completed_hunt_statement(actor, hunt):
-    logger.debug(
-        'participant completed hunt. sending statement to Wax')
     return {
         'actor': actor,
         'verb': verb_completed(),
@@ -106,8 +101,8 @@ def completed_hunt_statement(actor, hunt):
 
 
 def send_statement(statement, setting):
-    response = requests.post(
-        setting.endpoint,
+    return requests.post(
+        'https://{}.waxlrs.com/TCAPI/statements',
         headers={
             "Content-Type": "application/json",
             "x-experience-api-version": "1.0.0"
@@ -115,14 +110,27 @@ def send_statement(statement, setting):
         data=json.dumps(statement),
         auth=(setting.login, setting.password)
     )
-    logger.debug('statement response status %s %s for statement: %s', response.status_code, response.text, statement)
-    return response
+
+
+# later prevent resending statements if they for whatever reason scan the qrcode
+# multiple times
+def send_statements(actor, hunt, item, state, setting, params):
+    send_statement(
+        found_item_statement(actor, hunt, item), setting)
+
+    if state['num_found'] == hunt.num_required and not state['required_ids']:
+        send_statement(
+            found_all_required_statement(actor, hunt), setting)
+
+    if state['num_found'] == state['total_items']:
+        send_statement(
+            completed_hunt_statement(actor, hunt), setting)
+        return make_response(render_template('congratulations.html'))
 
 
 def put_state(data, params, setting):
-    logger.debug('setting in put state: %s', setting)
-    response = requests.put(
-        'https://testsite.waxlrs.com/TCAPI/activities/state',
+    return requests.put(
+        'https://{}.waxlrs.com/TCAPI/activities/state'.format(setting.endpoint),
         params=params,
         data=data,
         headers={
@@ -130,15 +138,11 @@ def put_state(data, params, setting):
         },
         auth=(setting.login, setting.password)
     )
-
-    logger.debug('put state api respone: %s', response.status_code)
-    logger.debug('response.text: %s', response.text)
-    return response
 
 
 def post_state(data, params, setting):
-    response = requests.post(
-        'https://testsite.waxlrs.com/TCAPI/activities/state',
+    return requests.post(
+        'https://{}.waxlrs.com/TCAPI/activities/state'.format(setting.endpoint),
         params=params,
         data=data,
         headers={
@@ -146,23 +150,17 @@ def post_state(data, params, setting):
         },
         auth=(setting.login, setting.password)
     )
-    logger.debug('post state api respone: %s', response.status_code)
-    logger.debug('response.text: %s', response.text)
-    return response
 
 
 def get_state_response(params, setting):
-    response = requests.get(
-        'https://testsite.waxlrs.com/TCAPI/activities/state',
+    return requests.get(
+        'https://{}.waxlrs.com/TCAPI/activities/state'.format(setting.endpoint),
         params=params,
         headers={
             "x-experience-api-version": "1.0.0"
         },
         auth=(setting.login, setting.password)
     )
-    logger.debug('get state api respone: %s', response.status_code)
-    logger.debug('response.text: %s', response.text)
-    return response
 
 
 def default_params(email, hunt_id):

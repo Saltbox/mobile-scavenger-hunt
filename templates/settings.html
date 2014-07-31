@@ -2,14 +2,13 @@
 {% block adminbody %}
 <div class="container content settings">
   <div class="col-md-12">
-    <div class="col-md-8">
+    <div class="col-md-offset-2 col-md-5">
       <div class="row">
         <div class="underline"><h1>Settings</h1></div>
         <h2>Learning Record Store</h2>
         <form class="form-inline" role="form" action="/settings" method="POST">
           <div>
-            <h3>Where do you want your xAPI statements sent?</h3>
-            <p>All statements from all of your hunts will be sent here:</p>
+            <p>Provide your Wax LRS site name below</p>
             <div class="form-group">
               <input class="form-control" type="text" name="endpoint" value="{{endpoint}}">
             </div>

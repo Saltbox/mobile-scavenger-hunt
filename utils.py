@@ -48,24 +48,5 @@ def listed_participant(email, hunt_id):
         Participant.hunt_id == hunt_id, Participant.email == email).first()
 
 
-# later prevent resending statements if they for whatever reason scan the qrcode
-# multiple times
-def send_statements(email, hunt, item, state, setting):
-    actor = xapi.make_agent(email)
-    params = xapi.default_params(session['email'], hunt.hunt_id)
-
-    xapi.send_statement(
-        xapi.found_item_statement(actor, hunt, item), setting)
-
-    if state['num_found'] == hunt.num_required and not state['required_ids']:
-        xapi.send_statement(
-            xapi.found_all_required_statement(actor, hunt), setting)
-
-    if state['num_found'] == state['total_items']:
-        xapi.send_statement(
-            xapi.completed_hunt_statement(actor, hunt), setting)
-        return make_response(render_template('congratulations.html'))
-
-
 def item_path(hunt_id, item_id):
     return "{}hunts/{}/items/{}".format(request.host_url, hunt_id, item_id)

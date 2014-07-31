@@ -13,7 +13,7 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     SettingForm, ItemForm
 from hunt import app, logger
 from utils import get_admin, create_qrcode_binary, get_setting, get_hunt, \
-    get_item, listed_participant, send_statements, login_required, item_path
+    get_item, listed_participant, login_required, item_path
 
 import xapi
 
@@ -265,23 +265,8 @@ def index_items(hunt_id):
 
     if get_hunt(hunt_id):
         if session.get('email'):
-            logger.debug('session: %s', session)
             items = db.session.query(Item).filter(Item.hunt_id == hunt_id).all()
-            required_ids = [item.item_id for item in items if item.required]
-            logger.debug('required ids: %s', required_ids)
 
-            params = xapi.default_params(session['email'], hunt_id)
-            # hm. remember to make sure settings have been set.
-            setting = get_setting(hunt_id=hunt_id)
-            if xapi.get_state_response(params, setting).status_code != 200:
-                data = json.dumps({
-                    'num_found': 0,
-                    'required_ids': required_ids,
-                    'total_items': db.session.query(Item).filter(
-                        Item.hunt_id == hunt_id).count()
-                })
-
-                xapi.put_state(data, params, setting)
             return render_template('items.html', items=items, hunt_id=hunt_id)
         return get_started(hunt_id)
 
@@ -308,19 +293,36 @@ def show_item(hunt_id, item_id):
         .filter(Item.item_id == item_id).first()
 
     if item:
-        hunt = get_hunt(hunt_id)
         email = session.get('email')
-
         if email and listed_participant(email, hunt_id):
             params = xapi.default_params(email, hunt_id)
+            actor = xapi.make_agent(email)
+            hunt = get_hunt(hunt_id)
 
+            # hm. remember to make sure settings have been set.
             setting = get_setting(hunt_id=hunt_id)
+            response = xapi.get_state_response(params, setting)
+            if response.status_code == 404:
+                items = db.session.query(Item).filter(Item.hunt_id == hunt_id).all()
+                required_ids = [item.item_id for item in items if item.required]
+                state = json.dumps({
+                    'num_found': 0,
+                    'required_ids': required_ids,
+                    'total_items': db.session.query(Item).filter(
+                        Item.hunt_id == hunt_id).count()
+                })
+                xapi.put_state(state, params, setting)
 
-            # there should definitely be state by now
-            state = update_state(params, setting)
-            xapi.post_state(state, params, setting)
+                xapi.send_statement(
+                    xapi.begin_hunt_statement(actor, hunt), setting)
+            elif response.status_code == 200:
+                state = update_state(params, setting)
+                xapi.post_state(state, params, setting)
+            else:
+                pass
+                # ???
 
-            send_statements(email, hunt, item, state, setting)
+            xapi.send_statements(actor, hunt, item, state, setting, params)
             return make_response(render_template(
                 'item.html', item=item, username=session['name'],
                 num_found=state['num_found'],
@@ -347,7 +349,6 @@ def get_started(hunt_id):
 def validated_by_participant_rule(email, hunt_id):
     participant_rule = db.session.query(Hunt).filter(
         Hunt.hunt_id == hunt_id).first().participant_rule
-
     if participant_rule == 'by_domain':
         setting = get_setting(hunt_id=hunt_id)
         if setting and email.split('@')[-1] != setting.domain:
@@ -387,11 +388,6 @@ def register_participant():
                 "user id, name, and email set to %s, %s, and %s\n"
                 "preparing requested item information.",
                 user_id, session['name'], email)
-
-            xapi.send_statement(
-                xapi.begin_hunt_statement(
-                    xapi.make_agent(email), get_hunt(hunt_id)),
-                get_setting(hunt_id=hunt_id))
 
             return make_response(redirect('hunts/{}/items'.format(hunt_id)))
         else:
