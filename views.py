@@ -12,9 +12,10 @@ from models import Hunt, Participant, Item, Admin, db, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     SettingForm, ItemForm
 from hunt import app, logger
-from utils import get_admin, create_qrcode_binary, get_setting, get_hunt, \
+from utils import get_admin, get_setting, get_hunt, \
     get_item, listed_participant, login_required, item_path, \
-    get_domain_by_admin_id, participant_email_exists
+    get_domain_by_admin_id, participant_email_exists, \
+    validated_by_participant_rule
 
 import xapi
 
@@ -80,16 +81,27 @@ def admins():
 
 
 # create or list hunts
-@app.route('/hunts', methods=['GET', 'POST'])
+@app.route('/hunts', methods=['GET'])
 @login_required
 def hunts():
-    if request.method == 'POST':
-        hunt = Hunt()
-        form = HuntForm(request.form)
-        if form.validate():
-            hunt.admin_id = session['admin_id']
-            form.populate_obj(hunt)
+    hunts = db.session.query(Hunt).filter(
+        Hunt.admin_id == session['admin_id']).all()
+    return render_template('hunts.html', hunts=hunts)
 
+
+# form to create new hunt
+@app.route('/new_hunt', methods=['GET', 'POST'])
+def new_hunt():
+    domain = get_domain_by_admin_id(session['admin_id'])
+    hunt = Hunt()
+    form = HuntForm(request.form)
+    if request.method == 'POST':
+        if form.validate():
+            logger.debug("request form: %s", request.form)
+            hunt.admin_id = session['admin_id']
+            logger.debug('form: %s %s', form.errors, dir(form))
+            form.populate_obj(hunt)
+            logger.debug('hunt in creation: %s', hunt.participants)
             # todo: session manager
             db.session.add(hunt)
             db.session.commit()
@@ -101,19 +113,7 @@ def hunts():
             return redirect(url_for('hunts'))
         else:
             flash('some error msg about invalid form')
-            domain = get_domain_by_admin_id(session['admin_id'])
-            return render_template('hunt.html', form=form, domain=domain)
-    else:
-        hunts = db.session.query(Hunt).filter(
-            Hunt.admin_id == session['admin_id']).all()
-        return render_template('hunts.html', hunts=hunts)
-
-
-# form to create new hunt
-@app.route('/new_hunt', methods=['GET'])
-def new_hunt():
-    domain = get_domain_by_admin_id(session['admin_id'])
-    return render_template('hunt.html', form=HuntForm(), domain=domain)
+    return render_template('hunt.html', form=form, domain=domain)
 
 
 # page to view/edit hunt
@@ -126,21 +126,7 @@ def hunt(hunt_id):
         form = HuntForm(request.form)
         return render_template(
             'hunt.html', hunt=hunt, form=form, domain=domain)
-    else:
-        abort(404)
-
-
-@app.route('/new_participant', methods=['POST'])
-def new_participant():
-    participant = Participant()
-    form = ParticipantForm(request.form)
-    if form.validate():
-        form.populate_obj(participant)
-        participant.hunt_id = request.form['hunt_id']  # why was this necessary?
-        db.session.add(participant)
-        db.session.commit()
-        return make_response('', 200)
-    abort(400)
+    abort(404)
 
 
 @app.route('/hunts/<hunt_id>/qrcodes')
@@ -154,8 +140,7 @@ def show_item_codes(hunt_id):
         ]
         return make_response(render_template(
             'qrcodes.html', item_paths=item_paths))
-    else:
-        abort(404)
+    abort(404)
 
 
 @app.route('/hunts/<hunt_id>/items/<item_id>/qrcode', methods=['GET'])
@@ -179,17 +164,20 @@ def settings():
         setting = get_setting(session['admin_id']) or Setting()
         form = SettingForm(request.form)
         if form.validate():
-            setting.admin_id = session['admin_id']
+            setting.admin_id = request.form.get('admin_id') or session['admin_id']
             form.populate_obj(setting)
+
             db.session.add(setting)
             db.session.commit()
             flash('Settings have been updated')
         else:
-            # get the erros from form. i think it's form.errors
+            # get the errors from form. i think it's form.errors
             flash('Invalid setting information. '
                   'Please check your form entries and try again.')
 
     setting = get_setting(admin_id=session['admin_id'])
+
+    # make it so these always exist
     login = getattr(setting, 'login')
     password = getattr(setting, 'password')
     wax_site = getattr(setting, 'wax_site')
@@ -241,6 +229,20 @@ def delete_item(item_id):
     db.session.query(Item).filter(Item.item_id == item_id).delete()
     db.session.commit()
     return make_response('', 200)
+
+
+@app.route('/new_participant', methods=['POST'])
+def new_participant():
+    participant = Participant()
+    form = ParticipantForm(request.form)
+    if form.validate():
+        form.populate_obj(participant)
+        participant.hunt_id = request.form['hunt_id']  # why was this necessary?
+        db.session.add(participant)
+        db.session.commit()
+        return make_response('', 200)
+    abort(400)
+
 
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
 
@@ -333,35 +335,16 @@ def show_item(hunt_id, item_id):
             return make_response(render_template(
                 'welcome.html',
                 action_url="/get_started/hunts/{}/items".format(hunt_id)))
-    else:
-        abort(404)
+    abort(404)
 
 
 # maybe just get rid of this
 # form for scavenger hunt participant to enter email and name
-@app.route('/get_started/hunts/<hunt_id>/items', methods=['GET'])
+@app.route('/get_started/hunts/<hunt_id>', methods=['GET'])
 def get_started(hunt_id):
     # todo: track duration
     return render_template('get_started.html', form=ParticipantForm(),
                            hunt_id=hunt_id)
-
-
-def validated_by_participant_rule(email, hunt_id):
-    participant_rule = db.session.query(Hunt).filter(
-        Hunt.hunt_id == hunt_id).first().participant_rule
-    if participant_rule == 'by_domain':
-        setting = get_setting(hunt_id=hunt_id)
-        if setting and email.split('@')[-1] != setting.domain:
-            return None, "Only employees of this organization may participate"
-    elif participant_rule == 'by_whitelist':
-        return listed_participant(email, hunt_id), \
-            "You are not on the list of allowed participants"
-
-    participant = Participant()
-    participant.email = email
-    participant.hunt_id = hunt_id
-    participant.registered = True
-    return participant, ""
 
 
 # check scavenger is on whitelist and set user_id

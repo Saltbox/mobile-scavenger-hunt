@@ -7,6 +7,6 @@ PASSWORD = os.environ.get('PASSWORD')
 
 WAX_LOGIN = os.environ.get('WAX_LOGIN')
 WAX_PASSWORD = os.environ.get('WAX_PASSWORD')
-ENDPOINT = os.environ.get('ENDPOINT')
+WAX_SITE = os.environ.get('WAX_SITE')
 
 SQLALCHEMY_DATABASE_URI = os.environ['DATABASE_URL']

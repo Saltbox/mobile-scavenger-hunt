@@ -2,7 +2,7 @@
 {% block adminbody %}
   {% if session.logged_in %}
   <div class="container content">
-    <form action="{{ '' if hunt else url_for('hunts') }}" method="post"
+    <form action="{{ '' if hunt else url_for('new_hunt') }}" method="post"
           class="form-horizontal" role="form" hunt_id={{hunt.hunt_id if hunt else ''}}>
       <div class="col-md-6 col-md-offset-2">
         {% if not hunt %}
@@ -34,7 +34,7 @@
               {% if hunt.participant_rule == 'by_domain' %}
                 {{domain}} emails
               {% elif hunt.participant_rule == 'by_whitelist' %}
-                Specified emails
+                Anyone on the list below
               {% else %}
                 Anyone who finds the QR codes
               {% endif %}
