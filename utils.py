@@ -67,7 +67,7 @@ def participant_email_exists(email, hunt_id):
         Participant.email == email).filter(Hunt.hunt_id == hunt_id).first()
 
 
-def validated_by_participant_rule(email, hunt_id):
+def validated_by_participant_rule(email, hunt_id, form):
     participant_rule = db.session.query(Hunt).filter(
         Hunt.hunt_id == hunt_id).first().participant_rule
     if participant_rule == 'by_domain':
@@ -79,7 +79,10 @@ def validated_by_participant_rule(email, hunt_id):
             "You are not on the list of allowed participants"
 
     participant = Participant()
-    participant.email = email
-    participant.hunt_id = hunt_id
+    form.populate_obj(participant)
+    logger.debug('pmail', participant.email)
+    logger.debug(participant.hunt_id)
+    # participant.email = email
+    # participant.hunt_id = hunt_id
     participant.registered = True
     return participant, ""

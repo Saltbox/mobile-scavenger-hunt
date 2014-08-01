@@ -82,7 +82,7 @@ def completed_hunt_statement(actor, hunt):
 
 def send_statement(statement, setting):
     return requests.post(
-        'https://{}.waxlrs.com/TCAPI/statements',
+        'https://{}.waxlrs.com/TCAPI/statements'.format(setting.wax_site),
         headers={
             "Content-Type": "application/json",
             "x-experience-api-version": "1.0.0"

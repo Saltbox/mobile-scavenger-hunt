@@ -99,9 +99,9 @@ def new_hunt():
         if form.validate():
             logger.debug("request form: %s", request.form)
             hunt.admin_id = session['admin_id']
-            logger.debug('form: %s %s', form.errors, dir(form))
             form.populate_obj(hunt)
-            logger.debug('hunt in creation: %s', hunt.participants)
+
+            logger.debug('hunt participants in creation: %s', hunt.participants)
             # todo: session manager
             db.session.add(hunt)
             db.session.commit()
@@ -312,20 +312,19 @@ def show_item(hunt_id, item_id):
                     'required_ids': required_ids,
                     'total_items': len(items)
                 }
-                data = json.dumps(state)
-                xapi.put_state(data, params, setting)
+                # xapi.put_state(json.dumps(state), params, setting)
 
-                xapi.send_statement(
-                    xapi.begin_hunt_statement(actor, hunt), setting)
+                # xapi.send_statement(
+                    # xapi.begin_hunt_statement(actor, hunt), setting)
             elif status_code == 200:
                 state = update_state(response.json(), params, setting)
-                xapi.post_state(state, params, setting)
+                # xapi.post_state(state, params, setting)
             else:
                 logger.debug("why would this ever happen?")
                 pass
                 # ???
 
-            xapi.send_statements(actor, hunt, item, state, setting, params)
+            # xapi.send_statements(actor, hunt, item, state, setting, params)
             return make_response(render_template(
                 'item.html', item=item, username=session['name'],
                 num_found=state['num_found'],
@@ -334,7 +333,7 @@ def show_item(hunt_id, item_id):
             session['last_item_id'] = item_id
             return make_response(render_template(
                 'welcome.html',
-                action_url="/get_started/hunts/{}/items".format(hunt_id)))
+                action_url="/get_started/hunts/{}".format(hunt_id)))
     abort(404)
 
 
@@ -347,7 +346,7 @@ def get_started(hunt_id):
                            hunt_id=hunt_id)
 
 
-# check scavenger is on whitelist and set user_id
+# validate and register participant before redirecting back to hunt
 @app.route('/register_participant', methods=['POST'])
 def register_participant():
     form = ParticipantForm(request.form)
@@ -356,7 +355,7 @@ def register_participant():
         email = form.email.data
 
         validated_participant, err_msg = validated_by_participant_rule(
-            email, hunt_id)
+            email, hunt_id, form)
         if validated_participant:
             user_id = str(uuid.uuid4())
             session['user_id'] = user_id
