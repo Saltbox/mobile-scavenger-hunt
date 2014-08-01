@@ -332,3 +332,7 @@ span.glyphicon-remove:hover {
   opacity: 0.7;
   cursor: pointer;
 }
+
+.missingfields {
+  color: red;
+}

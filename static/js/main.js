@@ -8,35 +8,6 @@ $(document).ready(function() {
     return $('form[hunt_id]').attr('hunt_id');
   };
 
-
-  var updateHunt = function(data) {
-    $.ajax({
-      url: '/edit_hunt/' + huntId(),
-      method: 'POST',
-      data: data
-    })
-    .success(function() {
-      console.log('updated hunt');
-      return true;
-    })
-    .error(function() {
-      console.log('fail update hunt');
-    });
-  };
-
-  // make hunt name updateable on click
-  var oldName = $('input[name=name]').val();
-  $('input[name=name]').on('blur', function() {
-    if (huntId()) {
-      var newName = $(this).val();
-      if (newName != oldName) {
-        if (updateHunt({'name': newName})) {
-          oldName = newName;
-        }
-      }
-    }
-  });
-
   // show checkmarks for selected participant rule
   var participant_rule_el = $('input[name=participant_rule][checked=on]');
   if (participant_rule_el) {
@@ -50,6 +21,7 @@ $(document).ready(function() {
     // if value is in target, it's been set to "on". toggling removes value.
     if ('value' in e.currentTarget) {
       $($('input[name=all_required]')[1]).prop('checked', true);
+      formData['all_required'] = true;
     }
   });
 
@@ -100,23 +72,6 @@ $(document).ready(function() {
     }
   });
 
-  // update item requirement when checkmark changes
-  $('input[checked][item_id]').on('change', function() {
-     var item_id = $(this).attr('item_id');
-    var data = {
-      'hunt_id': huntId(),
-      'required': $(this).prop('checked')
-    };
-    updateItem(data, item_id);
-  });
-
-  // helper for addInput
-  var addNewField = function(fieldType, name, fieldValue) {
-    var newField = $('<input type="hidden">').attr('name', name)
-                                             .attr('value', fieldValue);
-    $('#' + fieldType + '-group .input-group').append(newField);
-  };
-
   var validEmail = function(email) {
     var validEmailRegex = /[\w-]+@([\w-]+\.)+[\w-]+/;
     return validEmailRegex.test(email);
@@ -131,17 +86,16 @@ $(document).ready(function() {
 
     if (fieldValue) {
       // find smarter way to do this
-      if (fieldType == 'items' || fieldType == 'ajax-items') {
+      if (fieldType == 'items') {
         addItemRow(itemCount, fieldValue);
-        addNewField('items', 'items-' + itemCount + "-name", fieldValue);
+        formData['items-' + itemCount + "-name"] = fieldValue;
 
         itemCount = incrementCount('items', count);
       }
       else {
         if (validEmail(fieldValue)) {
           addParticipantRow(fieldValue, true);
-          addNewField(
-            'participants', 'participants-' + participantCount + '-email', fieldValue);
+          formData['participants-' + participantCount + '-email'] = fieldValue;
 
           participantCount = incrementCount('participants', count);
         }
@@ -179,7 +133,6 @@ $(document).ready(function() {
     return count;
   };
 
-
   // helper for addInput that displays each added participant email
   var addParticipantRow = function(email, registered) {
     var emailTd = "<td>" + email + "</td>";
@@ -188,33 +141,9 @@ $(document).ready(function() {
     $('#participants-table').append(listRow);
   };
 
-  var addParticipant = function(data) {
-      $.ajax({
-        url: '/new_participant',
-        method: 'POST',
-        data: data
-      })
-      .success(function() {
-        console.log('success new part.');
-        $('#participants-table').append(
-          "<tr><td>" + data.email + "</td><td></td></tr>");
-      })
-      .error(function() {
-        console.log('fail new part.');
-      });
-  };
-
   // add participant to list for later submission via button
   $("#add-participant").on("click", (function() {
-    if (huntId()) {
-      var email = $('#participants-template').val();
-      if (validEmail(email)) {
-        addParticipant({'email': email, 'hunt_id': huntId()});
-      }
-    }
-    else {
-      addInput('participants', participantCount);
-    }
+    addInput('participants', participantCount);
   }));
 
   // add participant to list for later submission via "enter" on keyboard
@@ -233,96 +162,8 @@ $(document).ready(function() {
     addInputByKeydown(event, 'items', itemCount);
   });
 
-  // ajax helper for adding items
-  var addItem = function(data) {
-    $.ajax({
-      url: '/new_item',
-      method: 'POST',
-      data: data
-    })
-    .success(function() {
-      console.log('item!');
-      $('#items-table').append(
-        "<tr><td>" + data.name + "</td><td><input type='checkbox' hunt-id={{hunt.hunt_id}} checked={{item.required}} class='hunt-items'> Required</td>" + itemDelete() + "</tr>");
-    })
-    .error(function() {
-      console.log('fail new item');
-    });
-  };
-
-  // add item via ajax on enter
-  $('input#ajax-items-template').keydown(function(event) {
-    if (event.keyCode == 13) {
-      var fieldInput = $('input#ajax-items-template'); //hm
-      var fieldValue = fieldInput.val();
-      var hunt_id = huntId();
-      addItem({'name': fieldValue, 'hunt_id': hunt_id});
-    }
-  });
-
-  // add new item from hunt page
-  $('#ajax-add-item').on('click', function(e) {
-    var data = {
-      'hunt_id': huntId(),
-      'name': $('input#ajax-items-template').val(),
-      'required': $("input[name=all_required]").prop('checked')
-    };
-    addItem(data);
-  });
-
-  // helper to update item attributes via ajax
-  var updateItem = function(data, item_id) {
-    $.ajax({
-      url: '/edit_item/' + item_id,
-      method: 'POST',
-      data: data
-    })
-    .success(function() {
-      console.log('success');
-    })
-    .error(function() {
-      console.log('fail');
-    });
-  };
-
-  // clicking on item name allows for editting
-  $('.item-name').on('click', function(e) {
-    var itemName = $(this).find('span').html();
-    $(this).find('span').hide();
-    $(this).find('input').val(itemName).show().focus();
-  });
-
-  // update item name when clicking outside of input
-  $('.item-name input').on('blur', function() {
-    var typedName = $(this).val();
-    var oldName = $(this).siblings('span').html();
-    $(this).hide();
-    $(this).siblings('span').show().html(typedName);
-
-    var item_id = $(this).parent().parent().attr('item_id');
-
-    if (typedName != oldName) {
-      var data = {'name': typedName};
-      updateItem(data, item_id);
-    }
-  });
-
   // remove item from list and delete on backend
   $('#items-table tbody').on('click', 'td.item-delete', function() {
-    // if on the edit page, delete the item on the backend
-    if (huntId()) {
-      var item_id = $(this).parents('tr').attr('item_id');
-      $.ajax({
-        url: '/delete_item/' + item_id,
-        method: 'POST'
-      })
-      .success(function() {
-        console.log('success');
-      })
-      .error(function() {
-        console.log('fail');
-      });
-    }
     $(this).parents('tr').remove();
     itemCount = decrementCount('items', itemCount);
   });
@@ -334,26 +175,6 @@ $(document).ready(function() {
     $(e).text(prettyTime);
   });
 
-  // update welcome message when clicking outside of textarea
-  var oldWelcome = $('textarea[name=welcome_message]').val();
-  $('textarea[name=welcome_message]').blur(function() {
-    currentWelcome = $('textarea[name=welcome_message]').val();
-    if (oldWelcome != currentWelcome && huntId()) {
-      updateHunt({'welcome_message': currentWelcome});
-      oldWelcome = currentWelcome;
-    }
-  });
-
-  // update congrulations message when clicking outside of textarea
-  var oldCongratulations = $('textarea[name=congratulations_message').html();
-  $('textarea[name=congratulations_message]').blur(function() {
-    currentCongratulations = $(this).val();
-    if (oldCongratulations != currentCongratulations && huntId()) {
-      updateHunt({'congratulations_message': currentCongratulations});
-      oldCongratulations = currentCongratulations;
-    }
-  });
-
   // various events for updating ui upon participant rule selection
   $('#participant-rules .panel-rect').on({
     click: function(e) {
@@ -362,19 +183,14 @@ $(document).ready(function() {
       $($(this).find('.glyphicon-ok')).show();
 
       var selectedRule = $(this).find($('input[name=participant_rule]'));
-      if (huntId()) {
-        // updateHunt({'participant_rule': selectedRule.val()});
-        // i don't know if i want them to be able to update this
+      selectedRule.prop('checked', 'on');
+      if (selectedRule.val() == 'by_whitelist') {
+        $('#participants-group').show('slide', {'direction': 'up'}, 'slow');
       }
       else {
-        selectedRule.prop('checked', 'on');
-        if (selectedRule.val() == 'by_whitelist') {
-          $('#participants-group').show('slide', {'direction': 'up'}, 'slow');
-        }
-        else {
-          $('#participants-group').hide('slide', {'direction': 'up'}, 'slow');
-        }
+        $('#participants-group').hide('slide', {'direction': 'up'}, 'slow');
       }
+      formData['participant_rule'] = selectedRule.val();
     },
     mouseenter: function() {
       $(this).addClass('panel-rect-hover');
@@ -382,5 +198,52 @@ $(document).ready(function() {
     mouseleave: function() {
       $(this).removeClass('panel-rect-hover');
     }
+  });
+
+  var formValid = function(selector, formData) {
+    var form = $(selector).find('input');
+    console.log(form);
+
+  };
+
+  var formData = {};
+  var submitForm = function() {
+    if (formValid('form[name=new_hunt]', formData)) {
+      $('.missingfields').show();
+    }
+    else {
+      formData['name'] = $('input#name').val();
+      formData['welcome_message'] = $(
+        'textarea[name=welcome_message]').val();
+      formData['congratulations_message'] = $(
+        'textarea[name=congratulations_message]').val();
+
+      $('.hunt-items').each(function(i, e) {
+        var checked = $(e).prop('checked');
+        var name = $(e).prop('name');
+        if (name) {
+          formData[name] = checked;
+          console.log('name', name);
+        }
+      });
+
+      $.ajax({
+        url: '/new_hunt',
+        method: 'POST',
+        data: formData
+      })
+      .success(function() {
+        console.log('submit success');
+        // window.location.replace("/hunts");
+      })
+      .error(function() {
+        console.log('fail');
+      });
+    }
+  };
+
+  $('#submit-hunt-btn').on('click', function(e) {
+    e.preventDefault();
+    submitForm();
   });
 });

@@ -3,7 +3,7 @@
   {% if session.logged_in %}
   <div class="container content">
     <form action="url_for('new_hunt')" method="post"
-          class="form-horizontal" role="form">
+          class="form-horizontal" role="form" name="new_hunt">
       <div class="col-md-6 col-md-offset-2">
         <h1>Let's create a hunt!</h1>
         {% if error %}
@@ -72,8 +72,12 @@
               Please enter a valid email address
             </div>
           </div>
+          <table class="table table-condensed" id="participants-table">
+            <tbody></tbody>
+          </table>
         </div>
         <div class="row secondary panel-rect">
+          <h2>What should we have them find?</h2>
           <div class="form-group">
             <label class="control-label">
               {{ form.all_required(type="checkbox", checked="on")}}
@@ -88,7 +92,7 @@
             <label>Add items</label>
             <div class="input-group">
               <input class="form-control" type="text"
-                     id="'items-template'">
+                     id="items-template">
               <span class="input-group-btn">
                 <button class="btn btn-default" type="button"
                         id="add-item">
@@ -97,6 +101,9 @@
               </span>
             </div>
           </div>
+          <table class="table table-condensed" id="items-table">
+            <tbody></tbody>
+          </table>
         </div>
         <div class="row pentary panel-rect">
           <h3>Welcome the team!</h3>
@@ -112,9 +119,12 @@
         </div>
         <div class="row">
           <div class="form-group">
-            <button class="btn btn-primary pull-right form-control" type="submit">
+            <button class="btn btn-primary pull-right form-control" id="submit-hunt-btn" onclick="return false;">
               Submit Hunt
             </button>
+          </div>
+          <div class="missingfields" style="display: none;">
+            Please be sure to fill out the entire form before submitting.
           </div>
         </div>
       </div>

@@ -132,6 +132,16 @@ class HuntTestCase(unittest.TestCase):
             "object": xapi.hunt_activity(hunt)
         }
 
+    def register_participant(self, app, participant_email, name):
+        return app.post(
+            '/register_participant?hunt_id=1',
+            data={
+                'email': participant_email,
+                'name': name
+            },
+            follow_redirects=True
+        )
+
     ### TESTS! ###
 
     def test_login_logout(self):
@@ -150,8 +160,8 @@ class HuntTestCase(unittest.TestCase):
         self.create_hunt()
         self.logout()
 
-        for route in ['/hunts', 'hunts/1']:
-            response = self.app.get('/hunts', follow_redirects=True)
+        for route in ['/hunts', '/hunts/1', '/settings']:
+            response = self.app.get(route, follow_redirects=True)
             self.assertIn('login required', response.data)
 
     def test_create_admin(self):
@@ -173,6 +183,7 @@ class HuntTestCase(unittest.TestCase):
     def test_get_started(self):
         self.login(self.admin['email'], self.admin['password'])
         self.create_hunt()
+        self.logout()
         response = self.app.get(
             '/get_started/hunts/1', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
@@ -207,7 +218,8 @@ class HuntTestCase(unittest.TestCase):
             username = identifier()
             participant_email = self.email()
             item_name = identifier()
-            self.create_hunt(participants=[participant_email], items=[item_name])
+            self.create_hunt(
+                participants=[participant_email], items=[item_name])
 
             name = identifier()
             # workaround for create_hunt issue
@@ -219,14 +231,7 @@ class HuntTestCase(unittest.TestCase):
                 sess['email'] = participant_email
                 sess['last_item_id'] = 1
 
-            response = c.post(
-                '/register_participant?hunt_id=1',
-                data={
-                    'email': participant_email,
-                    'name': name
-                },
-                follow_redirects=True
-            )
+            response = self.register_participant(c, email, name)
             self.assertEqual(response.status_code, 200)
 
             response = c.get('/hunts/1/items/1', follow_redirects=True)
@@ -243,14 +248,7 @@ class HuntTestCase(unittest.TestCase):
                 sess['admin_id'] = 1
 
             c.get('/hunts/1/items/1', follow_redirects=True)
-            response = c.post(
-                '/register_participant?hunt_id=1',
-                data={
-                    'email': self.email(),
-                    'name': identifier()
-                },
-                follow_redirects=True
-            )
+            response = self.register_participant(c, self.email(), identifier())
             self.assertIn(
                 'You are not on the list of allowed participants',
                 response.data
