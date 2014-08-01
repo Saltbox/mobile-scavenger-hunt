@@ -113,10 +113,10 @@ def new_hunt():
             return redirect(url_for('hunts'))
         else:
             flash('some error msg about invalid form')
-    return render_template('hunt.html', form=form, domain=domain)
+    return render_template('new_hunt.html', form=form, domain=domain)
 
 
-# page to view/edit hunt
+# page to view hunt
 @app.route('/hunts/<hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
@@ -125,7 +125,7 @@ def hunt(hunt_id):
     if hunt:
         form = HuntForm(request.form)
         return render_template(
-            'hunt.html', hunt=hunt, form=form, domain=domain)
+            'show_hunt.html', hunt=hunt, form=form, domain=domain)
     abort(404)
 
 
@@ -204,6 +204,7 @@ def edit_hunt(hunt_id):
 
 
 @app.route('/new_item', methods=['POST'])
+@login_required
 def new_item():
     item = Item()
     form = ItemForm(request.form)
@@ -217,6 +218,7 @@ def new_item():
 
 
 @app.route('/edit_item/<item_id>', methods=['POST'])
+@login_required
 def edit_item(item_id):
     db.session.query(Item).filter(Item.item_id == item_id).update(request.form)
     db.session.commit()
@@ -232,6 +234,7 @@ def delete_item(item_id):
 
 
 @app.route('/new_participant', methods=['POST'])
+@login_required
 def new_participant():
     participant = Participant()
     form = ParticipantForm(request.form)
@@ -284,7 +287,7 @@ def show_item(hunt_id, item_id):
                 state['required_ids'].remove(item_id)
         return state
 
-    # right now ids are unique, but not unique to the hunt. so i could fix this.
+    # right now ids are unique across item table.
     item = db.session.query(Item)\
         .filter(Hunt.hunt_id == hunt_id) \
         .filter(Item.item_id == item_id).first()

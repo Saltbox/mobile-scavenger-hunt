@@ -1,0 +1,149 @@
+{% extends "admin_layout.html" %}
+{% block adminbody %}
+  {% if session.logged_in %}
+  <div class="container content">
+    <form action="url_for('new_hunt')" method="post"
+          class="form-horizontal" role="form">
+      <div class="col-md-6 col-md-offset-2">
+        <h1>Let's create a hunt!</h1>
+        {% if error %}
+          <p class="alert">Error: {{error}}</p>
+        {% endif %}
+        {% if form.errors %}
+          <ul class="errors">
+            {% for field_name, field_errors in form.errors|dictsort if field_errors %}
+              {% for error in field_errors %}
+                  <li>{{ form[field_name].label }}: {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        {% endif %}
+        <div class="row hunt_name primary panel-rect">
+          <div class="form-group">
+            <h3>What's your hunt's name?</h3>
+            {{form.name(class="form-control hunt-name", required=true)}}
+          </div>
+        </div>
+        <div class="row participant-rules quarternary panel-rect">
+          <h3>Who can participate?</h3>
+          <div class="panel-default" id="participant-rules">
+            <div class="col-md-4 col-sm-4 col-xs-4 panel-rect">
+              <div class="row"><span class="domain">{{domain}}</span> emails</div>
+              <div class="row">
+                <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
+                <span style="display: none;">
+                  {{ form.participant_rule(type="radio", value="by_domain") }}
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-4 panel-rect">
+              <div class="row">Anyone who finds the qrcodes</div>
+              <div class="row">
+                <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
+                <span style="display: none;">
+                  {{ form.participant_rule(type="radio", value="anyone") }}
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-4 panel-rect">
+              <div class="row">Specific emails</div>
+              <div class="row">
+                <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
+                <span style="display: none;">
+                  {{ form.participant_rule(type="radio", value="by_whitelist") }}
+                </span>
+              </div>
+            </div>
+            <input type="hidden" name="participant_rule">
+          </div>
+        </div>
+        <div class="row quarternary panel-rect" id="participants-group" style="display: none;">
+          <div class="form-group">
+            <label>Add participants</label>
+            <div class="input-group">
+              <input class="form-control" type="email" id="participants-template">
+              <span class="input-group-btn">
+                <button class="btn btn-default" type="button" id="add-participant">
+                  Add
+                </button>
+              </span>
+            </div>
+            <div id="participant-error" style="display: none;">
+              Please enter a valid email address
+            </div>
+          </div>
+        </div>
+        <div class="row secondary panel-rect">
+          <div class="form-group">
+            <label class="control-label">
+              {{ form.all_required(type="checkbox", checked="on")}}
+              Require finding all items for success
+            </label></br>
+          </div>
+          <div class="form-group" style="display: none;" id="num-items-group">
+            <label>Number of items required</label>
+            <input type="number" name="num_required" class="form-control" min=0>
+          </div>
+          <div class="form-group" id="items-group">
+            <label>Add items</label>
+            <div class="input-group">
+              <input class="form-control" type="text"
+                     id="'items-template'">
+              <span class="input-group-btn">
+                <button class="btn btn-default" type="button"
+                        id="add-item">
+                  Add
+                </button>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="row pentary panel-rect">
+          <h3>Welcome the team!</h3>
+          <div class="form-group">
+            <textarea class="form-control" name="welcome_message" maxlength=500>Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'.</textarea>
+          </div>
+        </div>
+        <div class="row pentary panel-rect">
+          <h3>They finished the hunt! Let's congratulate them.</h3>
+          <div class="form-group">
+            <textarea class="form-control" name="congratulations_message" maxlength=500>Congratulations! You have successfully completed the scavenger hunt.</textarea>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <button class="btn btn-primary pull-right form-control" type="submit">
+              Submit Hunt
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-offset-1 col-md-3">
+        <div class="row">
+<!--           <div class="panel-rect tertiary center">
+          <a class="center" href="/reports">
+            <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
+            Reports
+          </a> -->
+        </div>
+        <div class="row">
+          <div class="panel-rect tertiary center">
+            <a class="center" href="/hunts">
+              <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
+              Hunts
+            </a>
+          </div>
+        </div>
+        <div class="row">
+          <div class="panel-rect tertiary center">
+            <a class="center" href="/settings">
+              <i class="glyphicon glyphicon-cog hugeicon"></i><br>
+              Settings
+            </a>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+{% endblock %}

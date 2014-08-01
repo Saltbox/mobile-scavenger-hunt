@@ -98,7 +98,7 @@ div.titlerow.col-md-12 {
   width: 100%;
 }
 
-.titlerow div:first-child {
+.titlerow div:first-child, .primary {
   background-color: #0D48FF;
 }
 
@@ -186,7 +186,7 @@ div.panel-default > .panel-heading,
 }
 
 .pentary {
-  background-color:#0C7BE8;
+  background-color: #53A0EC;
 }
 
 .panel-rect a {
