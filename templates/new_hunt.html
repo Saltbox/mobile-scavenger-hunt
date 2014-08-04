@@ -2,8 +2,7 @@
 {% block adminbody %}
   {% if session.logged_in %}
   <div class="container content">
-    <form action="url_for('new_hunt')" method="post"
-          class="form-horizontal" role="form" name="new_hunt">
+    <form class="form-horizontal" role="form" name="new_hunt">
       <div class="col-md-6 col-md-offset-2">
         <h1>Let's create a hunt!</h1>
         {% if error %}
@@ -54,7 +53,6 @@
                 </span>
               </div>
             </div>
-            <input type="hidden" name="participant_rule">
           </div>
         </div>
         <div class="row quarternary panel-rect" id="participants-group" style="display: none;">
@@ -91,8 +89,7 @@
           <div class="form-group" id="items-group">
             <label>Add items</label>
             <div class="input-group">
-              <input class="form-control" type="text"
-                     id="items-template">
+              <input class="form-control" type="text" id="items-template">
               <span class="input-group-btn">
                 <button class="btn btn-default" type="button"
                         id="add-item">
@@ -119,7 +116,8 @@
         </div>
         <div class="row">
           <div class="form-group">
-            <button class="btn btn-primary pull-right form-control" id="submit-hunt-btn" onclick="return false;">
+            <button class="btn btn-primary pull-right form-control"
+                    id="submit-hunt-btn">
               Submit Hunt
             </button>
           </div>

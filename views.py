@@ -95,13 +95,26 @@ def new_hunt():
     domain = get_domain_by_admin_id(session['admin_id'])
     hunt = Hunt()
     form = HuntForm(request.form)
+
+    def newParticipant(email):
+        p = Participant()
+        p.email = email
+        return p
+
     if request.method == 'POST':
         if form.validate():
             logger.debug("request form: %s", request.form)
             hunt.admin_id = session['admin_id']
+
             form.populate_obj(hunt)
 
-            logger.debug('hunt participants in creation: %s', hunt.participants)
+            # even though this is structured the same way as items
+            # (which works), this workaround is necessary to create
+            # hunt participants
+            hunt.participants = [
+                newParticipant(request.form[prop]) for prop in request.form
+                if '-email' in prop
+            ]
             # todo: session manager
             db.session.add(hunt)
             db.session.commit()
@@ -112,7 +125,7 @@ def new_hunt():
                 hunt.name, hunt.admin_id)
             return redirect(url_for('hunts'))
         else:
-            flash('some error msg about invalid form')
+            flash('Error creating form')
     return render_template('new_hunt.html', form=form, domain=domain)
 
 
