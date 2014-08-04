@@ -49,10 +49,9 @@ def logout():
 
 
 @app.route('/')
+@login_required
 def root():
-    if session.get('logged_in'):
-        return hunts()
-    return login()
+    return hunts()
 
 
 # create or list admins who can create hunts # probably rename to signup
@@ -75,100 +74,10 @@ def admins():
             return render_template('settings.html', domain=domain)
         logger.info('Admin signup form was submitted with invalid information')
         flash(
-            'There was an error creating your admin profile. Please try again.',
-            'warning')
+            'There was an error creating your admin profile.'
+            ' Please try again.', 'warning')
     return render_template(
         'admin_signup.html', form=form, display_login_link=True)
-
-
-# create or list hunts
-@app.route('/hunts', methods=['GET'])
-@login_required
-def hunts():
-    hunts = db.session.query(Hunt).filter(
-        Hunt.admin_id == session['admin_id']).all()
-    return render_template('hunts.html', hunts=hunts)
-
-
-# form to create new hunt
-@app.route('/new_hunt', methods=['GET', 'POST'])
-def new_hunt():
-    domain = get_domain_by_admin_id(session['admin_id'])
-    hunt = Hunt()
-    form = HuntForm(request.form)
-
-    def newParticipant(email):
-        p = Participant()
-        p.email = email
-        return p
-
-    if request.method == 'POST':
-        if form.validate():
-            logger.debug("request form: %s", request.form)
-            hunt.admin_id = session['admin_id']
-
-            form.populate_obj(hunt)
-
-            # even though this is structured the same way as items
-            # (which works), this workaround is necessary to create
-            # hunt participants
-            hunt.participants = [
-                newParticipant(request.form[prop]) for prop in request.form
-                if '-email' in prop
-            ]
-            # todo: session manager
-            db.session.add(hunt)
-            db.session.commit()
-
-            flash('New scavenger hunt added', 'success')
-            logger.info(
-                'hunt, %s, created for admin with id, %s',
-                hunt.name, hunt.admin_id)
-            return redirect(url_for('hunts'))
-        else:
-            flash('Error creating form')
-    return render_template('new_hunt.html', form=form, domain=domain)
-
-
-# page to view hunt
-@app.route('/hunts/<hunt_id>', methods=['GET'])
-@login_required
-def hunt(hunt_id):
-    domain = get_domain_by_admin_id(session['admin_id'])
-    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
-    if hunt:
-        form = HuntForm(request.form)
-        return render_template(
-            'show_hunt.html', hunt=hunt, form=form, domain=domain)
-    abort(404)
-
-
-@app.route('/hunts/<hunt_id>/qrcodes')
-def show_item_codes(hunt_id):
-    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
-    if hunt:
-        # todo: figure out how to get multiple on one page without google
-        item_paths = [
-            {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
-            for item in hunt.items
-        ]
-        return make_response(render_template(
-            'qrcodes.html', item_paths=item_paths))
-    abort(404)
-
-
-@app.route('/hunts/<hunt_id>/items/<item_id>/qrcode', methods=['GET'])
-def show_item_code(hunt_id, item_id):
-    # add check for hunt id and item id
-    code = qrcode.make(item_path(hunt_id, item_id))
-    hex_data = create_qrcode_binary(code)
-
-    response = make_response(hex_data)
-    response.headers['Content-Type'] = 'image/png'
-    disposition = 'filename=qrcode-hunt-{}-item-{}.jpg'.format(
-        hunt_id, item_id)
-    response.headers['Content-Disposition'] = disposition
-    return response
 
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -203,6 +112,96 @@ def settings():
     return make_response(render_template(
         'settings.html', login=login, password=password,
         wax_site=wax_site, domain=domain))
+
+
+# create or list hunts
+@app.route('/hunts', methods=['GET'])
+@login_required
+def hunts():
+    hunts = db.session.query(Hunt).filter(
+        Hunt.admin_id == session['admin_id']).all()
+    return render_template('hunts.html', hunts=hunts)
+
+
+# form to create new hunt
+@app.route('/new_hunt', methods=['GET', 'POST'])
+def new_hunt():
+    domain = get_domain_by_admin_id(session['admin_id'])
+    hunt = Hunt()
+    form = HuntForm(request.form)
+
+    def newParticipant(email):
+        p = Participant()
+        p.email = email
+        return p
+
+    if request.method == 'POST':
+        if form.validate():
+            hunt.admin_id = session['admin_id']
+
+            form.populate_obj(hunt)
+
+            # even though this is structured the same way as items
+            # (which works), this workaround is necessary to create
+            # hunt participants
+            hunt.participants = [
+                newParticipant(request.form[prop]) for prop in request.form
+                if '-email' in prop
+            ]
+            # todo: session manager
+            db.session.add(hunt)
+            db.session.commit()
+
+            flash('New scavenger hunt added', 'success')
+            logger.info('hunt, %s, created for admin with id, %s',
+                        hunt.name, hunt.admin_id)
+            return redirect(url_for('hunts'))
+        else:
+            flash('Error creating form')
+            logger.info('Error creating form.\nForm errors: %s\nForm data: '
+                        '%s ', form.errors, form.data)
+    return render_template('new_hunt.html', form=form, domain=domain)
+
+
+# page to view hunt
+@app.route('/hunts/<hunt_id>', methods=['GET'])
+@login_required
+def hunt(hunt_id):
+    domain = get_domain_by_admin_id(session['admin_id'])
+    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
+    if hunt:
+        form = HuntForm(request.form)
+        return render_template(
+            'show_hunt.html', hunt=hunt, form=form, domain=domain)
+    abort(404)
+
+
+@app.route('/hunts/<hunt_id>/qrcodes')
+def show_item_codes(hunt_id):
+    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
+    if hunt:
+        # todo: figure out how to get multiple on one page without google
+        item_paths = [
+            {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
+            for item in hunt.items
+        ]
+        return make_response(render_template(
+            'qrcodes.html', item_paths=item_paths))
+    abort(404)
+
+
+@app.route('/hunts/<hunt_id>/items/<item_id>/qrcode', methods=['GET'])
+def show_item_code(hunt_id, item_id):
+    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
+    if hunt:
+        item_paths = [
+            {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
+            for item in hunt.items if item.item_id == int(item_id)
+        ]
+        logger.debug('item paths: %s', item_paths)
+        return make_response(render_template(
+            'qrcodes.html', item_paths=item_paths))
+    abort(404)
 
 
 ################################# API #################################
@@ -283,7 +282,10 @@ def index_items(hunt_id):
             if response.status_code == 200:
                 state = response.json()
                 for item in items:
-                    item.found = item.item_id in state['found'] if state.get('found') else None
+                    if state.get('found'):
+                        item.found = item.item_id in state['found']
+                    else:
+                        item.found = None
 
             return render_template(
                 'items.html', items=items, hunt_id=hunt_id)
@@ -395,13 +397,3 @@ def register_participant():
         else:
             return err_msg
     abort(400)
-
-
-@app.route('/oops', methods=['GET', 'POST'])
-def oops():
-    # for testing. delete later.
-    session['user_id'] = ''
-    session['admin_id'] = ''
-    session['email'] = ''
-
-    return make_response(render_template('goodbye.html'))

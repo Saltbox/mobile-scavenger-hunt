@@ -76,49 +76,40 @@ class HuntTestCase(unittest.TestCase):
         return self.app.post('/settings', data=dict(
             wax_site=wax_site, admin_id=admin_id, domain=domain,
             login=login, password=password
-        ))
+        ), follow_redirects=True)
 
     def create_hunt(self,
                     name=identifier(),
                     participant_rule='by_whitelist',
-                    participants=[email(None)],
-                    items=[identifier()], all_required=True):
+                    participants=[{'email': email(None)}],
+                    items=[{'name': identifier()}], all_required=True):
 
         # this is how wtforms-alchemy expects data
-        # participants not being created for some reason
-        participant_emails = [
-            ('participants-{}-email'.format(index), email)
-            for (index, email) in enumerate(participants)
-        ]
-        participant_registered = [
-            ('participants-{}-registered'.format(index), email)
-            for (index, email) in enumerate(participants)
-        ]
-        items = [
-            ('items-{}-name'.format(index), item_name)
-            for (index, item_name) in enumerate(items)
-        ]
+        participant_emails = []
+        for (index, participant) in enumerate(participants):
+            participant_emails.append(
+                ('participants-{}-email'.format(index), participant['email']))
 
-        forminfo = participant_emails + items + \
+        item_names = []
+        for (index, item) in enumerate(items):
+            item_names.append(
+                ('items-{}-name'.format(index), item['name']))
+
+        forminfo = participant_emails + item_names + \
             [('all_required', True), ('name', name),
-             ('participant_rule', participant_rule),
-
-             ('participants-0-registered', True),
-             ('participants-1-registered', True)]
-
+             ('participant_rule', participant_rule)]
         self.imdict = ImmutableMultiDict(forminfo)
         return self.app.post(
             '/new_hunt', data=self.imdict, follow_redirects=True)
 
-    def submit_new_participant(self, email, username):
+    def submit_new_participant(self, email, username, hunt_id=1):
         return self.app.post(
             '/new_participant',
             data={
                 'email': email,
                 'name': username,
-                'hunt_id': 1
-            },
-            follow_redirects=True)
+                'hunt_id': hunt_id
+            })
 
     def registered_statement(self, hunt, email=email(None)):
         return {
@@ -160,7 +151,7 @@ class HuntTestCase(unittest.TestCase):
         self.create_hunt()
         self.logout()
 
-        for route in ['/hunts', '/hunts/1', '/settings']:
+        for route in ['/', '/hunts', '/hunts/1', '/settings']:
             response = self.app.get(route, follow_redirects=True)
             self.assertIn('login required', response.data)
 
@@ -180,21 +171,22 @@ class HuntTestCase(unittest.TestCase):
         response = self.login(email, password)
         self.assertEqual(response.status_code, 200)
 
-    def test_get_started(self):
+    def test_create_settings(self):
         self.login(self.admin['email'], self.admin['password'])
-        self.create_hunt()
-        self.logout()
-        response = self.app.get(
-            '/get_started/hunts/1', follow_redirects=True)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('Enter your name and email', response.data)
+        domain = 'thedomain'
+        login = 'thelogin'
+        settings_response = self.create_settings(
+            domain=domain, login=login)
 
-    @unittest.skip('participants are not being created')
+        self.assertEqual(settings_response.status_code, 200)
+        self.assertIn(login, settings_response.data)
+        self.assertIn(domain, settings_response.data)
+
     def test_create_and_show_hunt(self):
         self.login(self.admin['email'], self.admin['password'])
         name = identifier()
-        participants = [self.email() for _ in xrange(2)]
-        items = [identifier() for _ in xrange(2)]
+        participants = [{'email': self.email()} for _ in xrange(2)]
+        items = [{'name': identifier()} for _ in xrange(2)]
         create_hunt_response = self.create_hunt(
             name=name, participants=participants, items=items)
 
@@ -207,23 +199,44 @@ class HuntTestCase(unittest.TestCase):
         self.assertIn(name, show_hunt_response.data)
 
         for participant in participants:
-            self.assertIn(participant, show_hunt_response.data)
+            self.assertIn(participant['email'], show_hunt_response.data)
 
         for item in items:
-            self.assertIn(item, show_hunt_response.data)
+            self.assertIn(item['name'], show_hunt_response.data)
 
+    def test_get_started(self):
+        self.login(self.admin['email'], self.admin['password'])
+        self.create_hunt()
+        self.logout()
+        response = self.app.get(
+            '/get_started/hunts/1', follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Enter your name and email', response.data)
+
+    def test_show_item_codes(self):
+        self.login(self.admin['email'], self.admin['password'])
+        item1 = {'name': identifier()}
+        item2 = {'name': identifier()}
+        self.create_hunt(items=[item1, item2])
+
+        response = self.app.get('/hunts/1/qrcodes')
+        self.assertEqual(response.status_code, 200)
+        for item in [item1, item2]:
+            self.assertIn(item['name'], response.data)
+
+        response = self.app.get('/hunts/1/items/1/qrcode')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(item1['name'], response.data)
+
+    # this also tests the show_item function/route
     def test_whitelisted_participant(self):
         with app.test_client() as c:
             self.login(self.admin['email'], self.admin['password'])
-            username = identifier()
             participant_email = self.email()
-            item_name = identifier()
             self.create_hunt(
-                participants=[participant_email], items=[item_name])
+                participants=[{'email': participant_email}],
+                items=[{'name': identifier()}])
 
-            name = identifier()
-            # workaround for create_hunt issue
-            self.submit_new_participant(participant_email, name)
             self.logout()
 
             # necessary to access item routes
@@ -231,7 +244,8 @@ class HuntTestCase(unittest.TestCase):
                 sess['email'] = participant_email
                 sess['last_item_id'] = 1
 
-            response = self.register_participant(c, email, name)
+            name = identifier()
+            response = self.register_participant(c, participant_email, name)
             self.assertEqual(response.status_code, 200)
 
             response = c.get('/hunts/1/items/1', follow_redirects=True)
@@ -255,8 +269,19 @@ class HuntTestCase(unittest.TestCase):
             )
 
     def test_no_email_for_new_participant(self):
+        self.login(self.admin['email'], self.admin['password'])
         response = self.submit_new_participant(None, identifier())
         self.assertEqual(response.status_code, 400)
+
+    def test_index_items(self):
+        self.login(self.admin['email'], self.admin['password'])
+        self.create_hunt(
+            items=[{'name': identifier()}, {'name': identifier()}])
+
+        response = self.app.get('hunts/1/items')
+        self.assertEqual(response.status_code, 200)
+        for item in [item1, item2]:
+            self.assertIn(item['name'], response.data)
 
     def test_put_state_doc(self):
         with app.test_request_context('/'):
@@ -289,6 +314,7 @@ class HuntTestCase(unittest.TestCase):
             setting = MockSetting(BASIC_LOGIN, BASIC_PASSWORD, WAX_SITE)
             response = xapi.send_statement(statement, setting)
             self.assertEqual(response.status_code, 200)
+
 
 if __name__ == '__main__':
     unittest.main()
