@@ -32,10 +32,10 @@ def login():
         matched_admin = get_admin(form.username.data, form.password.data)
         if matched_admin:
             session['logged_in'] = True
-            flash('You were logged in')
+            flash('You were logged in', 'info')
             session['admin_id'] = matched_admin.admin_id
             return redirect(url_for('hunts'))
-        flash('Invalid email or password')
+        flash('Invalid email or password', 'warning')
     return render_template(
         'login.html', error=error, form=form, display_login_link=True)
 
@@ -67,7 +67,7 @@ def admins():
             db.session.commit()
 
             session['logged_in'] = True
-            flash('Successfully created admin')
+            flash('Successfully created admin', 'success')
 
             domain = admin.email.split('@')[-1]
             session['admin_id'] = get_admin(
@@ -75,7 +75,8 @@ def admins():
             return render_template('settings.html', domain=domain)
         logger.info('Admin signup form was submitted with invalid information')
         flash(
-            'There was an error creating your admin profile. Please try again')
+            'There was an error creating your admin profile. Please try again.',
+            'warning')
     return render_template(
         'admin_signup.html', form=form, display_login_link=True)
 
@@ -182,7 +183,7 @@ def settings():
 
             db.session.add(setting)
             db.session.commit()
-            flash('Settings have been updated')
+            flash('Settings have been updated', 'info')
         else:
             # get the errors from form. i think it's form.errors
             flash('Invalid setting information. '

@@ -161,6 +161,10 @@ div.panel-default > .panel-heading,
   color: white;
 }
 
+.row.participant-rules.quarternary.panel-rect {
+  min-height: 50px;
+}
+
 .panel-rect .row {
   margin: 0;
 }
@@ -335,4 +339,8 @@ span.glyphicon-remove:hover {
 
 .missingfields {
   color: red;
+}
+
+.flash {
+  text-align: center;
 }

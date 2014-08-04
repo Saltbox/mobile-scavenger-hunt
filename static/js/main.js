@@ -89,7 +89,6 @@ $(document).ready(function() {
       if (fieldType == 'items') {
         addItemRow(itemCount, fieldValue);
         formData['items-' + itemCount + "-name"] = fieldValue;
-
         itemCount = incrementCount('items', count);
       }
       else {
@@ -202,28 +201,23 @@ $(document).ready(function() {
 
   var formValid = function(selector, formData) {
     var form = $(selector).find('input');
-    console.log(form);
-
+    return !$.isEmptyObject(formData);
   };
 
   var formData = {};
   var submitForm = function() {
     if (formValid('form[name=new_hunt]', formData)) {
-      $('.missingfields').show();
-    }
-    else {
       formData['name'] = $('input#name').val();
       formData['welcome_message'] = $(
         'textarea[name=welcome_message]').val();
       formData['congratulations_message'] = $(
         'textarea[name=congratulations_message]').val();
-
+      formData['participants-1-email'] = $('input[name=participants-1-email]').val();
       $('.hunt-items').each(function(i, e) {
         var checked = $(e).prop('checked');
         var name = $(e).prop('name');
         if (name) {
           formData[name] = checked;
-          console.log('name', name);
         }
       });
 
@@ -233,12 +227,15 @@ $(document).ready(function() {
         data: formData
       })
       .success(function() {
-        console.log('submit success');
-        // window.location.replace("/hunts");
+        console.log('submit success: ', formData);
+        window.location.replace("/hunts");
       })
       .error(function() {
         console.log('fail');
       });
+    }
+    else {
+      $('.missingfields').show();
     }
   };
 

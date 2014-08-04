@@ -51,7 +51,7 @@
           {% if hunt.all_required %}
             Finding all items is required for success
           {% else %}
-            num items required for success
+            num items required for success: {{hunt.num_required}}
           {% endif %}
         </div>
         <div>
@@ -97,6 +97,14 @@
       </div>
       <div class="row">
         <div class="panel-rect tertiary center">
+          <a class="center" href="/new_hunt">
+            <i class="glyphicon glyphicon-plus hugeicon"></i><br>
+            Create Hunt
+          </a>
+        </div>
+      </div>
+      <div class="row">
+        <div class="panel-rect tertiary center">
           <a class="center" href="/hunts">
             <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
             Hunts
@@ -108,6 +116,14 @@
           <a class="center" href="/settings">
             <i class="glyphicon glyphicon-cog hugeicon"></i><br>
             Settings
+          </a>
+        </div>
+      </div>
+      <div class="row">
+        <div class="panel-rect tertiary center">
+          <a class="center" href="/logout">
+            <i class="glyphicon glyphicon-log-out hugeicon"></i><br>
+            Logout
           </a>
         </div>
       </div>
