@@ -17,7 +17,7 @@ class Hunt(db.Model):
     __tablename__ = 'hunts'
     hunt_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
-    participants = db.relationship('Participant', backref='participants')
+    participants = db.relationship('Participant', backref='hunts')
     participant_rule = db.Column(db.String(20))
     items = db.relationship('Item', backref='hunts')
     # do i care about timezone aware?
