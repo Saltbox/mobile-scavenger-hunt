@@ -178,10 +178,13 @@ def settings():
     setting = get_setting(admin_id=session['admin_id'])
 
     # make it so these always exist
-    login = getattr(setting, 'login')
-    password = getattr(setting, 'password')
-    wax_site = getattr(setting, 'wax_site')
-    domain = getattr(setting, 'domain')
+    if setting:
+        login = getattr(setting, 'login')
+        password = getattr(setting, 'password')
+        wax_site = getattr(setting, 'wax_site')
+        domain = getattr(setting, 'domain')
+    else:
+        login = password = wax_site = domain = ''
 
     return make_response(render_template(
         'settings.html', login=login, password=password,
