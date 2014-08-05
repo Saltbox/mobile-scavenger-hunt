@@ -16,6 +16,7 @@ from utils import get_admin, get_setting, get_hunt, \
     get_item, listed_participant, login_required, item_path, \
     get_domain_by_admin_id, participant_email_exists, \
     validated_by_participant_rule
+from sqlalchemy.exc import IntegrityError
 
 import xapi
 
@@ -49,9 +50,8 @@ def logout():
 
 
 @app.route('/')
-@login_required
 def root():
-    return hunts()
+    return login()
 
 
 # create or list admins who can create hunts # probably rename to signup
@@ -148,18 +148,26 @@ def new_hunt():
                 newParticipant(request.form[prop]) for prop in request.form
                 if '-email' in prop
             ]
-            # todo: session manager
-            db.session.add(hunt)
-            db.session.commit()
+            try:
+                # todo: session manager
+                db.session.add(hunt)
+                db.session.commit()
+            except IntegrityError as e:
+                flash('Error creating form: hunt name, "{}", '
+                      'already exists'.format(hunt.name), 'warning')
+                logger.info(
+                    'Exception found while creating hunt: %s\n'
+                    'Form data: %s ', e, form.data)
+                abort(400)
 
             flash('New scavenger hunt added', 'success')
             logger.info('hunt, %s, created for admin with id, %s',
                         hunt.name, hunt.admin_id)
             return redirect(url_for('hunts'))
         else:
-            flash('Error creating form')
-            logger.info('Error creating form.\nForm errors: %s\nForm data: '
-                        '%s ', form.errors, form.data)
+            flash('Error creating form', 'warning')
+            logger.warning('Error creating form.\nForm errors: %s\nForm data: '
+                           '%s ', form.errors, form.data)
     return render_template('new_hunt.html', form=form, domain=domain)
 
 

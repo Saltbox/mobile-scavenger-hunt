@@ -25,39 +25,33 @@ $(document).ready(function() {
     }
   });
 
-  // create input name for item required that works with wtforms
-  var itemRequiredName = function(index) {
-    return "items-" + index + "-required";
-  };
-
   // make new item checkbox
   var tdCheckbox = function(index, checked) {
     if (checked) {
-      return "<td><input type='checkbox' checked='on' class='hunt-items' name='" + itemRequiredName(index) + "'> Required</td>";
+      return "<td><input type='checkbox' class='hunt-items' name='item-required' checked='on'> Required</td>";
     }
-    return "<td><input type='checkbox' class='hunt-items' name='" + itemRequiredName(index) + "'> Required</td>";
-  };
-
-  // since jquery wrap doesn't seem to work
-  var tdItem = function(nameOfItem) {
-    return "<td class='item-required'>" + nameOfItem + "</td>";
-  };
-
-  // create input name property that works with wtforms
-  var itemName = function(itemCount) {
-    return 'items-' + itemCount + '-name';
+    return "<td><input type='checkbox' class='hunt-items' name='item-required'> Required</td>";
   };
 
   // gives admin something to delete items
-  var itemDelete = function() {
-    return '<td class="item-delete"><span class="glyphicon glyphicon-remove"></span></td>';
+  var deleteIconTd = function(type) {
+    var glyphiconRemove = '<span class="glyphicon glyphicon-remove"></span>';
+    return '<td class="'+ type + '-delete">' + glyphiconRemove + '</td>';
   };
 
   // add tr to item table
   var addItemRow = function(itemCount, fieldValue) {
     var checked = $("input[name=all_required]").prop('checked');
-    var row = "<tr>" + tdItem(fieldValue) + tdCheckbox(itemCount, checked) + itemDelete() + "</tr>";
+    var tdInput = "<td>" + "<input type='text' value=" + fieldValue + " name='item' class='form-control'>" + "</td>";
+    var row = "<tr>" + tdInput + tdCheckbox(itemCount, checked) + deleteIconTd('item') + "</tr>";
     $('#items-table tbody').append(row);
+  };
+
+  // add tr to participant table
+  var addParticipantRow = function(email, registered) {
+    var emailTd = "<td><input type='email' value=" + email + " name=participant class='form-control'></td>";
+    var listRow = "<tr>" + emailTd + deleteIconTd('participant') + "</tr>";
+    $('#participants-table').append(listRow);
   };
 
   // toggle if all items are required for success
@@ -77,10 +71,8 @@ $(document).ready(function() {
     return validEmailRegex.test(email);
   };
 
-
-  // add item or participant hidden input field that works with wtforms
+  // add item or participant to respective table
   var addInput = function(fieldType, count) {
-    var fieldName = itemName(count);
     var fieldInput = $('input#' + fieldType + '-template');
     var fieldValue = fieldInput.val();
 
@@ -88,14 +80,11 @@ $(document).ready(function() {
       // find smarter way to do this
       if (fieldType == 'items') {
         addItemRow(itemCount, fieldValue);
-        formData['items-' + itemCount + "-name"] = fieldValue;
         itemCount = incrementCount('items', count);
       }
       else {
         if (validEmail(fieldValue)) {
           addParticipantRow(fieldValue, true);
-          formData['participants-' + participantCount + '-email'] = fieldValue;
-
           participantCount = incrementCount('participants', count);
         }
         else {
@@ -132,13 +121,6 @@ $(document).ready(function() {
     return count;
   };
 
-  // helper for addInput that displays each added participant email
-  var addParticipantRow = function(email, registered) {
-    var emailTd = "<td>" + email + "</td>";
-    var checkmark;
-    var listRow = "<tr>" + emailTd + "<td></td></tr>";
-    $('#participants-table').append(listRow);
-  };
 
   // add participant to list for later submission via button
   $("#add-participant").on("click", (function() {
@@ -159,6 +141,12 @@ $(document).ready(function() {
   // add item to table for later submission via "enter" on keyboard
   $('input#items-template').keydown(function(event) {
     addInputByKeydown(event, 'items', itemCount);
+  });
+
+  // remove item from list and delete on backend
+  $('#participants-table tbody').on('click', 'td.participant-delete', function() {
+    $(this).parents('tr').remove();
+    participantCount = decrementCount('participants', participantCount);
   });
 
   // remove item from list and delete on backend
@@ -199,27 +187,39 @@ $(document).ready(function() {
     }
   });
 
-  var formValid = function(selector, formData) {
+  var formIncomplete = function(selector, formData) {
     var form = $(selector).find('input');
-    return !$.isEmptyObject(formData);
+    return $.isEmptyObject(formData);
+  };
+
+  var addItemsToForm = function() {
+    $('input[name=item]').each(function(i, e) {
+      formData['items-' + i + '-name'] = $(e).val();
+      var checked = $($($(e)).parent().siblings().find('input')).prop('checked');
+      formData['items-' + i + '-required'] = checked;
+    });
+  };
+
+  var addParticipantsToForm = function() {
+    $('input[name=participant]').each(function(i, e) {
+      formData['participants-' + i + '-email'] = $(e).val();
+    });
   };
 
   var formData = {};
   var submitForm = function() {
-    if (formValid('form[name=new_hunt]', formData)) {
+    if (formIncomplete('form[name=new_hunt]', formData)) {
+      $('.missingfields').show();
+    }
+    else {
       formData['name'] = $('input#name').val();
       formData['welcome_message'] = $(
         'textarea[name=welcome_message]').val();
       formData['congratulations_message'] = $(
         'textarea[name=congratulations_message]').val();
-      formData['participants-1-email'] = $('input[name=participants-1-email]').val();
-      $('.hunt-items').each(function(i, e) {
-        var checked = $(e).prop('checked');
-        var name = $(e).prop('name');
-        if (name) {
-          formData[name] = checked;
-        }
-      });
+
+      addItemsToForm();
+      addParticipantsToForm();
 
       $.ajax({
         url: '/new_hunt',
@@ -227,15 +227,12 @@ $(document).ready(function() {
         data: formData
       })
       .success(function() {
-        console.log('submit success: ', formData);
+        console.log('formdata', formData);
         window.location.replace("/hunts");
       })
       .error(function() {
-        console.log('fail');
+        window.location.replace("/new_hunt");
       });
-    }
-    else {
-      $('.missingfields').show();
     }
   };
 

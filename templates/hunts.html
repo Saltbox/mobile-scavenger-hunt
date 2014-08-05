@@ -40,7 +40,7 @@
               </tr>
             </thead>
             <tbody>
-            {% for hunt in hunts | sort(attribute='last_modified') %}
+            {% for hunt in hunts | sort(attribute='last_modified', reverse=True) %}
               <tr>
                 <td><a href="/hunts/{{hunt.hunt_id}}">{{ hunt.name }}</a></td>
                 <td>

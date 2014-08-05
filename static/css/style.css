@@ -36,11 +36,6 @@ span.participant-list-item {
   margin-bottom: 0;
 }
 
-ul#participant-names {
-  margin: 15px 0;
-  white-space: normal;
-}
-
 input[name=endpoint] {
   min-width: 50%;
 }
@@ -268,15 +263,6 @@ div.user.container {
   vertical-align: middle;
 }
 
-nav.navbar-inverse {
-  background: none; /*override previous*/
-  background-color: black; /*then set new*/
-}
-
-nav.navbar-inverse .navbar-brand {
-  color: white;
-}
-
 #participant-error {
   color: red;
 }
@@ -320,7 +306,7 @@ textarea.update {
 }
 
 span.glyphicon-remove {
-  color: lightgrey;
+  color: white;
 }
 
 span.glyphicon-remove:hover {
@@ -343,6 +329,8 @@ span.glyphicon-remove:hover {
 
 .flash {
   text-align: center;
+  font-size: 16px;
+  height: 50px;
 }
 
 .plain {
@@ -355,4 +343,10 @@ span.glyphicon-remove:hover {
 
 .qrcode-box div:last-child {
   display: inline-block;
+}
+
+input[name=item], input[name=participant] {
+  border: none;
+  color: black;
+  padding-left: 0;
 }

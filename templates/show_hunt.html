@@ -64,7 +64,7 @@
                   <input type="text" name="item_name" style="display: none;">
                 </td>
                 <td class="item-required">
-                  {% if hunt.all_required %}
+                  {% if hunt.all_required or item.required %}
                     <span style="display: {{visible if item.required else none}};" class="glyphicon glyphicon-ok"></span> Required
                   {% else %}
                   Not Required
