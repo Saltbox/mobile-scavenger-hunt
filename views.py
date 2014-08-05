@@ -280,7 +280,8 @@ def index_items(hunt_id):
     logger.info(
         'preparing to render items for hunt_id, {}'.format(hunt_id))
 
-    if get_hunt(hunt_id):
+    hunt = get_hunt(hunt_id)
+    if hunt:
         if session.get('email'):
             items = db.session.query(Item).filter(
                 Item.hunt_id == hunt_id).all()
@@ -296,7 +297,8 @@ def index_items(hunt_id):
                         item.found = None
 
             return render_template(
-                'items.html', items=items, hunt_id=hunt_id)
+                'items.html', items=items, hunt_id=hunt_id, hunt_name=hunt.name)
+        session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
         return get_started(hunt_id)
 
     abort(404)
@@ -360,7 +362,7 @@ def show_item(hunt_id, item_id):
                 num_found=state['num_found'],
                 total_items=state['total_items'], hunt_id=hunt_id))
         else:
-            session['last_item_id'] = item_id
+            session['intended_url'] = '/hunts/{}/items/{}'.format(hunt_id, item_id)
             return make_response(render_template(
                 'welcome.html',
                 action_url="/get_started/hunts/{}".format(hunt_id)))
@@ -399,9 +401,11 @@ def register_participant():
                 "user id, name, and email set to %s, %s, and %s\n"
                 "preparing requested item information.",
                 user_id, session['name'], email)
-
-            return make_response(redirect('hunts/{}/items/{}'.format(
-                hunt_id, session['last_item_id'])))
+            if 'intended_url' in session:
+                redirect_url = session['intended_url']
+            else:
+                redirect_url = '/hunt/{}'.format(hunt_id)
+            return make_response(redirect(redirect_url))
         else:
             return err_msg
     abort(400)

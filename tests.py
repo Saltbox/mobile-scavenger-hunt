@@ -19,6 +19,10 @@ def identifier():
     return uuid.uuid4().hex
 
 
+def email():
+    return '{}@example.com'.format(identifier())
+
+
 # now that i have to make a setting anyway, maybe replace this
 class MockSetting:
     def __init__(self, login, password, wax_site):
@@ -34,13 +38,10 @@ class MockHunt:
 
 
 class HuntTestCase(unittest.TestCase):
-    def email(self):
-        return '{}@example.com'.format(identifier())
-
     def setUp(self):
         self.app = app.test_client()
         db.create_all()
-        email = 'dp@example.com'  # self.email()
+        email = 'dp@example.com'  # email()
         password = 'password'   # identifier()
         self.create_admin(email=email, password=password)
         self.admin = {'email': email, 'password': password}
@@ -64,7 +65,7 @@ class HuntTestCase(unittest.TestCase):
 
     def create_admin(
             self, first_name=identifier(), last_name=identifier(),
-            email=email(None), password=identifier()):
+            email=email(), password=identifier()):
         return self.app.post('/admins', data=dict(
             first_name=first_name, last_name=last_name, email=email,
             password=password
@@ -81,7 +82,7 @@ class HuntTestCase(unittest.TestCase):
     def create_hunt(self,
                     name=identifier(),
                     participant_rule='by_whitelist',
-                    participants=[{'email': email(None)}],
+                    participants=[{'email': email()}],
                     items=[{'name': identifier()}], all_required=True):
 
         # this is how wtforms-alchemy expects data
@@ -111,7 +112,7 @@ class HuntTestCase(unittest.TestCase):
                 'hunt_id': hunt_id
             })
 
-    def registered_statement(self, hunt, email=email(None)):
+    def registered_statement(self, hunt, email=email()):
         return {
             "actor": xapi.make_agent(email),
             "verb": {
@@ -151,7 +152,7 @@ class HuntTestCase(unittest.TestCase):
         self.create_hunt()
         self.logout()
 
-        for route in ['/', '/hunts', '/hunts/1', '/settings']:
+        for route in ['/hunts', '/hunts/1', '/settings']:
             response = self.app.get(route, follow_redirects=True)
             self.assertIn('login required', response.data)
 
@@ -160,15 +161,15 @@ class HuntTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('Admin Signup', response.data)
 
-        email = self.email()
+        admin_email = email()
         password = identifier()
 
-        response = self.create_admin(email=email, password=password)
+        response = self.create_admin(email=admin_email, password=password)
         self.assertEqual(response.status_code, 200)
         self.assertIn('Successfully created admin', response.data)
 
         self.logout()
-        response = self.login(email, password)
+        response = self.login(admin_email, password)
         self.assertEqual(response.status_code, 200)
 
     def test_create_settings(self):
@@ -185,7 +186,7 @@ class HuntTestCase(unittest.TestCase):
     def test_create_and_show_hunt(self):
         self.login(self.admin['email'], self.admin['password'])
         name = identifier()
-        participants = [{'email': self.email()} for _ in xrange(2)]
+        participants = [{'email': email()} for _ in xrange(2)]
         items = [{'name': identifier()} for _ in xrange(2)]
         create_hunt_response = self.create_hunt(
             name=name, participants=participants, items=items)
@@ -232,7 +233,7 @@ class HuntTestCase(unittest.TestCase):
     def test_whitelisted_participant(self):
         with app.test_client() as c:
             self.login(self.admin['email'], self.admin['password'])
-            participant_email = self.email()
+            participant_email = email()
             self.create_hunt(
                 participants=[{'email': participant_email}],
                 items=[{'name': identifier()}])
@@ -242,7 +243,7 @@ class HuntTestCase(unittest.TestCase):
             # necessary to access item routes
             with c.session_transaction() as sess:
                 sess['email'] = participant_email
-                sess['last_item_id'] = 1
+                sess['intended_url'] = '/hunts/1'
 
             name = identifier()
             response = self.register_participant(c, participant_email, name)
@@ -262,7 +263,7 @@ class HuntTestCase(unittest.TestCase):
                 sess['admin_id'] = 1
 
             c.get('/hunts/1/items/1', follow_redirects=True)
-            response = self.register_participant(c, self.email(), identifier())
+            response = self.register_participant(c, email(), identifier())
             self.assertIn(
                 'You are not on the list of allowed participants',
                 response.data
@@ -275,18 +276,23 @@ class HuntTestCase(unittest.TestCase):
 
     def test_index_items(self):
         self.login(self.admin['email'], self.admin['password'])
-        self.create_hunt(
-            items=[{'name': identifier()}, {'name': identifier()}])
+        items = [{'name': identifier()}, {'name': identifier()}]
+        participants = [{'email': email()}]
+        self.create_hunt(items=items, participants=participants)
+        self.logout()
 
-        response = self.app.get('hunts/1/items')
+        self.app.get('hunts/1/items')
+        response = self.register_participant(
+            self.app, participants[0]['email'], identifier())
         self.assertEqual(response.status_code, 200)
-        for item in [item1, item2]:
+
+        for item in items:
             self.assertIn(item['name'], response.data)
 
     def test_put_state_doc(self):
         with app.test_request_context('/'):
             hunt_id = 1
-            session_email = self.email()
+            session_email = email()
             params = xapi.default_params(session_email, hunt_id)
 
             data = {'required_ids': [1, 2]}

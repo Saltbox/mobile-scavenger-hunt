@@ -80,9 +80,5 @@ def validated_by_participant_rule(email, hunt_id, form):
 
     participant = Participant()
     form.populate_obj(participant)
-    logger.debug('pmail', participant.email)
-    logger.debug(participant.hunt_id)
-    # participant.email = email
-    # participant.hunt_id = hunt_id
     participant.registered = True
     return participant, ""
