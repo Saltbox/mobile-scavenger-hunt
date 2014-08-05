@@ -103,15 +103,6 @@ class HuntTestCase(unittest.TestCase):
         return self.app.post(
             '/new_hunt', data=self.imdict, follow_redirects=True)
 
-    def submit_new_participant(self, email, username, hunt_id=1):
-        return self.app.post(
-            '/new_participant',
-            data={
-                'email': email,
-                'name': username,
-                'hunt_id': hunt_id
-            })
-
     def registered_statement(self, hunt, email=email()):
         return {
             "actor": xapi.make_agent(email),
@@ -205,6 +196,16 @@ class HuntTestCase(unittest.TestCase):
         for item in items:
             self.assertIn(item['name'], show_hunt_response.data)
 
+    def test_delete_hunt(self):
+        self.login(self.admin['email'], self.admin['password'])
+        self.create_hunt()
+
+        response = self.app.get('/hunts/1/delete', follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.app.get('/hunts/1', follow_redirects=True)
+        self.assertEqual(response.status_code, 404)
+
     def test_get_started(self):
         self.login(self.admin['email'], self.admin['password'])
         self.create_hunt()
@@ -268,11 +269,6 @@ class HuntTestCase(unittest.TestCase):
                 'You are not on the list of allowed participants',
                 response.data
             )
-
-    def test_no_email_for_new_participant(self):
-        self.login(self.admin['email'], self.admin['password'])
-        response = self.submit_new_participant(None, identifier())
-        self.assertEqual(response.status_code, 400)
 
     def test_index_items(self):
         self.login(self.admin['email'], self.admin['password'])

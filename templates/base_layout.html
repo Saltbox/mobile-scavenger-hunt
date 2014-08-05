@@ -18,11 +18,9 @@
   </head>
 
   <body>
-    <div class="flash">
     {% for category, message in get_flashed_messages(with_categories=true) %}
-      <p class="bg-{{category or primary}}">{{ message }}</p>
+      <p class="bg-{{category or primary}} flash">{{ message }}</p>
     {% endfor %}
-    </div>
     {% block body %}{% endblock %}
 
     {% assets "js_all" %}

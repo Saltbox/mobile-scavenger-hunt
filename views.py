@@ -206,70 +206,23 @@ def show_item_code(hunt_id, item_id):
             {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
             for item in hunt.items if item.item_id == int(item_id)
         ]
-        logger.debug('item paths: %s', item_paths)
         return make_response(render_template(
             'qrcodes.html', item_paths=item_paths))
     abort(404)
 
 
-################################# API #################################
-
-
-# endpoint to update hunt attributes
-@app.route('/edit_hunt/<hunt_id>', methods=['POST'])
+@app.route('/hunts/<hunt_id>/delete')
 @login_required
-def edit_hunt(hunt_id):
-    # error handling
-    db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).update(
-        request.form)
-    db.session.commit()
-
-    return make_response('', 200)
-
-
-@app.route('/new_item', methods=['POST'])
-@login_required
-def new_item():
-    item = Item()
-    form = ItemForm(request.form)
-    if form.validate():
-        form.populate_obj(item)
-        item.hunt_id = request.form['hunt_id']
-        db.session.add(item)
+def delete_hunt(hunt_id):
+    logger.info(
+        'preparing to delete hunt with hunt_id, {}'.format(hunt_id))
+    hunt = get_hunt(int(hunt_id))
+    if hunt:
+        db.session.delete(hunt)
         db.session.commit()
-        return make_response('', 200)
-    abort(400)
-
-
-@app.route('/edit_item/<item_id>', methods=['POST'])
-@login_required
-def edit_item(item_id):
-    db.session.query(Item).filter(Item.item_id == item_id).update(request.form)
-    db.session.commit()
-    return make_response('', 200)
-
-
-@app.route('/delete_item/<item_id>', methods=['POST'])
-@login_required
-def delete_item(item_id):
-    db.session.query(Item).filter(Item.item_id == item_id).delete()
-    db.session.commit()
-    return make_response('', 200)
-
-
-@app.route('/new_participant', methods=['POST'])
-@login_required
-def new_participant():
-    participant = Participant()
-    form = ParticipantForm(request.form)
-    if form.validate():
-        form.populate_obj(participant)
-        participant.hunt_id = request.form['hunt_id']  # why was this necessary?
-        db.session.add(participant)
-        db.session.commit()
-        return make_response('', 200)
-    abort(400)
-
+        flash('Successfully deleted hunt', 'success')
+        return make_response(render_template('hunts.html'))
+    abort(404)
 
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
 

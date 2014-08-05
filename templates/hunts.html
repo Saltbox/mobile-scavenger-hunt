@@ -30,13 +30,14 @@
     <div class="row">
       <div class="panel-default">
         <div class="panel-body">
-          <table class="table table-condensed">
+          <table class="table table-condensed" id="hunts-table">
             <thead>
               <tr>
                 <th>Hunt Name</th>
                 <th>QR Codes</th>
                 <th>Date Created</th>
                 <th>Last Modified</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -48,6 +49,11 @@
                 </td>
                 <td class="uglytime">{{ hunt.date_created }}</td>
                 <td class="uglytime">{{ hunt.last_modified }}</td>
+                <td>
+                  <a href="/hunts/{{hunt.hunt_id}}/delete">
+                    <span class="glyphicon glyphicon-remove"></span>
+                  </a>
+                </td>
               </tr>
             {% else %}
               <em>No scavenger hunts have been created yet</em>

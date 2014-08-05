@@ -17,9 +17,10 @@ class Hunt(db.Model):
     __tablename__ = 'hunts'
     hunt_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
-    participants = db.relationship('Participant', backref='hunts')
+    participants = db.relationship(
+        'Participant', backref='hunts', cascade='all')
     participant_rule = db.Column(db.String(20))
-    items = db.relationship('Item', backref='hunts')
+    items = db.relationship('Item', backref='hunts', cascade='all')
     # do i care about timezone aware?
     date_created = db.Column(db.TIMESTAMP, server_default=db.func.now())
     last_modified = db.Column(db.TIMESTAMP, server_default=db.func.now(),
