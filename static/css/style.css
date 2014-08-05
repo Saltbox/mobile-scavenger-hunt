@@ -344,3 +344,15 @@ span.glyphicon-remove:hover {
 .flash {
   text-align: center;
 }
+
+.plain {
+  background-color: white;
+}
+
+.qrcode-box {
+  width: 30%;
+}
+
+.qrcode-box div:last-child {
+  display: inline-block;
+}
