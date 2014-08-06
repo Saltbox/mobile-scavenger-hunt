@@ -9,9 +9,8 @@ ENV_VAR = {
         'PASSWORD',
         'WAX_LOGIN',
         'WAX_PASSWORD',
-        'WAX_SITE'
+        'WAX_SITE',
+        'SQLALCHEMY_DATABASE_URI',
+        'DATABASE_URL'
     ]
 }
-
-# for heroku
-ENV_VAR['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
