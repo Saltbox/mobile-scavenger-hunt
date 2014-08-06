@@ -299,8 +299,17 @@ def show_item(hunt_id, item_id):
                 }
                 # xapi.put_state(json.dumps(state), params, setting)
 
+                # later prevent resending statements if they for whatever reason scan the
+                # qrcode multiple times
                 # xapi.send_statement(
                     # xapi.begin_hunt_statement(actor, hunt), setting)
+                # send_statement(
+                #     found_item_statement(actor, hunt, item), settings)
+
+                # if state['num_found'] == hunt.num_required and not state['required_ids']:
+                #     send_statement(
+                #         completed_hunt_statement(actor, hunt), settings)
+                #     return make_response(render_template('congratulations.html'))
             elif status_code == 200:
                 state = update_state(response.json(), params, setting)
                 # xapi.post_state(state, params, setting)
