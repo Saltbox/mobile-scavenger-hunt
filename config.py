@@ -1,8 +1,5 @@
 import os
 
-SQLALCHEMY_DATABASE_URI = os.environ['DATABASE_URL']
-
-
 ENV_VAR = {
     var: os.environ.get(var)
     for var in [
@@ -15,3 +12,4 @@ ENV_VAR = {
         'WAX_SITE'
     ]
 }
+ENV_VAR['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
