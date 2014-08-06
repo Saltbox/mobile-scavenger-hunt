@@ -80,66 +80,53 @@ def completed_hunt_statement(actor, hunt):
     }
 
 
-def send_statement(statement, setting):
+def send_statement(statement, settings):
     return requests.post(
-        'https://{}.waxlrs.com/TCAPI/statements'.format(setting.wax_site),
+        'https://{}.waxlrs.com/TCAPI/statements'.format(settings.wax_site),
         headers={
             "Content-Type": "application/json",
             "x-experience-api-version": "1.0.0"
         },
         data=json.dumps(statement),
-        auth=(setting.login, setting.password)
+        auth=(settings.login, settings.password)
     )
 
 
-# later prevent resending statements if they for whatever reason scan the
-# qrcode multiple times
-def send_statements(actor, hunt, item, state, setting, params):
-    send_statement(
-        found_item_statement(actor, hunt, item), setting)
-
-    logger.debug('sending statements with state: %s', state)
-    if state['num_found'] == hunt.num_required and not state['required_ids']:
-        send_statement(
-            completed_hunt_statement(actor, hunt), setting)
-        return make_response(render_template('congratulations.html'))
-
-
-def put_state(data, params, setting):
+def put_state(data, params, settings):
     return requests.put(
         'https://{}.waxlrs.com/TCAPI/activities/state'.format(
-            setting.wax_site),
+            settings.wax_site),
         params=params,
         data=data,
         headers={
             "x-experience-api-version": "1.0.0"
         },
-        auth=(setting.login, setting.password)
+        auth=(settings.login, settings.password)
     )
 
 
-def post_state(data, params, setting):
+def post_state(data, params, settings):
     return requests.post(
         'https://{}.waxlrs.com/TCAPI/activities/state'.format(
-            setting.wax_site),
+            settings.wax_site),
         params=params,
         data=data,
         headers={
             "x-experience-api-version": "1.0.0"
         },
-        auth=(setting.login, setting.password)
+        auth=(settings.login, settings.password)
     )
 
 
-def get_state_response(params, setting):
+def get_state_response(params, settings):
     return requests.get(
         'https://{}.waxlrs.com/TCAPI/activities/state'.format(
-            setting.wax_site),
+            settings.wax_site),
         params=params,
         headers={
             "x-experience-api-version": "1.0.0"
         },
-        auth=(setting.login, setting.password)
+        auth=(settings.login, settings.password)
     )
 
 
