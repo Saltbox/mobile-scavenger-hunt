@@ -14,23 +14,16 @@ $(document).ready(function() {
     $(participant_rule_el).siblings().show();
   }
 
-  // toggle for whether or not an item is required
-  // parent needed to help detect dynamically added content
-  var $parent = $('#items-group .table.table-condensed');
-  $($parent).on("change", ".hunt-items", function(e) {
-    // if value is in target, it's been set to "on". toggling removes value.
-    if ('value' in e.currentTarget) {
-      $($('input[name=all_required]')[1]).prop('checked', true);
-      formData['all_required'] = true;
-    }
-  });
-
   // make new item checkbox
-  var tdCheckbox = function(index, checked) {
+  var tdCheckbox = function(checked) {
     if (checked) {
-      return "<td><input type='checkbox' class='hunt-items' name='item-required' checked='on'> Required</td>";
+      return "<td class='td-with-input'><input type='checkbox' class='hunt-items' name='item-required' checked='on'> Required</td>";
     }
-    return "<td><input type='checkbox' class='hunt-items' name='item-required'> Required</td>";
+    return "<td class='td-with-input'><input type='checkbox' class='hunt-items' name='item-required'> Required</td>";
+  };
+
+  var tdGlyphOkRequired = function() {
+    return "<td class='td-with-span'><span class='glyphicon glyphicon-ok'></span> Required</td>";
   };
 
   // gives admin something to delete items
@@ -41,9 +34,17 @@ $(document).ready(function() {
 
   // add tr to item table
   var addItemRow = function(itemCount, fieldValue) {
-    var checked = $("input[name=all_required]").prop('checked');
+    var all_required = $("input[name=all_required]").prop('checked');
     var tdInput = "<td>" + "<input type='text' value=" + fieldValue + " name='item' class='form-control'>" + "</td>";
-    var row = "<tr>" + tdInput + tdCheckbox(itemCount, checked) + deleteIconTd('item') + "</tr>";
+
+    var item_required;
+    if (all_required) {
+      item_required = tdGlyphOkRequired();
+    }
+    else {
+      item_required = tdCheckbox(itemCount, all_required);
+    }
+    var row = "<tr>" + tdInput + item_required + deleteIconTd('item') + "</tr>";
     $('#items-table tbody').append(row);
   };
 
@@ -60,9 +61,13 @@ $(document).ready(function() {
     if (allItemsRequired) {
       $('input.hunt-items').prop('checked', true);
       $('#num-items-group').hide('slow');
+      formData['all_required'] = true;
+      $('.td-with-input').replaceWith(tdGlyphOkRequired());
     }
     else {
       $('#num-items-group').show('slow');
+      formData['all_required'] = false;
+      $('.td-with-span').replaceWith(tdCheckbox(true));
     }
   });
 
@@ -120,7 +125,6 @@ $(document).ready(function() {
     }
     return count;
   };
-
 
   // add participant to list for later submission via button
   $("#add-participant").on("click", (function() {
@@ -187,53 +191,76 @@ $(document).ready(function() {
     }
   });
 
-  var formIncomplete = function(selector, formData) {
-    var form = $(selector).find('input');
-    return $.isEmptyObject(formData);
-  };
-
-  var addItemsToForm = function() {
+  var addItemsToForm = function(formData) {
     $('input[name=item]').each(function(i, e) {
       formData['items-' + i + '-name'] = $(e).val();
       var checked = $($($(e)).parent().siblings().find('input')).prop('checked');
       formData['items-' + i + '-required'] = checked;
     });
+    return formData;
   };
 
-  var addParticipantsToForm = function() {
+  var addParticipantsToForm = function(formData) {
     $('input[name=participant]').each(function(i, e) {
       formData['participants-' + i + '-email'] = $(e).val();
     });
+    return formData;
+  };
+
+  var tooManyRequired = function() {
+    var num_required = $('input[name=num_required]').val();
+    var num_items = $('input[name=item]').length;
+    return num_required > num_items;
+  };
+
+  var missingRequiredFields = function(formData) {
+    // minimally the form needs to have 3 field values:
+    // hunt name, participant_rule, an item
+    var required = ['name', 'items-0-name', 'participant_rule'];
+    for (var ii in required) {
+      if (!(required[ii] in formData)) {
+        return true;
+      }
+    }
+    return false;
   };
 
   var formData = {};
   var submitForm = function() {
-    if (formIncomplete('form[name=new_hunt]', formData)) {
-      $('.missingfields').show();
-    }
-    else {
-      formData['name'] = $('input#name').val();
-      formData['welcome_message'] = $(
-        'textarea[name=welcome_message]').val();
-      formData['congratulations_message'] = $(
-        'textarea[name=congratulations_message]').val();
+    console.log('ah', formData);
+    formData['name'] = $('input#name').val();
 
-      addItemsToForm();
-      addParticipantsToForm();
-
-      $.ajax({
-        url: '/new_hunt',
-        method: 'POST',
-        data: formData
-      })
-      .success(function() {
-        console.log('formdata', formData);
-        window.location.replace("/hunts");
-      })
-      .error(function() {
-        window.location.replace("/new_hunt");
-      });
+    if (tooManyRequired()){
+      $('#too-many-required').show();
+      return;
     }
+
+    formData['welcome_message'] = $(
+      'textarea[name=welcome_message]').val();
+    formData['congratulations_message'] = $(
+      'textarea[name=congratulations_message]').val();
+
+    formData = addItemsToForm(formData);
+    formData = addParticipantsToForm(formData);
+
+
+    if (missingRequiredFields(formData)) {
+      $('#missing-fields').show();
+      return;
+    }
+
+    $.ajax({
+      url: '/new_hunt',
+      method: 'POST',
+      data: formData
+    })
+    .success(function() {
+      console.log('formdata', formData);
+      window.location.replace("/hunts");
+    })
+    .error(function() {
+      window.location.replace("/new_hunt");
+    });
   };
 
   $('#submit-hunt-btn').on('click', function(e) {

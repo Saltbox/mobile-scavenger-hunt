@@ -60,7 +60,6 @@ div.container.content{
 }
 
 button.btn {
-  border: thin solid;
   background-image: none;
   border-radius: 0;
 }
@@ -323,7 +322,7 @@ span.glyphicon-remove:hover {
   cursor: pointer;
 }
 
-.missingfields {
+.error {
   color: red;
 }
 

@@ -245,7 +245,10 @@ def index_items(hunt_id):
             return render_template(
                 'items.html', items=items, hunt_id=hunt_id, hunt_name=hunt.name)
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
-        return get_started(hunt_id)
+        return make_response(
+            render_template('welcome.html',
+                            action_url="/get_started/hunts/{}".format(
+                                hunt_id)))
 
     abort(404)
 
