@@ -1,21 +1,16 @@
 from flask import session, abort, flash, url_for, make_response, request, \
-    render_template, redirect, send_file, jsonify
+    render_template, redirect
+from sqlalchemy.exc import IntegrityError
 
-import datetime
 import uuid
-import io
 import json
-
-import qrcode
 
 from models import Hunt, Participant, Item, Admin, db, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     SettingForm, ItemForm
 from hunt import app, logger
-from utils import get_admin, get_setting, get_hunt, \
-    get_item, get_participant, login_required, item_path, \
-    get_domain_by_admin_id, validate_participant
-from sqlalchemy.exc import IntegrityError
+from utils import get_admin, get_setting, get_hunt, get_item, get_participant,\
+    login_required, item_path, get_domain_by_admin_id, validate_participant
 
 import xapi
 
