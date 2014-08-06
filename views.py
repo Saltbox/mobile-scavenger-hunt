@@ -71,21 +71,22 @@ def admins():
             'There was an error creating your admin profile.'
             ' Please try again.', 'warning')
     return render_template(
-        'admin_signup.html', form=form, display_login_link=True)
+        'admin_registration.html', form=form, display_login_link=True)
 
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
-    setting = get_setting(admin_id=session['admin_id'])
+    admin_settings = get_setting(admin_id=session['admin_id'])
     if request.method == 'POST':
-        setting = setting or Setting()
+        admin_settings = admin_settings or Setting()
         form = SettingForm(request.form)
         if form.validate():
-            setting.admin_id = request.form.get('admin_id') or session['admin_id']
-            form.populate_obj(setting)
+            admin_settings.admin_id = request.form.get('admin_id') or session['admin_id']
+            form.populate_obj(admin_settings)
 
-            db.session.add(setting)
+            db.session.add(admin_settings)
+            logger.debug('settings: %s', admin_settings)
             db.session.commit()
             flash('Settings have been updated', 'info')
         else:
@@ -94,11 +95,11 @@ def settings():
                   'Please check your form entries and try again.')
 
     # make it so these always exist
-    if setting:
-        login = getattr(setting, 'login')
-        password = getattr(setting, 'password')
-        wax_site = getattr(setting, 'wax_site')
-        domain = getattr(setting, 'domain')
+    if admin_settings:
+        login = getattr(admin_settings, 'login')
+        password = getattr(admin_settings, 'password')
+        wax_site = getattr(admin_settings, 'wax_site')
+        domain = getattr(admin_settings, 'domain')
     else:
         login = password = wax_site = domain = ''
 
