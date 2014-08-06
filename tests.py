@@ -150,7 +150,7 @@ class HuntTestCase(unittest.TestCase):
     def test_create_admin(self):
         response = self.app.get('/admins')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('Admin Signup', response.data)
+        self.assertIn('Admin Registration', response.data)
 
         admin_email = email()
         password = identifier()

@@ -23,12 +23,14 @@ def login():
     error = None
     form = AdminLoginForm(request.form)
     if request.method == 'POST' and form.validate():
-        #  change later
         matched_admin = get_admin(form.username.data, form.password.data)
         if matched_admin:
             session['logged_in'] = True
             flash('You were logged in', 'info')
             session['admin_id'] = matched_admin.admin_id
+            logger.info(
+                'Admin successfully logged in.'
+                ' Preparing to redirect to hunts page')
             return redirect(url_for('hunts'))
         flash('Invalid email or password', 'warning')
     return render_template(
@@ -45,7 +47,7 @@ def logout():
 
 @app.route('/')
 def root():
-    return login()
+    return hunts()
 
 
 # create or list admins who can create hunts # probably rename to signup
@@ -65,8 +67,12 @@ def admins():
             domain = admin.email.split('@')[-1]
             session['admin_id'] = get_admin(
                 form.email.data, form.password.data).admin_id
+            logger.info(
+                'Admin registration form was submitted successfully')
             return render_template('settings.html', domain=domain)
-        logger.info('Admin signup form was submitted with invalid information')
+        logger.info(
+            'Admin registration form was submitted with'
+            ' invalid information: %s', request.form)
         flash(
             'There was an error creating your admin profile.'
             ' Please try again.', 'warning')
@@ -82,17 +88,17 @@ def settings():
         admin_settings = admin_settings or Setting()
         form = SettingForm(request.form)
         if form.validate():
-            admin_settings.admin_id = request.form.get('admin_id') or session['admin_id']
+            admin_settings.admin_id = session['admin_id']
             form.populate_obj(admin_settings)
 
             db.session.add(admin_settings)
-            logger.debug('settings: %s', admin_settings)
             db.session.commit()
             flash('Settings have been updated', 'info')
         else:
             # get the errors from form. i think it's form.errors
             flash('Invalid settings information. '
                   'Please check your form entries and try again.')
+            logger.info('Invalid settings form submission')
 
     # make it so these always exist
     if admin_settings:
@@ -119,6 +125,7 @@ def hunts():
 
 # form to create new hunt
 @app.route('/new_hunt', methods=['GET', 'POST'])
+@login_required
 def new_hunt():
     domain = get_domain_by_admin_id(session['admin_id'])
     hunt = Hunt()
@@ -149,7 +156,7 @@ def new_hunt():
             except IntegrityError as e:
                 flash('Error creating form: hunt name, "{}", '
                       'already exists'.format(hunt.name), 'warning')
-                logger.info(
+                logger.warning(
                     'Exception found while creating hunt: %s\n'
                     'Form data: %s ', e, form.data)
                 abort(400)
@@ -179,6 +186,7 @@ def hunt(hunt_id):
 
 
 @app.route('/hunts/<hunt_id>/qrcodes')
+@login_required
 def show_item_codes(hunt_id):
     hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
     if hunt:
@@ -193,6 +201,7 @@ def show_item_codes(hunt_id):
 
 
 @app.route('/hunts/<hunt_id>/items/<item_id>/qrcode', methods=['GET'])
+@login_required
 def show_item_code(hunt_id, item_id):
     hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
     if hunt:

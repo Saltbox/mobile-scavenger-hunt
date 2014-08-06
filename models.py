@@ -12,6 +12,9 @@ class Admin(db.Model):
     password = db.Column(db.String(50))
     hunts = db.relationship('Hunt', backref='hunts')
 
+    def __repr__(self):
+        return '<Admin %r>' % self.email
+
 
 class Hunt(db.Model):
     __tablename__ = 'hunts'
@@ -68,3 +71,6 @@ class Setting(db.Model):
     wax_site = db.Column(db.String(500))
     login = db.Column(db.String(50))
     password = db.Column(db.String(50))  # todo: something more private
+
+    def __repr__(self):
+        return '<Settings for admin id: %r>' % self.admin_id
