@@ -242,8 +242,8 @@ def index_items(hunt_id):
             if response.status_code == 200:
                 state = response.json()
                 for item in items:
-                    if state.get('found'):
-                        item.found = item.item_id in state['found']
+                    if state.get('found_ids'):
+                        item.found = item.item_id in state['found_ids']
                     else:
                         item.found = None
 
@@ -256,15 +256,12 @@ def index_items(hunt_id):
 
 
 # information about one item for scavenger to read
-@app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
+@app.route('/hunts/<hunt_id>/items/<int:item_id>', methods=['GET'])
 def show_item(hunt_id, item_id):
     def update_state(state, params, setting):
-        if item_id not in state['found']:
-            state['found'].append(int(item_id))
-            console.log('found: %s', state['found'])
+        if item_id not in state['found_ids']:
+            state['found_ids'].append(item_id)
             state['num_found'] += 1
-            if item_id in state['required_ids']:
-                state['required_ids'].remove(item_id)
         return state
 
     # right now ids are unique across item table.
@@ -282,41 +279,38 @@ def show_item(hunt_id, item_id):
             # hm. remember to make sure settings have been set.
             setting = get_setting(hunt_id=hunt_id)
             response = xapi.get_state_response(params, setting)
-            status_code = response.status_code
-            if status_code == 404:
+            if response.status_code == 404:
                 items = db.session.query(Item).filter(
                     Item.hunt_id == hunt_id).all()
                 required_ids = [
                     item.item_id for item in items if item.required]
 
                 state = {
-                    'found': [int(item_id)],
+                    'found_ids': [int(item_id)],
                     'num_found': 0,
                     'required_ids': required_ids,
                     'total_items': len(items)
                 }
                 # xapi.put_state(json.dumps(state), params, setting)
 
-                # later prevent resending statements if they for whatever reason scan the
-                # qrcode multiple times
                 # xapi.send_statement(
                     # xapi.begin_hunt_statement(actor, hunt), setting)
-                # send_statement(
-                #     found_item_statement(actor, hunt, item), settings)
 
-                # if state['num_found'] == hunt.num_required and not state['required_ids']:
-                #     send_statement(
-                #         completed_hunt_statement(actor, hunt), settings)
-                #     return make_response(render_template('congratulations.html'))
-            elif status_code == 200:
-                state = update_state(response.json(), params, setting)
-                # xapi.post_state(state, params, setting)
+            elif response.status_code == 200:
+                state = response.json()
+                if item_id not in state['found_ids']:
+                    state = update_state(state, params, setting)
+                    # xapi.post_state(state, params, setting)
+                    # xapi.send_statement(
+                    #     found_item_statement(actor, hunt, item), settings)
+                    required_found = set(state['found_ids']) == set(state['required_ids'])
+                    # if state['num_found'] == hunt.num_required and required_found:
+                    #     xapi.send_statement(
+                    #         completed_hunt_statement(actor, hunt), settings)
+                    #     return make_response(render_template('congratulations.html'))
             else:
                 logger.debug("why would this ever happen?")
                 pass
-                # ???
-
-            # xapi.send_statements(actor, hunt, item, state, setting, params)
             return make_response(render_template(
                 'item.html', item=item, username=session['name'],
                 num_found=state['num_found'],

@@ -12,4 +12,6 @@ ENV_VAR = {
         'WAX_SITE'
     ]
 }
+
+# for heroku
 ENV_VAR['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']

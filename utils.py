@@ -3,8 +3,6 @@ from functools import wraps
 
 from models import Hunt, Participant, Item, Admin, db, Setting
 
-import qrcode
-
 
 def login_required(f):
     @wraps(f)
@@ -21,12 +19,6 @@ def get_admin(email, password):
         Admin.email == email,
         Admin.password == password
     ).first()
-
-
-def create_qrcode_binary(qrcode):
-    output = io.BytesIO()
-    qrcode.save(output, 'PNG')
-    return output.getvalue()
 
 
 def get_setting(admin_id=None, hunt_id=None):

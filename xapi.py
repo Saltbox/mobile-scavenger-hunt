@@ -3,6 +3,11 @@ from flask import request, make_response, render_template
 
 import json
 import requests
+import uuid
+
+
+def statement_id():
+    return str(uuid.uuid4())
 
 
 def hunt_activity_id(hunt_id):
