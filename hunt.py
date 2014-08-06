@@ -2,9 +2,11 @@ from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.assets import Environment, Bundle
 
+import config
 
 app = Flask(__name__)
-app.config.from_object('config')
+
+app.config.update(config.ENV_VAR)
 
 db = SQLAlchemy(app)
 
