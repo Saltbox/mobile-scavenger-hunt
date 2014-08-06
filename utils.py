@@ -45,7 +45,7 @@ def get_item(item_id):
     return db.session.query(Item).filter(Item.item_id == item_id).first()
 
 
-def listed_participant(email, hunt_id):
+def get_participant(email, hunt_id):
     return db.session.query(Participant).filter(
         Participant.hunt_id == hunt_id, Participant.email == email).first()
 
@@ -67,7 +67,7 @@ def participant_email_exists(email, hunt_id):
         Participant.email == email).filter(Hunt.hunt_id == hunt_id).first()
 
 
-def validated_by_participant_rule(email, hunt_id, form):
+def validated_participant(email, hunt_id, form):
     participant_rule = db.session.query(Hunt).filter(
         Hunt.hunt_id == hunt_id).first().participant_rule
     if participant_rule == 'by_domain':
@@ -75,7 +75,7 @@ def validated_by_participant_rule(email, hunt_id, form):
         if setting and email.split('@')[-1] != setting.domain:
             return None, "Only employees of this organization may participate"
     elif participant_rule == 'by_whitelist':
-        return listed_participant(email, hunt_id), \
+        return participant_email_exists(email, hunt_id), \
             "You are not on the list of allowed participants"
 
     participant = Participant()

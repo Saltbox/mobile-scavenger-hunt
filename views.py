@@ -13,9 +13,8 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     SettingForm, ItemForm
 from hunt import app, logger
 from utils import get_admin, get_setting, get_hunt, \
-    get_item, listed_participant, login_required, item_path, \
-    get_domain_by_admin_id, participant_email_exists, \
-    validated_by_participant_rule
+    get_item, get_participant, login_required, item_path, \
+    get_domain_by_admin_id, validated_participant
 from sqlalchemy.exc import IntegrityError
 
 import xapi
@@ -83,8 +82,9 @@ def admins():
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
+    setting = get_setting(admin_id=session['admin_id'])
     if request.method == 'POST':
-        setting = get_setting(session['admin_id']) or Setting()
+        setting = setting or Setting()
         form = SettingForm(request.form)
         if form.validate():
             setting.admin_id = request.form.get('admin_id') or session['admin_id']
@@ -95,10 +95,8 @@ def settings():
             flash('Settings have been updated', 'info')
         else:
             # get the errors from form. i think it's form.errors
-            flash('Invalid setting information. '
+            flash('Invalid settings information. '
                   'Please check your form entries and try again.')
-
-    setting = get_setting(admin_id=session['admin_id'])
 
     # make it so these always exist
     if setting:
@@ -276,7 +274,7 @@ def show_item(hunt_id, item_id):
 
     if item:
         email = session.get('email')
-        if email and listed_participant(email, hunt_id):
+        if email and get_participant(email, hunt_id):
             params = xapi.default_params(email, hunt_id)
             actor = xapi.make_agent(email)
             hunt = get_hunt(hunt_id)
@@ -324,7 +322,8 @@ def show_item(hunt_id, item_id):
                 num_found=state['num_found'],
                 total_items=state['total_items'], hunt_id=hunt_id))
         else:
-            session['intended_url'] = '/hunts/{}/items/{}'.format(hunt_id, item_id)
+            session['intended_url'] = '/hunts/{}/items/{}'.format(
+                hunt_id, item_id)
             return make_response(render_template(
                 'welcome.html',
                 action_url="/get_started/hunts/{}".format(hunt_id)))
@@ -348,7 +347,7 @@ def register_participant():
         hunt_id = request.args['hunt_id']
         email = form.email.data
 
-        validated_participant, err_msg = validated_by_participant_rule(
+        validated_participant, err_msg = validated_participant(
             email, hunt_id, form)
         if validated_participant:
             user_id = str(uuid.uuid4())
