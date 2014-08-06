@@ -14,7 +14,7 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
 from hunt import app, logger
 from utils import get_admin, get_setting, get_hunt, \
     get_item, get_participant, login_required, item_path, \
-    get_domain_by_admin_id, validated_participant
+    get_domain_by_admin_id, validate_participant
 from sqlalchemy.exc import IntegrityError
 
 import xapi
@@ -347,7 +347,7 @@ def register_participant():
         hunt_id = request.args['hunt_id']
         email = form.email.data
 
-        validated_participant, err_msg = validated_participant(
+        validated_participant, err_msg = validate_participant(
             email, hunt_id, form)
         if validated_participant:
             user_id = str(uuid.uuid4())

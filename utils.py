@@ -63,11 +63,11 @@ def get_domain_by_admin_id(admin_id):
 
 
 def participant_email_exists(email, hunt_id):
-    return db.session.query.filter(
+    return db.session.query(Participant).filter(
         Participant.email == email).filter(Hunt.hunt_id == hunt_id).first()
 
 
-def validated_participant(email, hunt_id, form):
+def validate_participant(email, hunt_id, form):
     participant_rule = db.session.query(Hunt).filter(
         Hunt.hunt_id == hunt_id).first().participant_rule
     if participant_rule == 'by_domain':
