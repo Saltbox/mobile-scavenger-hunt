@@ -191,11 +191,18 @@ $(document).ready(function() {
     }
   });
 
-  var addItemsToForm = function(formData) {
+  var addItemsToForm = function(allRequired, formData) {
     $('input[name=item]').each(function(i, e) {
       formData['items-' + i + '-name'] = $(e).val();
-      var checked = $($($(e)).parent().siblings().find('input')).prop('checked');
-      formData['items-' + i + '-required'] = checked;
+
+      if (allRequired) {
+        formData['items-' + i + '-required'] = true;
+      }
+      else {
+        var input = $($($(e)).parent().siblings().find('input'));
+        var checked = input.prop('checked');
+        formData['items-' + i + '-required'] = checked;
+      }
     });
     return formData;
   };
@@ -230,7 +237,10 @@ $(document).ready(function() {
     console.log('ah', formData);
     formData['name'] = $('input#name').val();
 
-    if (tooManyRequired()){
+    var allRequired = $('input[name=all_required]').prop('checked');
+    formData['all_required'] = allRequired;
+
+    if (!allRequired && tooManyRequired()){
       $('#too-many-required').show();
       return;
     }
@@ -240,7 +250,7 @@ $(document).ready(function() {
     formData['congratulations_message'] = $(
       'textarea[name=congratulations_message]').val();
 
-    formData = addItemsToForm(formData);
+    formData = addItemsToForm(allRequired, formData);
     formData = addParticipantsToForm(formData);
 
 
