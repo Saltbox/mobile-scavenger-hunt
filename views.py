@@ -9,8 +9,9 @@ from models import Hunt, Participant, Item, Admin, db, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     SettingForm, ItemForm
 from hunt import app, logger
-from utils import get_admin, get_setting, get_hunt, get_item, get_participant,\
-    login_required, item_path, get_domain_by_admin_id, validate_participant
+from utils import get_admin, get_settings, get_hunt, get_item, \
+    get_participant, login_required, item_path, get_domain_by_admin_id, \
+    validate_participant
 
 import xapi
 
@@ -39,18 +40,16 @@ def login():
 
 @app.route('/logout')
 def logout():
-    for prop in ['admin_id', 'user_id', 'logged_in', 'name']:
-        session.pop(prop, None)
-
+    session.clear()
     return redirect(url_for('login'))
 
 
 @app.route('/')
 def root():
-    return hunts()
+    return login()
 
 
-# create or list admins who can create hunts # probably rename to signup
+# create or list admins who can create hunts
 @app.route('/admins', methods=['GET', 'POST'])
 def admins():
     admin = Admin()
@@ -83,7 +82,7 @@ def admins():
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
-    admin_settings = get_setting(admin_id=session['admin_id'])
+    admin_settings = get_settings(admin_id=session['admin_id'])
     if request.method == 'POST':
         admin_settings = admin_settings or Setting()
         form = SettingForm(request.form)
@@ -95,12 +94,10 @@ def settings():
             db.session.commit()
             flash('Settings have been updated', 'info')
         else:
-            # get the errors from form. i think it's form.errors
             flash('Invalid settings information. '
                   'Please check your form entries and try again.')
             logger.info('Invalid settings form submission')
 
-    # make it so these always exist
     if admin_settings:
         login = getattr(admin_settings, 'login')
         password = getattr(admin_settings, 'password')
@@ -185,41 +182,39 @@ def hunt(hunt_id):
     abort(404)
 
 
+# check googlecharts infographics api in April 2015 when they may or may
+# not change the qrcode api
+def get_qr_codes_response(hunt_id, item_id, condition):
+    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
+    if hunt:
+        item_paths = [
+            {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
+            for item in hunt.items if condition(item, item_id)
+        ]
+        return make_response(render_template(
+            'qrcodes.html', item_paths=item_paths))
+    abort(404)
+
+
 @app.route('/hunts/<hunt_id>/qrcodes')
 @login_required
 def show_item_codes(hunt_id):
-    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
-    if hunt:
-        # todo: figure out how to get multiple on one page without google
-        item_paths = [
-            {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
-            for item in hunt.items
-        ]
-        return make_response(render_template(
-            'qrcodes.html', item_paths=item_paths))
-    abort(404)
+    return get_qr_codes_response(hunt_id, '', lambda x, y: True)
 
 
-@app.route('/hunts/<hunt_id>/items/<item_id>/qrcode', methods=['GET'])
+@app.route('/hunts/<hunt_id>/items/<int:item_id>/qrcode', methods=['GET'])
 @login_required
 def show_item_code(hunt_id, item_id):
-    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
-    if hunt:
-        item_paths = [
-            {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
-            for item in hunt.items if item.item_id == int(item_id)
-        ]
-        return make_response(render_template(
-            'qrcodes.html', item_paths=item_paths))
-    abort(404)
+    return get_qr_codes_response(
+        hunt_id, item_id, lambda item, item_id: item.item_id == item_id)
 
 
-@app.route('/hunts/<hunt_id>/delete')
+@app.route('/hunts/<int:hunt_id>/delete')
 @login_required
 def delete_hunt(hunt_id):
     logger.info(
         'preparing to delete hunt with hunt_id, {}'.format(hunt_id))
-    hunt = get_hunt(int(hunt_id))
+    hunt = get_hunt(hunt_id)
     if hunt:
         db.session.delete(hunt)
         db.session.commit()
@@ -242,8 +237,8 @@ def index_items(hunt_id):
             items = db.session.query(Item).filter(
                 Item.hunt_id == hunt_id).all()
             params = xapi.default_params(session['email'], hunt_id)
-            setting = get_setting(hunt_id=hunt_id)
-            response = xapi.get_state_response(params, setting)
+            admin_settings = get_settings(hunt_id=hunt_id)
+            response = xapi.get_state_response(params, admin_settings)
             if response.status_code == 200:
                 state = response.json()
                 for item in items:
@@ -253,7 +248,8 @@ def index_items(hunt_id):
                         item.found = None
 
             return render_template(
-                'items.html', items=items, hunt_id=hunt_id, hunt_name=hunt.name)
+                'items.html', items=items, hunt_id=hunt_id,
+                hunt_name=hunt.name)
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
         return make_response(
             render_template('welcome.html',
@@ -264,9 +260,10 @@ def index_items(hunt_id):
 
 
 # information about one item for scavenger to read
-@app.route('/hunts/<hunt_id>/items/<int:item_id>', methods=['GET'])
+@app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
 def show_item(hunt_id, item_id):
     def update_state(state, params, setting):
+        item_id = int(item_id)
         if item_id not in state['found_ids']:
             state['found_ids'].append(item_id)
             state['num_found'] += 1
@@ -276,18 +273,20 @@ def show_item(hunt_id, item_id):
     item = db.session.query(Item)\
         .filter(Hunt.hunt_id == hunt_id) \
         .filter(Item.item_id == item_id).first()
+    admin_settings = get_settings(hunt_id=hunt_id)
 
-    if item:
+    if item and admin_settings:
         email = session.get('email')
         if email and get_participant(email, hunt_id):
             params = xapi.default_params(email, hunt_id)
             actor = xapi.make_agent(email)
             hunt = get_hunt(hunt_id)
 
-            # hm. remember to make sure settings have been set.
-            setting = get_setting(hunt_id=hunt_id)
-            response = xapi.get_state_response(params, setting)
+            response = xapi.get_state_response(params, admin_settings)
             if response.status_code == 404:
+                logger.info(
+                    'No state exists for %s on this hunt, %s'
+                    ' Beginning new state document.', email, hunt.name)
                 items = db.session.query(Item).filter(
                     Item.hunt_id == hunt_id).all()
                 required_ids = [
@@ -299,22 +298,25 @@ def show_item(hunt_id, item_id):
                     'required_ids': required_ids,
                     'total_items': len(items)
                 }
-                # xapi.put_state(json.dumps(state), params, setting)
+                # xapi.put_state(json.dumps(state), params, admin_settings)
 
                 # xapi.send_statement(
-                    # xapi.begin_hunt_statement(actor, hunt), setting)
+                    # xapi.begin_hunt_statement(actor, hunt), admin_settings)
 
             elif response.status_code == 200:
                 state = response.json()
                 if item_id not in state['found_ids']:
-                    state = update_state(state, params, setting)
-                    # xapi.post_state(state, params, setting)
+                    logger.info(
+                        'Updating state api for %s on hunt, %s.',
+                        email, hunt.name)
+                    state = update_state(state, params, admin_settings)
+                    # xapi.post_state(state, params, admin_settings)
                     # xapi.send_statement(
-                    #     found_item_statement(actor, hunt, item), settings)
+                    #     found_item_statement(actor, hunt, item), admin_settings)
                     required_found = set(state['found_ids']) == set(state['required_ids'])
                     # if state['num_found'] == hunt.num_required and required_found:
                     #     xapi.send_statement(
-                    #         completed_hunt_statement(actor, hunt), settings)
+                    #         completed_hunt_statement(actor, hunt), admin_settings)
                     #     return make_response(render_template('congratulations.html'))
             else:
                 logger.debug("why would this ever happen?")
@@ -349,15 +351,20 @@ def register_participant():
         hunt_id = request.args['hunt_id']
         email = form.email.data
 
-        validated_participant, err_msg = validate_participant(
-            email, hunt_id, form)
-        if validated_participant:
+        participant_valid, err_msg = validate_participant(email, hunt_id)
+        if participant_valid:
             user_id = str(uuid.uuid4())
             session['user_id'] = user_id
             session['email'] = email
-            validated_participant.name = session['name'] = form.name.data
 
-            db.session.add(validated_participant)
+            participant = Participant()
+            form.populate_obj(participant)
+            participant.registered = True
+            participant.hunt_id = hunt_id
+
+            session['name'] = form.name.data
+
+            db.session.add(participant)
             db.session.commit()
 
             logger.info(
@@ -366,9 +373,16 @@ def register_participant():
                 user_id, session['name'], email)
             if 'intended_url' in session:
                 redirect_url = session['intended_url']
+                session.pop('intended_url')
             else:
                 redirect_url = '/hunt/{}'.format(hunt_id)
             return make_response(redirect(redirect_url))
         else:
             return err_msg
     abort(400)
+
+
+@app.route('/oops')
+def oops():
+    session.clear()
+    return make_response(render_template('goodbye.html'))

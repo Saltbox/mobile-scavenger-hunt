@@ -21,12 +21,13 @@ def get_admin(email, password):
     ).first()
 
 
-def get_setting(admin_id=None, hunt_id=None):
+def get_settings(admin_id=None, hunt_id=None):
     if admin_id:
         return db.session.query(Setting).filter(
             Setting.admin_id == admin_id).first()
     elif hunt_id:
         return db.session.query(Setting).join(Admin).join(Hunt).first()
+    return None
 
 
 def get_hunt(hunt_id):
@@ -39,7 +40,7 @@ def get_item(item_id):
 
 def get_participant(email, hunt_id):
     return db.session.query(Participant).filter(
-        Participant.hunt_id == hunt_id, Participant.email == email).first()
+        Participant.email == email, Participant.hunt_id == hunt_id).first()
 
 
 def item_path(hunt_id, item_id):
@@ -54,23 +55,15 @@ def get_domain_by_admin_id(admin_id):
     return None
 
 
-def participant_email_exists(email, hunt_id):
-    return db.session.query(Participant).filter(
-        Participant.email == email).filter(Hunt.hunt_id == hunt_id).first()
-
-
-def validate_participant(email, hunt_id, form):
+def validate_participant(email, hunt_id):
     participant_rule = db.session.query(Hunt).filter(
         Hunt.hunt_id == hunt_id).first().participant_rule
     if participant_rule == 'by_domain':
-        setting = get_setting(hunt_id=hunt_id)
-        if setting and email.split('@')[-1] != setting.domain:
-            return None, "Only employees of this organization may participate"
+        setting = get_settings(hunt_id=hunt_id)
+        return setting and email.split('@')[-1] == setting.domain, \
+            "Only employees of this organization may participate"
     elif participant_rule == 'by_whitelist':
-        return participant_email_exists(email, hunt_id), \
+        return get_participant(email, hunt_id), \
             "You are not on the list of allowed participants"
-
-    participant = Participant()
-    form.populate_obj(participant)
-    participant.registered = True
-    return participant, ""
+    # anyone can participate
+    return True, ''
