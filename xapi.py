@@ -6,10 +6,6 @@ import requests
 import uuid
 
 
-def statement_id():
-    return str(uuid.uuid4())
-
-
 def hunt_activity_id(hunt_id):
     return "{}hunts/{}".format(request.host_url, hunt_id)
 
@@ -85,18 +81,6 @@ def completed_hunt_statement(actor, hunt):
     }
 
 
-def send_statement(statement, settings):
-    return requests.post(
-        'https://{}.waxlrs.com/TCAPI/statements'.format(settings.wax_site),
-        headers={
-            "Content-Type": "application/json",
-            "x-experience-api-version": "1.0.0"
-        },
-        data=json.dumps(statement),
-        auth=(settings.login, settings.password)
-    )
-
-
 def put_state(data, params, settings):
     return requests.put(
         'https://{}.waxlrs.com/TCAPI/activities/state'.format(
@@ -117,7 +101,8 @@ def post_state(data, params, settings):
         params=params,
         data=data,
         headers={
-            "x-experience-api-version": "1.0.0"
+            "x-experience-api-version": "1.0.0",
+            "content-type": "application/json"
         },
         auth=(settings.login, settings.password)
     )

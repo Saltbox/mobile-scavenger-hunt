@@ -1,10 +1,11 @@
+# import mock
 import unittest
 import uuid
 import json
 
 from werkzeug.datastructures import ImmutableMultiDict
 from flask import session
-from hunt import db, app
+from hunt import app, db
 
 import xapi
 
@@ -40,11 +41,10 @@ class MockHunt:
 class HuntTestCase(unittest.TestCase):
     def setUp(self):
         self.app = app.test_client()
-        db.create_all()
-        email = 'dp@example.com'  # email()
-        password = 'password'   # identifier()
-        self.create_admin(email=email, password=password)
-        self.admin = {'email': email, 'password': password}
+        admin_email = email()
+        password = identifier()
+        self.create_admin(email=admin_email, password=password)
+        self.admin = {'email': admin_email, 'password': password}
         self.create_settings()
         print self.admin
         self.logout()
@@ -53,7 +53,7 @@ class HuntTestCase(unittest.TestCase):
         self.logout()
         db.session.remove()
         db.drop_all()
-        db.create_all()  # for interface
+        db.create_all()
 
     def login(self, username, password):
         return self.app.post('/login', data=dict(
@@ -165,10 +165,8 @@ class HuntTestCase(unittest.TestCase):
 
     def test_create_settings(self):
         self.login(self.admin['email'], self.admin['password'])
-        domain = 'thedomain'
-        login = 'thelogin'
         settings_response = self.create_settings(
-            domain=domain, login=login)
+            domain=identifier(), login=identifier(), password=identifier())
 
         self.assertEqual(settings_response.status_code, 200)
         self.assertIn(login, settings_response.data)
@@ -303,11 +301,15 @@ class HuntTestCase(unittest.TestCase):
 
     def test_post_state_doc(self):
         with app.test_request_context('/'):
-            hunt = MockHunt(1, identifier())
-            statement = self.registered_statement(hunt)
+            hunt_id = 1
+            session_email = email()
+            params = xapi.default_params(session_email, hunt_id)
+
+            data = {'required_ids': [1, 2]}
             setting = MockSetting(BASIC_LOGIN, BASIC_PASSWORD, WAX_SITE)
-            response = xapi.send_statement(statement, setting)
-            self.assertEqual(response.status_code, 200)
+
+            response = xapi.post_state(json.dumps(data), params, setting)
+            self.assertEqual(response.status_code, 204)
 
     def test_send_begin_hunt_statement(self):
         with app.test_request_context('/'):
