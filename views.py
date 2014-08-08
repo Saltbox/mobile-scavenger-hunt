@@ -91,7 +91,7 @@ def admins():
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
-    admin_settings = get_settings(admin_id=session['admin_id']) or Setting()
+    admin_settings = get_settings(db, admin_id=session['admin_id']) or Setting()
     if request.method == 'POST':
         form = SettingForm(request.form)
         if form.validate():

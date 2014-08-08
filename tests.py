@@ -7,8 +7,13 @@ from werkzeug.datastructures import ImmutableMultiDict
 from flask import session
 from hunt import app, db
 
+import views
+import forms
 import xapi
+import utils
+import models
 
+import mock
 
 app.config['DEBUG'] = True
 BASIC_LOGIN = app.config['WAX_LOGIN']
@@ -24,85 +29,7 @@ def email():
     return '{}@example.com'.format(identifier())
 
 
-# now that i have to make a setting anyway, maybe replace this
-class MockSetting:
-    def __init__(self, login, password, wax_site):
-        self.login = login
-        self.password = password
-        self.wax_site = wax_site
-
-
-class MockHunt:
-    def __init__(self, hunt_id, name):
-        self.hunt_id = hunt_id
-        self.name = name
-
-
 class HuntTestCase(unittest.TestCase):
-    def setUp(self):
-        self.app = app.test_client()
-        admin_email = email()
-        password = identifier()
-        self.create_admin(email=admin_email, password=password)
-        self.admin = {'email': admin_email, 'password': password}
-        self.create_settings()
-        print self.admin
-        self.logout()
-
-    def tearDown(self):
-        self.logout()
-        db.session.remove()
-        db.drop_all()
-        db.create_all()
-
-    def login(self, username, password):
-        return self.app.post('/login', data=dict(
-            username=username, password=password
-        ), follow_redirects=True)
-
-    def logout(self):
-        return self.app.get('/logout', follow_redirects=True)
-
-    def create_admin(
-            self, first_name=identifier(), last_name=identifier(),
-            email=email(), password=identifier()):
-        return self.app.post('/admins', data=dict(
-            first_name=first_name, last_name=last_name, email=email,
-            password=password
-        ))
-
-    def create_settings(self, wax_site=WAX_SITE, admin_id=1,
-                        domain='example.com', login=BASIC_LOGIN,
-                        password=BASIC_PASSWORD):
-        return self.app.post('/settings', data=dict(
-            wax_site=wax_site, admin_id=admin_id, domain=domain,
-            login=login, password=password
-        ), follow_redirects=True)
-
-    def create_hunt(self,
-                    name=identifier(),
-                    participant_rule='by_whitelist',
-                    participants=[{'email': email()}],
-                    items=[{'name': identifier()}], all_required=True):
-
-        # this is how wtforms-alchemy expects data
-        participant_emails = []
-        for (index, participant) in enumerate(participants):
-            participant_emails.append(
-                ('participants-{}-email'.format(index), participant['email']))
-
-        item_names = []
-        for (index, item) in enumerate(items):
-            item_names.append(
-                ('items-{}-name'.format(index), item['name']))
-
-        forminfo = participant_emails + item_names + \
-            [('all_required', True), ('name', name),
-             ('participant_rule', participant_rule)]
-        self.imdict = ImmutableMultiDict(forminfo)
-        return self.app.post(
-            '/new_hunt', data=self.imdict, follow_redirects=True)
-
     def registered_statement(self, hunt, email=email()):
         return {
             "actor": xapi.make_agent(email),
@@ -115,37 +42,79 @@ class HuntTestCase(unittest.TestCase):
             "object": xapi.hunt_activity(hunt)
         }
 
-    def register_participant(self, app, participant_email, name):
-        return app.post(
-            '/register_participant?hunt_id=1',
-            data={
-                'email': participant_email,
-                'name': name
-            },
-            follow_redirects=True
-        )
-
     ### TESTS! ###
+    def test_get_admin_id_returns_admin_id_for_existing_admin(self):
+        request = mock.MagicMock()
+        request.method = 'POST'
+        db = mock.MagicMock()
+        db.session.query.filter.first.return_value = {'admin_id': 1}
+        db.session.query.filter.first.admin_id = 1
+        print db.session.query.filter.first()
+        form = mock.MagicMock()
+        form.validate.return_value = True
 
-    def test_login_logout(self):
-        response = self.login(self.admin['email'], self.admin['password'])
-        self.assertIn('You were logged in', response.data)
+        admin_id = utils.get_admin_id(request.method, db, form)
 
-        response = self.logout()
-        self.assertIn('Login', response.data)
+        print 'admin id: ', admin_id
+        assert admin_id == 1
 
-    def test_login_invalid_username(self):
-        response = self.login(identifier(), identifier())
-        self.assertIn('Invalid email or password', response.data)
+    def test_get_admin_id_returns_none_on_GET(self):
+        request = mock.MagicMock()
+        request.method = 'GET'
 
-    def test_pages_requiring_login(self):
-        self.login(self.admin['email'], self.admin['password'])
-        self.create_hunt()
-        self.logout()
+        db = mock.MagicMock()
+        form = mock.MagicMock()
 
-        for route in ['/hunts', '/hunts/1', '/settings']:
-            response = self.app.get(route, follow_redirects=True)
-            self.assertIn('login required', response.data)
+        admin_id = utils.get_admin_id(request.method, db, form)
+
+        assert admin_id is None
+
+    def test_get_admin_id_when_form_invalid_raises_exception(self):
+        request = mock.MagicMock()
+        request.method = 'POST'
+        db = mock.MagicMock()
+
+        form = mock.MagicMock()
+        form.validate.return_value = False
+
+        try:
+            utils.get_admin_id(request.method, db, form)
+        except Exception as e:
+            assert e[0]['errors']
+
+    def test_get_admin_id_when_no_admin_found(self):
+        request = mock.MagicMock()
+        request.method = 'POST'
+        db = mock.MagicMock()
+        db.session.query.filter.first.return_value = None
+
+        form = mock.MagicMock()
+        form.validate.return_value = True
+
+        try:
+            utils.get_admin_id(request.method, db, form)
+        except Exception as e:
+            assert e[0]['errors']['emails'] == 'Invalid email or password'
+
+    # def test_login_logout(self):
+    #     response = self.login(self.admin['email'], self.admin['password'])
+    #     self.assertIn('You were logged in', response.data)
+
+    #     response = self.logout()
+    #     self.assertIn('Login', response.data)
+
+    # def test_login_invalid_username(self):
+    #     response = self.login(identifier(), identifier())
+    #     self.assertIn('Invalid email or password', response.data)
+
+    # def test_pages_requiring_login(self):
+    #     self.login(self.admin['email'], self.admin['password'])
+    #     self.create_hunt()
+    #     self.logout()
+
+    #     for route in ['/hunts', '/hunts/1', '/settings']:
+    #         response = self.app.get(route, follow_redirects=True)
+    #         self.assertIn('login required', response.data)
 
     def test_create_admin(self):
         response = self.app.get('/admins')
