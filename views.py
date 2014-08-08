@@ -11,7 +11,9 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
 from hunt import app, logger
 from utils import get_admin, get_settings, get_hunt, get_item, \
     get_participant, login_required, item_path, get_domain_by_admin_id, \
-    validate_participant
+    validate_participant, get_intended_url, get_hunts, get_items, \
+    initialize_hunt, initialize_registered_participant, mark_items_found, \
+    get_admin_id
 
 import xapi
 
@@ -21,21 +23,25 @@ import xapi
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    error = None
+    errors = None
     form = AdminLoginForm(request.form)
-    if request.method == 'POST' and form.validate():
-        matched_admin = get_admin(form.username.data, form.password.data)
-        if matched_admin:
-            session['logged_in'] = True
-            flash('You were logged in', 'info')
-            session['admin_id'] = matched_admin.admin_id
+    try:
+        admin_id = get_admin_id(request.method, db, form)
+        if admin_id is not None:
+            session.update({
+                'logged_in': True,
+                'admin_id': matched_admin.admin_id
+            })
             logger.info(
                 'Admin successfully logged in.'
                 ' Preparing to redirect to hunts page')
+            flash('You were logged in', 'info')
             return redirect(url_for('hunts'))
-        flash('Invalid email or password', 'warning')
+    except Exception as e:
+        errors = e.args[0]
+
     return render_template(
-        'login.html', error=error, form=form, display_login_link=True)
+        'login.html', error=errors, form=form, display_login_link=True)
 
 
 @app.route('/logout')
@@ -52,23 +58,26 @@ def root():
 # create or list admins who can create hunts
 @app.route('/admins', methods=['GET', 'POST'])
 def admins():
-    admin = Admin()
     form = AdminForm(request.form)
     if request.method == 'POST':
         if form.validate():
+            admin = Admin()
             form.populate_obj(admin)
             db.session.add(admin)
             db.session.commit()
 
-            session['logged_in'] = True
-            flash('Successfully created admin', 'success')
-
             domain = admin.email.split('@')[-1]
-            session['admin_id'] = get_admin(
-                form.email.data, form.password.data).admin_id
+
+            session.update({
+                'logged_in': True,
+                'admin_id': get_admin(db, form.email.data, form.password.data).admin_id
+            })
+            flash('Successfully created admin', 'success')
             logger.info(
                 'Admin registration form was submitted successfully')
+
             return render_template('settings.html', domain=domain)
+
         logger.info(
             'Admin registration form was submitted with'
             ' invalid information: %s', request.form)
@@ -82,13 +91,12 @@ def admins():
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
-    admin_settings = get_settings(admin_id=session['admin_id'])
+    admin_settings = get_settings(admin_id=session['admin_id']) or Setting()
     if request.method == 'POST':
-        admin_settings = admin_settings or Setting()
         form = SettingForm(request.form)
         if form.validate():
-            admin_settings.admin_id = session['admin_id']
             form.populate_obj(admin_settings)
+            admin_settings.admin_id = session['admin_id']
 
             db.session.add(admin_settings)
             db.session.commit()
@@ -98,25 +106,18 @@ def settings():
                   'Please check your form entries and try again.')
             logger.info('Invalid settings form submission')
 
-    if admin_settings:
-        login = getattr(admin_settings, 'login')
-        password = getattr(admin_settings, 'password')
-        wax_site = getattr(admin_settings, 'wax_site')
-        domain = getattr(admin_settings, 'domain')
-    else:
-        login = password = wax_site = domain = ''
-
     return make_response(render_template(
-        'settings.html', login=login, password=password,
-        wax_site=wax_site, domain=domain))
+        'settings.html', login=admin_settings.login,
+        password=admin_settings.password, domain=admin_settings.domain,
+        wax_site=admin_settings.wax_site
+    ))
 
 
 # create or list hunts
 @app.route('/hunts', methods=['GET'])
 @login_required
 def hunts():
-    hunts = db.session.query(Hunt).filter(
-        Hunt.admin_id == session['admin_id']).all()
+    hunts = get_hunts(db, session['admin_id'])
     return render_template('hunts.html', hunts=hunts)
 
 
@@ -124,28 +125,14 @@ def hunts():
 @app.route('/new_hunt', methods=['GET', 'POST'])
 @login_required
 def new_hunt():
-    domain = get_domain_by_admin_id(session['admin_id'])
+    domain = get_domain_by_admin_id(db, session['admin_id'])
     hunt = Hunt()
     form = HuntForm(request.form)
 
-    def newParticipant(email):
-        p = Participant()
-        p.email = email
-        return p
-
     if request.method == 'POST':
         if form.validate():
-            hunt.admin_id = session['admin_id']
+            hunt = initialize_hunt(form, hunt, session['admin_id'], request)
 
-            form.populate_obj(hunt)
-
-            # even though this is structured the same way as items
-            # (which works), this workaround is necessary to create
-            # hunt participants
-            hunt.participants = [
-                newParticipant(request.form[prop]) for prop in request.form
-                if '-email' in prop
-            ]
             try:
                 # todo: session manager
                 db.session.add(hunt)
@@ -154,8 +141,9 @@ def new_hunt():
                 flash('Error creating form: hunt name, "{}", '
                       'already exists'.format(hunt.name), 'warning')
                 logger.warning(
-                    'Exception found while creating hunt: %s\n'
+                    'Exception found while creating hunt with an existing name: %s\n'
                     'Form data: %s ', e, form.data)
+                # can you flash on a 400 page?
                 abort(400)
 
             flash('New scavenger hunt added', 'success')
@@ -166,15 +154,16 @@ def new_hunt():
             flash('Error creating form', 'warning')
             logger.warning('Error creating form.\nForm errors: %s\nForm data: '
                            '%s ', form.errors, form.data)
-    return render_template('new_hunt.html', form=form, domain=domain)
+    return make_response(
+        render_template('new_hunt.html', form=form, domain=domain))
 
 
 # page to view hunt
 @app.route('/hunts/<hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
-    domain = get_domain_by_admin_id(session['admin_id'])
-    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
+    domain = get_domain_by_admin_id(db, session['admin_id'])
+    hunt = get_hunt(db, hunt_id)
     if hunt:
         form = HuntForm(request.form)
         return render_template(
@@ -185,7 +174,7 @@ def hunt(hunt_id):
 # check googlecharts infographics api in April 2015 when they may or may
 # not change the qrcode api
 def get_qr_codes_response(hunt_id, item_id, condition):
-    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
+    hunt = get_hunt(db, hunt_id)
     if hunt:
         item_paths = [
             {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
@@ -214,7 +203,7 @@ def show_item_code(hunt_id, item_id):
 def delete_hunt(hunt_id):
     logger.info(
         'preparing to delete hunt with hunt_id, {}'.format(hunt_id))
-    hunt = get_hunt(hunt_id)
+    hunt = get_hunt(db, hunt_id)
     if hunt:
         db.session.delete(hunt)
         db.session.commit()
@@ -231,25 +220,22 @@ def index_items(hunt_id):
     logger.info(
         'preparing to render items for hunt_id, {}'.format(hunt_id))
 
-    hunt = get_hunt(hunt_id)
+    hunt = get_hunt(db, hunt_id)
     if hunt:
         if session.get('email'):
-            items = db.session.query(Item).filter(
-                Item.hunt_id == hunt_id).all()
+            items = get_items(db, hunt_id)
             params = xapi.default_params(session['email'], hunt_id)
             admin_settings = get_settings(hunt_id=hunt_id)
+
             response = xapi.get_state_response(params, admin_settings)
             if response.status_code == 200:
                 state = response.json()
-                for item in items:
-                    if state.get('found_ids'):
-                        item.found = item.item_id in state['found_ids']
-                    else:
-                        item.found = None
+                items = mark_items_found(state, items)
 
             return render_template(
                 'items.html', items=items, hunt_id=hunt_id,
                 hunt_name=hunt.name)
+
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
         return make_response(
             render_template('welcome.html',
@@ -262,69 +248,27 @@ def index_items(hunt_id):
 # information about one item for scavenger to read
 @app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
 def show_item(hunt_id, item_id):
-    def update_state(state, params, setting):
-        item_id = int(item_id)
-        if item_id not in state['found_ids']:
-            state['found_ids'].append(item_id)
-            state['num_found'] += 1
-        return state
-
-    # right now ids are unique across item table.
-    item = db.session.query(Item)\
-        .filter(Hunt.hunt_id == hunt_id) \
-        .filter(Item.item_id == item_id).first()
+    item = get_item(db, item_id)
     admin_settings = get_settings(hunt_id=hunt_id)
 
     if item and admin_settings:
         email = session.get('email')
-        if email and get_participant(email, hunt_id):
+        if email and get_participant(db, email, hunt_id):
             params = xapi.default_params(email, hunt_id)
-            actor = xapi.make_agent(email)
-            hunt = get_hunt(hunt_id)
+            hunt = get_hunt(db, hunt_id)
 
-            response = xapi.get_state_response(params, admin_settings)
-            if response.status_code == 404:
-                logger.info(
-                    'No state exists for %s on this hunt, %s'
-                    ' Beginning new state document.', email, hunt.name)
-                items = db.session.query(Item).filter(
-                    Item.hunt_id == hunt_id).all()
-                required_ids = [
-                    item.item_id for item in items if item.required]
+            state_response = xapi.get_state_response(params, admin_settings)
+            state_report, updated_state = xapi.update_state(
+                state_response, email, hunt, item, params, db)
+            xapi.send_statements(
+                updated_state, state_report, admin_settings, email, hunt, item=item)
 
-                state = {
-                    'found_ids': [int(item_id)],
-                    'num_found': 0,
-                    'required_ids': required_ids,
-                    'total_items': len(items)
-                }
-                # xapi.put_state(json.dumps(state), params, admin_settings)
-
-                # xapi.send_statement(
-                    # xapi.begin_hunt_statement(actor, hunt), admin_settings)
-
-            elif response.status_code == 200:
-                state = response.json()
-                if item_id not in state['found_ids']:
-                    logger.info(
-                        'Updating state api for %s on hunt, %s.',
-                        email, hunt.name)
-                    state = update_state(state, params, admin_settings)
-                    # xapi.post_state(state, params, admin_settings)
-                    # xapi.send_statement(
-                    #     found_item_statement(actor, hunt, item), admin_settings)
-                    required_found = set(state['found_ids']) == set(state['required_ids'])
-                    # if state['num_found'] == hunt.num_required and required_found:
-                    #     xapi.send_statement(
-                    #         completed_hunt_statement(actor, hunt), admin_settings)
-                    #     return make_response(render_template('congratulations.html'))
-            else:
-                logger.debug("why would this ever happen?")
-                pass
+            if state_report.get('hunt_completed'):
+                return make_response(render_template('congratulations.html'))
             return make_response(render_template(
                 'item.html', item=item, username=session['name'],
-                num_found=state['num_found'],
-                total_items=state['total_items'], hunt_id=hunt_id))
+                num_found=updated_state['num_found'],
+                total_items=updated_state['total_items'], hunt_id=hunt_id))
         else:
             session['intended_url'] = '/hunts/{}/items/{}'.format(
                 hunt_id, item_id)
@@ -354,15 +298,14 @@ def register_participant():
         participant_valid, err_msg = validate_participant(email, hunt_id)
         if participant_valid:
             user_id = str(uuid.uuid4())
-            session['user_id'] = user_id
-            session['email'] = email
+            session.update({
+                'user_id': user_id,
+                'email': email,
+                'name': form.name.data
+            })
 
-            participant = Participant()
-            form.populate_obj(participant)
-            participant.registered = True
-            participant.hunt_id = hunt_id
-
-            session['name'] = form.name.data
+            participant = initialize_registered_participant(
+                form, Participant(), hunt_id)
 
             db.session.add(participant)
             db.session.commit()
@@ -371,11 +314,8 @@ def register_participant():
                 "user id, name, and email set to %s, %s, and %s\n"
                 "preparing requested item information.",
                 user_id, session['name'], email)
-            if 'intended_url' in session:
-                redirect_url = session['intended_url']
-                session.pop('intended_url')
-            else:
-                redirect_url = '/hunt/{}'.format(hunt_id)
+
+            redirect_url = get_intended_url(session, hunt_id)
             return make_response(redirect(redirect_url))
         else:
             return err_msg
