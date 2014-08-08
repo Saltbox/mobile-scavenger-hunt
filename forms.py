@@ -1,5 +1,5 @@
 from wtforms import Form, StringField, FieldList, validators, \
-    FormField  # need validators?
+    FormField
 from wtforms_alchemy import ModelFieldList, model_form_factory
 
 ModelForm = model_form_factory(Form)

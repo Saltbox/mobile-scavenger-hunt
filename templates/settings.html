@@ -6,43 +6,42 @@
       <div class="row">
         <div class="underline"><h1>Settings</h1></div>
         <h2>Learning Record Store</h2>
-        <form class="form-inline" role="form" action="/settings" method="POST">
+        <form role="form" action="/settings" method="POST">
           <div>
             <p>
-              Provide your Wax LRS site name below<br>
-              ex. https://<em>your_wax_lrs_site_name</em>.waxlrs.com
+              Provide your Wax LRS site name below
             </p>
             <div class="form-group">
-              <input class="form-control" type="text" name="wax_site" value="{{wax_site}}">
+              <input class="form-control" type="text" name="wax_site" value="{{settings.wax_site}}" placeholder="wax_site_name">
             </div>
           </div>
           <div>
             <label>Domain</label>
             <p>
               Your domain identifies the organization you are representing
-              By default, we set this to the domain found in your email: {{domain}}
+              By default, we set this to the domain found in your email: {{settings.domain}}
             </p>
             <div class="form-group">
               <div class="input-group">
                 <div class="input-group-addon">@</div>
-                <input class="form-control" type="text" name="domain" value="{{domain}}">
+                <input class="form-control" type="text" name="domain" value="{{settings.domain}}">
               </div>
             </div>
           </div>
           <div>
-            <h3>Basic Credentials</h3>
+            <h3>LRS Basic Credentials</h3>
             <a href="http://support.saltbox.com/support/solutions/articles/1000085089-creating-new">
               About basic credentials
             </a>
             <div class="form-group">
               <label class="control-label">Login</label>
               <input class="form-control" type="text"
-                     name="login" value="{{login}}">
+                     name="login" value="{{settings.login}}">
             </div>
             <div class="form-group">
               <label class="control-label">Password</label>
               <input class="form-control" type="password"
-                     name="password" value="{{password}}">
+                     name="password" value="{{settings.password}}">
             </div>
             <button class="btn btn-info pentary" value="submit">
               Update Settings

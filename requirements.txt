@@ -10,7 +10,7 @@ WTForms==2.0
 WTForms-Alchemy==0.12.6
 WTForms-Components==0.9.3
 Werkzeug==0.9.6
-behave==1.2.4
+behave==1.2.3
 cssmin==0.2.0
 decorator==3.4.0
 enum34==1.0

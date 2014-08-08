@@ -236,7 +236,10 @@ $(document).ready(function() {
   var submitForm = function() {
     console.log('ah', formData);
     formData['name'] = $('input#name').val();
-
+    if (formData['name'].length < 4) {
+      $('#short_hunt_name').show();
+      return;
+    }
     var allRequired = $('input[name=all_required]').prop('checked');
     formData['all_required'] = allRequired;
 
