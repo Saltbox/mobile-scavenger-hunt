@@ -30,6 +30,10 @@ def email():
 
 
 class HuntTestCase(unittest.TestCase):
+    def setUp(self):
+        self.request = mock.MagicMock()
+        self.db = mock.MagicMock()
+
     def registered_statement(self, hunt, email=email()):
         return {
             "actor": xapi.make_agent(email),
@@ -43,58 +47,85 @@ class HuntTestCase(unittest.TestCase):
         }
 
     ### TESTS! ###
-    def test_get_admin_id_returns_admin_id_for_existing_admin(self):
+
+    # not working
+    def test_get_admin_id_from_login_returns_admin_id_for_existing_admin(self):
         request = mock.MagicMock()
         request.method = 'POST'
         db = mock.MagicMock()
-        db.session.query.filter.first.return_value = {'admin_id': 1}
+        # db.session.query.filter.first.return_value = {'admin_id': 1}
         db.session.query.filter.first.admin_id = 1
         print db.session.query.filter.first()
         form = mock.MagicMock()
         form.validate.return_value = True
 
-        admin_id = utils.get_admin_id(request.method, db, form)
+        admin_id = utils.get_admin_id_from_login(request.method, db, form)
 
         print 'admin id: ', admin_id
         assert admin_id == 1
 
-    def test_get_admin_id_returns_none_on_GET(self):
-        request = mock.MagicMock()
-        request.method = 'GET'
-
-        db = mock.MagicMock()
+    def test_get_admin_id_from_login_returns_none_on_GET(self):
+        self.request.method = 'GET'
+        self.db = mock.MagicMock()
         form = mock.MagicMock()
 
-        admin_id = utils.get_admin_id(request.method, db, form)
+        admin_id = utils.get_admin_id_from_login(self.request.method, db, form)
 
         assert admin_id is None
 
-    def test_get_admin_id_when_form_invalid_raises_exception(self):
-        request = mock.MagicMock()
-        request.method = 'POST'
-        db = mock.MagicMock()
+    def test_get_admin_id_from_login_when_form_invalid_raises_exception(self):
+        self.request.method = 'POST'
 
         form = mock.MagicMock()
         form.validate.return_value = False
 
         try:
-            utils.get_admin_id(request.method, db, form)
+            utils.get_admin_id_from_login(self.request.method, self.db, form)
         except Exception as e:
             assert e[0]['errors']
 
-    def test_get_admin_id_when_no_admin_found(self):
-        request = mock.MagicMock()
-        request.method = 'POST'
-        db = mock.MagicMock()
-        db.session.query.filter.first.return_value = None
-
+    def test_get_admin_id_from_login_when_no_admin_found(self):
+        self.request.method = 'POST'
+        self.db.session.query.filter.first.return_value = None
         form = mock.MagicMock()
         form.validate.return_value = True
 
         try:
-            utils.get_admin_id(request.method, db, form)
+            utils.get_admin_id_from_login(self.request.method, self.db, form)
         except Exception as e:
             assert e[0]['errors']['emails'] == 'Invalid email or password'
+
+    def test_update_settings_when_request_is_GET_returns_none(self):
+        self.request.method = 'GET'
+        settings = utils.update_settings(self.db, self.request, '', '', 1)
+
+        assert settings is None
+
+    def test_update_settings_returns_valid_settings_on_valid_form_post(self):
+        self.request.method = 'POST'
+
+        self.request.form = ImmutableMultiDict({
+            'wax_site': identifier(),
+            'login': identifier(),
+            'password': identifier()
+        })
+        form = forms.SettingForm(self.request.form)
+        settings = models.Setting()
+
+        updated_settings = utils.update_settings(
+            self.db, self.request, settings, form, 1)
+        for field in self.request.form.items():
+            assert getattr(updated_settings, field[0]) == field[1]
+        assert updated_settings.admin_id == 1
+
+    def test_update_settings_raises_exception_on_invalid_form_post(self):
+        self.request.method = 'POST'
+        form = mock.MagicMock()
+        form.validate.return_value = False
+        try:
+            utils.update_settings(self.db, self.request, '', form, 1)
+        except Exception as e:
+            assert e[0]['errors']
 
     # def test_login_logout(self):
     #     response = self.login(self.admin['email'], self.admin['password'])

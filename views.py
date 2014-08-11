@@ -7,13 +7,13 @@ import json
 
 from models import Hunt, Participant, Item, Admin, db, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
-    SettingForm, ItemForm
+    ItemForm, SettingForm
 from hunt import app, logger
 from utils import get_admin, get_settings, get_hunt, get_item, \
     get_participant, login_required, item_path, get_domain_by_admin_id, \
     validate_participant, get_intended_url, get_hunts, get_items, \
     initialize_hunt, initialize_registered_participant, mark_items_found, \
-    get_admin_id
+    get_admin_id_from_login, update_settings
 
 import xapi
 
@@ -26,7 +26,7 @@ def login():
     errors = None
     form = AdminLoginForm(request.form)
     try:
-        admin_id = get_admin_id(request.method, db, form)
+        admin_id = get_admin_id_from_login(request.method, db, form)
         if admin_id is not None:
             session.update({
                 'logged_in': True,
@@ -41,7 +41,7 @@ def login():
         errors = e.args[0]
 
     return render_template(
-        'login.html', error=errors, form=form, display_login_link=True)
+        'login.html', errors=errors, form=form, display_login_link=True)
 
 
 @app.route('/logout')
@@ -91,25 +91,19 @@ def admins():
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
+    errors = None
     admin_settings = get_settings(db, admin_id=session['admin_id']) or Setting()
-    if request.method == 'POST':
-        form = SettingForm(request.form)
-        if form.validate():
-            form.populate_obj(admin_settings)
-            admin_settings.admin_id = session['admin_id']
-
-            db.session.add(admin_settings)
-            db.session.commit()
-            flash('Settings have been updated', 'info')
-        else:
-            flash('Invalid settings information. '
-                  'Please check your form entries and try again.')
-            logger.info('Invalid settings form submission')
+    form = SettingForm(request.form)
+    try:
+        admin_settings = update_settings(
+            db, request, admin_settings, form, session['id'])
+    except Exception as e:
+        errors = e.args[0]
 
     return make_response(render_template(
         'settings.html', login=admin_settings.login,
         password=admin_settings.password, domain=admin_settings.domain,
-        wax_site=admin_settings.wax_site
+        wax_site=admin_settings.wax_site, errors=errors
     ))
 
 

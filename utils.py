@@ -2,6 +2,7 @@ from flask import session, request, flash, redirect, url_for
 from functools import wraps
 
 from models import Hunt, Participant, Item, Admin, db, Setting
+from forms import SettingForm
 
 
 def login_required(f):
@@ -16,12 +17,11 @@ def login_required(f):
 # to do sha1
 def get_admin(db, email, password):
     return db.session.query(Admin).filter(
-        Admin.email == email,
-        Admin.password == password
+        Admin.email == email, Admin.password == password
     ).first()
 
 
-def get_admin_id(method, db, form):
+def get_admin_id_from_login(method, db, form):
     if method == 'POST':
         if form.validate():
             matched_admin = get_admin(
@@ -39,6 +39,16 @@ def get_settings(db, admin_id=None, hunt_id=None):
             Setting.admin_id == admin_id).first()
     elif hunt_id:
         return db.session.query(Setting).join(Admin).join(Hunt).first()
+    return None
+
+
+def update_settings(db, request, settings, form, admin_id):
+    if request.method == 'POST':
+        if form.validate():
+            form.populate_obj(settings)
+            settings.admin_id = admin_id
+            return settings
+        raise Exception({'errors': form.errors})
     return None
 
 
