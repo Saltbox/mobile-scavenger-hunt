@@ -14,22 +14,6 @@
           <div class="panel-body">
             <form class="form-horizontal" role="form" action="{{ url_for('admins') }}" method="POST">
               <div class="form-group">
-                <label for="first_name" class="col-sm-3 control-label">
-                  First Name
-                </label>
-                <div class="col-sm-9">
-                  {{form.first_name(type="text", id="first", autofocus=true, required=true, class="form-control", placeholder="First")}}
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="last_name" class="col-sm-3 control-label">
-                  Last Name
-                </label>
-                <div class="col-sm-9">
-                  {{form.last_name(type="text", id="last", required=true, class="form-control", placeholder="Last")}}
-                </div>
-              </div>
-              <div class="form-group">
                 {% if form.email.errors %}
                   {% for error in form.email.errors %}
                     {{error}}
