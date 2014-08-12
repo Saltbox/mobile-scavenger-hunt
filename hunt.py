@@ -1,6 +1,7 @@
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.assets import Environment, Bundle
+from flask.ext.login import LoginManager
 
 import config
 
@@ -10,6 +11,8 @@ app.config.update(config.ENV_VAR)
 
 db = SQLAlchemy(app)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 logger = app.logger
 

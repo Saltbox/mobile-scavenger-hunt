@@ -1,6 +1,8 @@
 from flask import session, abort, flash, url_for, make_response, request, \
     render_template, redirect
 from sqlalchemy.exc import IntegrityError
+from flask.ext.login import login_user, logout_user, login_required, \
+    current_user
 
 import uuid
 import json
@@ -8,9 +10,9 @@ import json
 from models import Hunt, Participant, Item, Admin, db, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     ItemForm, SettingForm
-from hunt import app, logger
+from hunt import app, logger, login_manager
 from utils import get_admin, get_settings, get_hunt, get_item, \
-    get_participant, login_required, item_path, get_domain_by_admin_id, \
+    get_participant, item_path, get_domain_by_admin_id, \
     validate_participant, get_intended_url, get_hunts, get_items, \
     initialize_hunt, initialize_registered_participant, mark_items_found, \
     get_admin_id_from_login, update_settings
@@ -18,35 +20,30 @@ from utils import get_admin, get_settings, get_hunt, get_item, \
 import xapi
 
 
+@login_manager.user_loader
+def load_user(userid):
+    return Admin.query.get(userid)
+
 #################### ADMIN ROUTES ####################
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    errors = None
+    # errors = None
     form = AdminLoginForm(request.form)
-    try:
-        admin_id = get_admin_id_from_login(request.method, db, form)
-        if admin_id is not None:
-            session.update({
-                'logged_in': True,
-                'admin_id': matched_admin.admin_id
-            })
-            logger.info(
-                'Admin successfully logged in.'
-                ' Preparing to redirect to hunts page')
-            flash('You were logged in', 'info')
-            return redirect(url_for('hunts'))
-    except Exception as e:
-        errors = e.args[0]
-
+    if request.method == 'POST' and form.validate():
+        admin = get_admin(db, form.username.data, form.password.data)
+        login_user(admin)
+        flash('You were logged in', 'info')
+        return redirect(url_for('hunts'))
+    errors = form.errors
     return render_template(
         'login.html', errors=errors, form=form, display_login_link=True)
 
 
 @app.route('/logout')
 def logout():
-    session.clear()
+    logout_user()
     return redirect(url_for('login'))
 
 
@@ -68,15 +65,11 @@ def admins():
 
             domain = admin.email.split('@')[-1]
 
-            session.update({
-                'logged_in': True,
-                'admin_id': get_admin(db, form.email.data, form.password.data).admin_id
-            })
             flash('Successfully created admin', 'success')
             logger.info(
                 'Admin registration form was submitted successfully')
 
-            return render_template('settings.html', domain=domain)
+            return make_response(render_template('settings.html', domain=domain))
 
         logger.info(
             'Admin registration form was submitted with'
@@ -92,11 +85,12 @@ def admins():
 @login_required
 def settings():
     errors = None
+
     admin_settings = get_settings(db, admin_id=session['admin_id']) or Setting()
     form = SettingForm(request.form)
     try:
         admin_settings = update_settings(
-            db, request, admin_settings, form, session['id'])
+            db, request, admin_settings, form, session['admin_id'])
     except Exception as e:
         errors = e.args[0]
 
