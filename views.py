@@ -1,5 +1,5 @@
 from flask import session, abort, flash, url_for, make_response, request, \
-    render_template, redirect
+    render_template, redirect, g
 from sqlalchemy.exc import IntegrityError
 from flask.ext.login import login_user, logout_user, login_required, \
     current_user
@@ -7,10 +7,11 @@ from flask.ext.login import login_user, logout_user, login_required, \
 import uuid
 import json
 
-from models import Hunt, Participant, Item, Admin, db, Setting
+from models import Hunt, Participant, Item, Admin, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     ItemForm, SettingForm
-from hunt import app, logger, login_manager
+import hunt
+from hunt import app, logger, login_manager, db
 from utils import get_admin, get_settings, get_hunt, get_item, \
     get_participant, item_path, get_domain_by_admin_id, \
     validate_participant, get_intended_url, get_hunts, get_items, \
@@ -18,6 +19,15 @@ from utils import get_admin, get_settings, get_hunt, get_item, \
     get_admin_id_from_login, update_settings
 
 import xapi
+
+
+def get_db():
+    return db
+
+
+@app.before_request
+def before_request():
+    g.db = get_db()
 
 
 @login_manager.user_loader
@@ -29,16 +39,19 @@ def load_user(userid):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # errors = None
+    errors = None
     form = AdminLoginForm(request.form)
     if request.method == 'POST' and form.validate():
-        admin = get_admin(db, form.username.data, form.password.data)
-        login_user(admin)
-        flash('You were logged in', 'info')
-        return redirect(url_for('hunts'))
-    errors = form.errors
-    return render_template(
-        'login.html', errors=errors, form=form, display_login_link=True)
+        admin = get_admin(g.db, form.username.data, form.password.data)
+        if admin:
+            login_user(admin)
+            flash('You were logged in', 'info')
+            return redirect(url_for('hunts'))
+        flash('Invalid email and password combination')
+    else:
+        errors = form.errors
+    return make_response(render_template(
+        'login.html', errors=errors, form=form, display_login_link=True))
 
 
 @app.route('/logout')
@@ -60,8 +73,8 @@ def admins():
         if form.validate():
             admin = Admin()
             form.populate_obj(admin)
-            db.session.add(admin)
-            db.session.commit()
+            g.db.session.add(admin)
+            g.db.session.commit()
 
             domain = admin.email.split('@')[-1]
 
@@ -69,7 +82,8 @@ def admins():
             logger.info(
                 'Admin registration form was submitted successfully')
 
-            return make_response(render_template('settings.html', domain=domain))
+            return make_response(
+                render_template('settings.html', domain=domain))
 
         logger.info(
             'Admin registration form was submitted with'
@@ -86,11 +100,11 @@ def admins():
 def settings():
     errors = None
 
-    admin_settings = get_settings(db, admin_id=session['admin_id']) or Setting()
+    admin_settings = get_settings(g.db, admin_id=session['admin_id']) or Setting()
     form = SettingForm(request.form)
     try:
         admin_settings = update_settings(
-            db, request, admin_settings, form, session['admin_id'])
+            g.db, request, admin_settings, form, session['admin_id'])
     except Exception as e:
         errors = e.args[0]
 
@@ -105,7 +119,8 @@ def settings():
 @app.route('/hunts', methods=['GET'])
 @login_required
 def hunts():
-    hunts = get_hunts(db, session['admin_id'])
+    logger.debug('session: %s', session)
+    hunts = get_hunts(g.db, session['admin_id'])
     return render_template('hunts.html', hunts=hunts)
 
 
@@ -113,7 +128,7 @@ def hunts():
 @app.route('/new_hunt', methods=['GET', 'POST'])
 @login_required
 def new_hunt():
-    domain = get_domain_by_admin_id(db, session['admin_id'])
+    domain = get_domain_by_admin_id(g.db, session['admin_id'])
     hunt = Hunt()
     form = HuntForm(request.form)
 
@@ -123,8 +138,8 @@ def new_hunt():
 
             try:
                 # todo: session manager
-                db.session.add(hunt)
-                db.session.commit()
+                g.db.session.add(hunt)
+                g.db.session.commit()
             except IntegrityError as e:
                 flash('Error creating form: hunt name, "{}", '
                       'already exists'.format(hunt.name), 'warning')
@@ -150,8 +165,8 @@ def new_hunt():
 @app.route('/hunts/<hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
-    domain = get_domain_by_admin_id(db, session['admin_id'])
-    hunt = get_hunt(db, hunt_id)
+    domain = get_domain_by_admin_id(g.db, session['admin_id'])
+    hunt = get_hunt(g.db, hunt_id)
     if hunt:
         form = HuntForm(request.form)
         return render_template(
@@ -162,7 +177,7 @@ def hunt(hunt_id):
 # check googlecharts infographics api in April 2015 when they may or may
 # not change the qrcode api
 def get_qr_codes_response(hunt_id, item_id, condition):
-    hunt = get_hunt(db, hunt_id)
+    hunt = get_hunt(g.db, hunt_id)
     if hunt:
         item_paths = [
             {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
@@ -191,10 +206,10 @@ def show_item_code(hunt_id, item_id):
 def delete_hunt(hunt_id):
     logger.info(
         'preparing to delete hunt with hunt_id, {}'.format(hunt_id))
-    hunt = get_hunt(db, hunt_id)
+    hunt = get_hunt(g.db, hunt_id)
     if hunt:
-        db.session.delete(hunt)
-        db.session.commit()
+        g.db.session.delete(hunt)
+        g.db.session.commit()
         flash('Successfully deleted hunt', 'success')
         return make_response(render_template('hunts.html'))
     abort(404)
@@ -208,10 +223,10 @@ def index_items(hunt_id):
     logger.info(
         'preparing to render items for hunt_id, {}'.format(hunt_id))
 
-    hunt = get_hunt(db, hunt_id)
+    hunt = get_hunt(g.db, hunt_id)
     if hunt:
         if session.get('email'):
-            items = get_items(db, hunt_id)
+            items = get_items(g.db, hunt_id)
             params = xapi.default_params(session['email'], hunt_id)
             admin_settings = get_settings(hunt_id=hunt_id)
 
@@ -236,18 +251,18 @@ def index_items(hunt_id):
 # information about one item for scavenger to read
 @app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
 def show_item(hunt_id, item_id):
-    item = get_item(db, item_id)
+    item = get_item(g.db, item_id)
     admin_settings = get_settings(hunt_id=hunt_id)
 
     if item and admin_settings:
         email = session.get('email')
-        if email and get_participant(db, email, hunt_id):
+        if email and get_participant(g.db, email, hunt_id):
             params = xapi.default_params(email, hunt_id)
-            hunt = get_hunt(db, hunt_id)
+            hunt = get_hunt(g.db, hunt_id)
 
             state_response = xapi.get_state_response(params, admin_settings)
             state_report, updated_state = xapi.update_state(
-                state_response, email, hunt, item, params, db)
+                state_response, email, hunt, item, params, g.db)
             xapi.send_statements(
                 updated_state, state_report, admin_settings, email, hunt, item=item)
 
@@ -295,8 +310,8 @@ def register_participant():
             participant = initialize_registered_participant(
                 form, Participant(), hunt_id)
 
-            db.session.add(participant)
-            db.session.commit()
+            g.db.session.add(participant)
+            g.db.session.commit()
 
             logger.info(
                 "user id, name, and email set to %s, %s, and %s\n"

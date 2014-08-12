@@ -1,5 +1,4 @@
 import os
-
 from hunt import db
 import sys
 

@@ -4,8 +4,8 @@ import uuid
 import json
 
 from werkzeug.datastructures import ImmutableMultiDict
-from flask import session
-from hunt import app, db
+from flask import session, g
+from hunt import app
 
 import views
 import forms
@@ -14,6 +14,8 @@ import utils
 import models
 
 import mock
+
+from mock import patch
 
 app.config['DEBUG'] = True
 BASIC_LOGIN = app.config['WAX_LOGIN']
@@ -32,7 +34,6 @@ def email():
 class HuntTestCase(unittest.TestCase):
     def setUp(self):
         self.request = mock.MagicMock()
-        self.db = mock.MagicMock()
 
     def registered_statement(self, hunt, email=email()):
         return {
@@ -46,54 +47,41 @@ class HuntTestCase(unittest.TestCase):
             "object": xapi.hunt_activity(hunt)
         }
 
+    def login(self, app, username, password):
+        return app.post('/login', data=dict(
+            username=username, password=password
+        ), follow_redirects=True)
+
+    def logout(self, app):
+        return app.get('/logout', follow_redirects=True)
+
+    def create_admin(
+        self, app, first_name=identifier(), last_name=identifier(),
+            email=email(), password=identifier()):
+        return app.post('/admins', data=dict(
+            first_name=first_name, last_name=last_name, email=email,
+            password=password
+        ))
+
     ### TESTS! ###
 
-    # not working
-    def test_get_admin_id_from_login_returns_admin_id_for_existing_admin(self):
-        request = mock.MagicMock()
-        request.method = 'POST'
-        db = mock.MagicMock()
-        # db.session.query.filter.first.return_value = {'admin_id': 1}
-        db.session.query.filter.first.admin_id = 1
-        print db.session.query.filter.first()
-        form = mock.MagicMock()
-        form.validate.return_value = True
+    @patch('views.get_db')
+    def test_create_admin(self, mock_db):
+        with app.test_client() as c:
+            response = c.get('/admins')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('Admin Registration', response.data)
 
-        admin_id = utils.get_admin_id_from_login(request.method, db, form)
+            admin_email = email()
+            password = identifier()
 
-        print 'admin id: ', admin_id
-        assert admin_id == 1
+            response = self.create_admin(
+                app=c, email=admin_email, password=password)
+            with c.session_transaction() as sess:
+                sess['admin_id'] = 1
 
-    def test_get_admin_id_from_login_returns_none_on_GET(self):
-        self.request.method = 'GET'
-        self.db = mock.MagicMock()
-        form = mock.MagicMock()
-
-        admin_id = utils.get_admin_id_from_login(self.request.method, db, form)
-
-        assert admin_id is None
-
-    def test_get_admin_id_from_login_when_form_invalid_raises_exception(self):
-        self.request.method = 'POST'
-
-        form = mock.MagicMock()
-        form.validate.return_value = False
-
-        try:
-            utils.get_admin_id_from_login(self.request.method, self.db, form)
-        except Exception as e:
-            assert e[0]['errors']
-
-    def test_get_admin_id_from_login_when_no_admin_found(self):
-        self.request.method = 'POST'
-        self.db.session.query.filter.first.return_value = None
-        form = mock.MagicMock()
-        form.validate.return_value = True
-
-        try:
-            utils.get_admin_id_from_login(self.request.method, self.db, form)
-        except Exception as e:
-            assert e[0]['errors']['emails'] == 'Invalid email or password'
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('Successfully created admin', response.data)
 
     def test_update_settings_when_request_is_GET_returns_none(self):
         self.request.method = 'GET'
@@ -146,22 +134,6 @@ class HuntTestCase(unittest.TestCase):
     #     for route in ['/hunts', '/hunts/1', '/settings']:
     #         response = self.app.get(route, follow_redirects=True)
     #         self.assertIn('login required', response.data)
-
-    def test_create_admin(self):
-        response = self.app.get('/admins')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('Admin Registration', response.data)
-
-        admin_email = email()
-        password = identifier()
-
-        response = self.create_admin(email=admin_email, password=password)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('Successfully created admin', response.data)
-
-        self.logout()
-        response = self.login(admin_email, password)
-        self.assertEqual(response.status_code, 200)
 
     def test_create_settings(self):
         self.login(self.admin['email'], self.admin['password'])

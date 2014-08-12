@@ -6,7 +6,7 @@ ModelForm = model_form_factory(Form)
 
 import models
 
-from hunt import db
+from hunt import database as db
 
 
 class LoginForm(Form):

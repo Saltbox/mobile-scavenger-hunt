@@ -1,18 +1,8 @@
 from flask import session, request, flash, redirect, url_for
-from functools import wraps
 
 from models import Hunt, Participant, Item, Admin, db, Setting
 from forms import SettingForm
 
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get('logged_in'):
-            flash('login required')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
 
 # to do sha1
 def get_admin(db, email, password):
@@ -22,15 +12,11 @@ def get_admin(db, email, password):
 
 
 def get_admin_id_from_login(method, db, form):
-    if method == 'POST':
-        if form.validate():
-            matched_admin = get_admin(
-                db, form.username.data, form.password.data)
-            if matched_admin:
-                return matched_admin.admin_id
-            raise Exception({'errors': {'email': 'Invalid email or password'}})
-        raise Exception({'errors': form.errors})
-    return None  # GET form
+    matched_admin = get_admin(
+        db, form.username.data, form.password.data)
+    if matched_admin:
+        return matched_admin.admin_id
+    raise Exception({'errors': {'email': 'Invalid email or password'}})
 
 
 def get_settings(db, admin_id=None, hunt_id=None):
