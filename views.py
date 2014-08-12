@@ -11,7 +11,7 @@ from models import Hunt, Participant, Item, Admin, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     ItemForm, SettingForm
 import hunt
-from hunt import app, logger, login_manager, db
+from hunt import app, logger, login_manager, db, bcrypt
 from utils import get_admin, get_settings, get_hunt, get_item, \
     get_participant, item_path, get_domain_by_admin_id, \
     validate_participant, get_intended_url, get_hunts, get_items, \
@@ -73,6 +73,8 @@ def admins():
         if form.validate():
             admin = Admin()
             form.populate_obj(admin)
+            admin.password = bcrypt.generate_password_hash(admin.password)
+
             g.db.session.add(admin)
             g.db.session.commit()
 

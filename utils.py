@@ -2,12 +2,14 @@ from flask import session, request, flash, redirect, url_for
 
 from models import Hunt, Participant, Item, Admin, db, Setting
 from forms import SettingForm
+from hunt import bcrypt
 
 
 # to do sha1
 def get_admin(db, email, password):
+    pw_hash = bcrypt.generate_password_hash(password)
     return db.session.query(Admin).filter(
-        Admin.email == email, Admin.password == password
+        Admin.email == email, Admin.password == pw_hash
     ).first()
 
 

@@ -2,6 +2,7 @@ from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.assets import Environment, Bundle
 from flask.ext.login import LoginManager
+from flask.ext.bcrypt import Bcrypt
 
 import config
 
@@ -13,6 +14,7 @@ db = SQLAlchemy(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+bcrypt = Bcrypt(app)
 
 logger = app.logger
 
