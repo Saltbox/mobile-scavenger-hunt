@@ -14,7 +14,6 @@ import utils
 import models
 
 import mock
-
 from mock import patch
 
 app.config['DEBUG'] = True
@@ -82,6 +81,31 @@ class HuntTestCase(unittest.TestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertIn('Successfully created admin', response.data)
+
+    @patch('views.get_db')
+    def test_login_valid_credentials_allows_user_to_enter_site(self, get_db):
+        get_db().session.query().filter().first().get_id.return_value = 1
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess['admin_id'] = 1
+            admin_email = email()
+            password = identifier()
+
+            self.create_admin(c, admin_email, password)
+            self.logout(c)
+            response = self.login(c, admin_email, password)
+            self.assertEqual(response.status_code, 200)
+
+    @patch('views.get_db')
+    def test_login_invalid_credentials_prevents_user_from_entering_site(self, get_db):
+        get_db().session.query().filter().first.return_value = None
+        with app.test_client() as c:
+            admin_email = email()
+            password = identifier()
+
+            response = self.login(c, admin_email, password)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('Invalid email and password combination', response.data)
 
     def test_update_settings_when_request_is_GET_returns_none(self):
         self.request.method = 'GET'
