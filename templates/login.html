@@ -14,11 +14,11 @@
         <div class="panel-body">
           <form class="form-horizontal" role="form" action="{{ url_for('login') }}" method="POST">
             <div class="form-group">
-              <label for="username" class="col-sm-3 control-label">
+              <label for="email" class="col-sm-3 control-label">
                 Email
               </label>
               <div class="col-sm-9">
-                {{form.username(type="email", id="username", class="form-control",
+                {{form.email(type="email", id="email", class="form-control",
                             autofocus=true, required=true, placeholder="Email")}}
               </div>
             </div>
@@ -52,7 +52,7 @@
     </div>
     <script>
       if (!("autofocus" in document.createElement("input"))) {
-        document.getElementById("username").focus();
+        document.getElementById("email").focus();
       }
     </script>
   </div>

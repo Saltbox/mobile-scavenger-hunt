@@ -10,10 +10,9 @@ from hunt import db
 
 
 class LoginForm(Form):
-    username = StringField('Username')
+    email = StringField('Email')
 
 
-# update me now that there's an actual admin
 class AdminLoginForm(LoginForm):
     password = StringField('Password')
 
@@ -21,6 +20,7 @@ class AdminLoginForm(LoginForm):
 class AdminForm(ModelForm):
     class Meta:
         model = models.Admin
+    password = StringField('Password')
 
 
 class ItemForm(ModelForm):

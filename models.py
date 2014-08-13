@@ -2,12 +2,14 @@ import os
 from hunt import db
 import sys
 
+from flask.ext.login import UserMixin
+
 
 class Admin(db.Model):
     __tablename__ = 'admins'
     admin_id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(320), unique=True)
-    password = db.Column(db.String(64))
+    pw_hash = db.Column(db.String(64))
     hunts = db.relationship('Hunt', backref='hunts')
 
     def __repr__(self):
