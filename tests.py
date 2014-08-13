@@ -5,16 +5,13 @@ import json
 
 from werkzeug.datastructures import ImmutableMultiDict
 from flask import session, g
-from hunt import app
+from hunt import app, bcrypt
 
-import views
-import forms
 import xapi
 import utils
-import models
 
-import mock
-from mock import patch
+
+from mock import patch, MagicMock
 
 app.config['DEBUG'] = True
 BASIC_LOGIN = app.config['WAX_LOGIN']
@@ -32,7 +29,9 @@ def email():
 
 class HuntTestCase(unittest.TestCase):
     def setUp(self):
-        self.request = mock.MagicMock()
+        self.request = MagicMock()
+        self.app = app.test_client()
+        self.admin = {'email': email(), 'password': identifier()}
 
     def registered_statement(self, hunt, email=email()):
         return {
@@ -54,51 +53,86 @@ class HuntTestCase(unittest.TestCase):
     def logout(self, app):
         return app.get('/logout', follow_redirects=True)
 
-    def create_admin(
-        self, app, first_name=identifier(), last_name=identifier(),
-            email=email(), password=identifier()):
+    def create_admin(self, app, email, password):
         return app.post('/admins', data=dict(
-            first_name=first_name, last_name=last_name, email=email,
-            password=password
+            email=email, password=password
         ))
+
+    def create_hunt(self,
+                    name=identifier(),
+                    participant_rule='by_whitelist',
+                    participants=[{'email': email()}],
+                    items=[{'name': identifier()}], all_required=True):
+
+        # this is how wtforms-alchemy expects data
+        participant_emails = []
+        for (index, participant) in enumerate(participants):
+            participant_emails.append(
+                ('participants-{}-email'.format(index), participant['email']))
+
+        item_names = []
+        for (index, item) in enumerate(items):
+            item_names.append(
+                ('items-{}-name'.format(index), item['name']))
+
+        forminfo = participant_emails + item_names + \
+            [('all_required', True), ('name', name),
+             ('participant_rule', participant_rule)]
+        self.imdict = ImmutableMultiDict(forminfo)
+        return self.app.post(
+            '/new_hunt', data=self.imdict, follow_redirects=True)
+
+    def create_settings(self, app, wax_site=WAX_SITE, admin_id=1,
+                        domain='example.com', login=BASIC_LOGIN,
+                        password=BASIC_PASSWORD):
+        return app.post('/settings', data=dict(
+            wax_site=wax_site, admin_id=admin_id, domain=domain,
+            login=login, password=password
+        ), follow_redirects=True)
+
+    def set_up_mock_admin(self, get_db, valid=False):
+        if valid:
+            pw_hash = bcrypt.generate_password_hash(self.admin['password'])
+            admin = MagicMock(pw_hash=pw_hash)
+        else:
+            admin = MagicMock(admin_id=1)
+
+        admin.get_id.return_value = 1
+        get_db().session.query().filter().first.return_value = admin
+        return get_db
 
     ### TESTS! ###
 
     @patch('views.get_db')
-    def test_create_admin(self, mock_db):
+    def test_visit_admins_page_works(self, get_db):
+        response = self.app.get('/admins')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Admin Registration', response.data)
+
+    @patch('views.get_db')
+    def test_create_admin_works(self, get_db):
+        self.set_up_mock_admin(get_db)
         with app.test_client() as c:
-            response = c.get('/admins')
-            self.assertEqual(response.status_code, 200)
-            self.assertIn('Admin Registration', response.data)
-
-            admin_email = email()
             password = identifier()
-
+            admin_email = email()
             response = self.create_admin(
                 app=c, email=admin_email, password=password)
-            with c.session_transaction() as sess:
-                sess['admin_id'] = 1
 
             self.assertEqual(response.status_code, 200)
             self.assertIn('Successfully created admin', response.data)
 
     @patch('views.get_db')
     def test_login_valid_credentials_allows_user_to_enter_site(self, get_db):
-        get_db().session.query().filter().first().get_id.return_value = 1
+        self.set_up_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            with c.session_transaction() as sess:
-                sess['admin_id'] = 1
-            admin_email = email()
-            password = identifier()
-
-            self.create_admin(c, admin_email, password)
+            self.create_admin(c, self.admin['email'], self.admin['password'])
             self.logout(c)
-            response = self.login(c, admin_email, password)
+            response = self.login(c, self.admin['email'], self.admin['password'])
             self.assertEqual(response.status_code, 200)
 
-    @patch('views.get_db')
-    def test_login_invalid_credentials_prevents_user_from_entering_site(self, get_db):
-        get_db().session.query().filter().first.return_value = None
+    @patch('views.get_admin')
+    def test_login_invalid_credentials_prevents_user_from_entering_site(self, get_admin):
+        get_admin.return_value = None
         with app.test_client() as c:
             admin_email = email()
             password = identifier()
@@ -107,213 +141,183 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn('Invalid email and password combination', response.data)
 
-    def test_update_settings_when_request_is_GET_returns_none(self):
-        self.request.method = 'GET'
-        settings = utils.update_settings(self.db, self.request, '', '', 1)
+    @patch('views.get_db')
+    def test_pages_requiring_login(self, get_db):
+        self.set_up_mock_admin(get_db)
+        for route in ['/hunts', '/hunts/1', '/settings']:
+            response = self.app.get(route, follow_redirects=True)
+            self.assertIn('Please log in to access this page.', response.data)
 
-        assert settings is None
+    @patch('views.get_db')
+    def test_create_settings(self, get_db):
+        self.set_up_mock_admin(get_db)
+        with app.test_client() as c:
+            self.create_admin(c, self.admin['email'], self.admin['password'])
 
-    def test_update_settings_returns_valid_settings_on_valid_form_post(self):
-        self.request.method = 'POST'
+            basic_login = identifier()
+            domain = identifier()
+            settings_response = self.create_settings(
+                c, domain=domain, login=basic_login, password=identifier())
 
-        self.request.form = ImmutableMultiDict({
-            'wax_site': identifier(),
-            'login': identifier(),
-            'password': identifier()
-        })
-        form = forms.SettingForm(self.request.form)
-        settings = models.Setting()
+            self.assertEqual(settings_response.status_code, 200)
+            self.assertIn(basic_login, settings_response.data)
+            self.assertIn(domain, settings_response.data)
 
-        updated_settings = utils.update_settings(
-            self.db, self.request, settings, form, 1)
-        for field in self.request.form.items():
-            assert getattr(updated_settings, field[0]) == field[1]
-        assert updated_settings.admin_id == 1
+    @patch('views.get_db')
+    def test_create_hunt_works(self, get_db):
+        self.set_up_mock_admin(get_db, valid=True)
+        with app.test_client() as c:
+            name = identifier()
+            participants = [{'email': email()} for _ in xrange(2)]
+            items = [{'name': identifier()} for _ in xrange(2)]
+            create_hunt_response = self.create_hunt(
+                name=name, participants=participants, items=items)
 
-    def test_update_settings_raises_exception_on_invalid_form_post(self):
-        self.request.method = 'POST'
-        form = mock.MagicMock()
-        form.validate.return_value = False
-        try:
-            utils.update_settings(self.db, self.request, '', form, 1)
-        except Exception as e:
-            assert e[0]['errors']
+            self.assertEqual(create_hunt_response.status_code, 200)
 
-    # def test_login_logout(self):
-    #     response = self.login(self.admin['email'], self.admin['password'])
-    #     self.assertIn('You were logged in', response.data)
-
-    #     response = self.logout()
-    #     self.assertIn('Login', response.data)
-
-    # def test_login_invalid_username(self):
-    #     response = self.login(identifier(), identifier())
-    #     self.assertIn('Invalid email or password', response.data)
-
-    # def test_pages_requiring_login(self):
-    #     self.login(self.admin['email'], self.admin['password'])
-    #     self.create_hunt()
-    #     self.logout()
-
-    #     for route in ['/hunts', '/hunts/1', '/settings']:
-    #         response = self.app.get(route, follow_redirects=True)
-    #         self.assertIn('login required', response.data)
-
-    def test_create_settings(self):
-        self.login(self.admin['email'], self.admin['password'])
-        settings_response = self.create_settings(
-            domain=identifier(), login=identifier(), password=identifier())
-
-        self.assertEqual(settings_response.status_code, 200)
-        self.assertIn(login, settings_response.data)
-        self.assertIn(domain, settings_response.data)
-
-    def test_create_and_show_hunt(self):
-        self.login(self.admin['email'], self.admin['password'])
+    @patch('views.get_hunt')
+    def test_show_hunt_works(self, get_hunt):
         name = identifier()
         participants = [{'email': email()} for _ in xrange(2)]
         items = [{'name': identifier()} for _ in xrange(2)]
-        create_hunt_response = self.create_hunt(
-            name=name, participants=participants, items=items)
+        get_hunt.return_value = MagicMock(
+            name=name, participants=participants, items=items,
+            participant_rule='by_whitelist'
+        )
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess['user_id'] = 1
+            show_hunt_response = c.get('/hunts/1', follow_redirects=True)
+            self.assertEqual(show_hunt_response.status_code, 200)
 
-        self.assertEqual(create_hunt_response.status_code, 200)
+            self.assertIn(name, show_hunt_response.data)
 
-        # currently this always goes to 1 because it's a clean db
-        show_hunt_response = self.app.get('/hunts/1', follow_redirects=True)
-        self.assertEqual(show_hunt_response.status_code, 200)
+            for participant in participants:
+                self.assertIn(participant['email'], show_hunt_response.data)
 
-        self.assertIn(name, show_hunt_response.data)
+            for item in items:
+                self.assertIn(item['name'], show_hunt_response.data)
 
-        for participant in participants:
-            self.assertIn(participant['email'], show_hunt_response.data)
+    @patch('views.get_hunt')
+    @patch('views.current_user')
+    @patch('views.login_manager._login_disabled')
+    @patch('views.get_db')
+    def test_delete_hunt_works(self, get_db, login_disabled, current_user, get_hunt):
+        current_user.admin_id = 1
+        login_disabled = True
+        self.set_up_mock_admin(get_db, valid=True)
+        with app.test_client() as c:
+            hunt = MagicMock(admin_id=1)
+            get_hunt.return_value = hunt
+            response = c.get('/hunts/1/delete', follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
 
-        for item in items:
-            self.assertIn(item['name'], show_hunt_response.data)
-
-    def test_delete_hunt(self):
-        self.login(self.admin['email'], self.admin['password'])
-        self.create_hunt()
-
-        response = self.app.get('/hunts/1/delete', follow_redirects=True)
-        self.assertEqual(response.status_code, 200)
-
-        response = self.app.get('/hunts/1', follow_redirects=True)
-        self.assertEqual(response.status_code, 404)
+            # make get_hunt return None
+            get_hunt.return_value = None
+            response = c.get('/hunts/1', follow_redirects=True)
+            self.assertEqual(response.status_code, 404)
 
     def test_get_started(self):
-        self.login(self.admin['email'], self.admin['password'])
-        self.create_hunt()
-        self.logout()
         response = self.app.get(
             '/get_started/hunts/1', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn('Enter your name and email', response.data)
 
-    def test_show_item_codes(self):
-        self.login(self.admin['email'], self.admin['password'])
-        item1 = {'name': identifier()}
-        item2 = {'name': identifier()}
-        self.create_hunt(items=[item1, item2])
-
-        response = self.app.get('/hunts/1/qrcodes')
-        self.assertEqual(response.status_code, 200)
-        for item in [item1, item2]:
-            self.assertIn(item['name'], response.data)
-
-        response = self.app.get('/hunts/1/items/1/qrcode')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(item1['name'], response.data)
-
-    # this also tests the show_item function/route
-    def test_whitelisted_participant(self):
+    @patch('views.get_hunt')
+    @patch('views.current_user')
+    @patch('views.login_manager._login_disabled')
+    @patch('views.get_db')
+    def test_show_all_hunt_item_codes_works(self, get_db, login_disabled, current_user, get_hunt):
+        current_user.admin_id = 1
+        login_disabled = True
+        self.set_up_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            self.login(self.admin['email'], self.admin['password'])
-            participant_email = email()
-            self.create_hunt(
-                participants=[{'email': participant_email}],
-                items=[{'name': identifier()}])
+            item1 = MagicMock().__se
+            item1.name = identifier()
+            item1.item_id = 1
+            item2 = MagicMock()
+            item2.name = identifier()
+            item2.item_id = 2
 
-            self.logout()
+            get_hunt.return_value = MagicMock(items=[item1, item2])
+
+            response = self.app.get('/hunts/1/qrcodes')
+            self.assertEqual(response.status_code, 200)
+
+            for item in [item1, item2]:
+                self.assertIn(item.name, response.data)
+
+    @patch('views.get_hunt')
+    @patch('views.current_user')
+    @patch('views.login_manager._login_disabled')
+    @patch('views.get_db')
+    def test_show_one_hunt_item_code_works(self, get_db, login_disabled, current_user, get_hunt):
+        current_user.admin_id = 1
+        login_disabled = True
+        self.set_up_mock_admin(get_db, valid=True)
+        with app.test_client() as c:
+            item1 = MagicMock()
+            item1.name = identifier()
+            item1.item_id = 1
+            hunt = MagicMock(items=[item1])
+            get_hunt.return_value = hunt
+
+            response = self.app.get('/hunts/1/items/1/qrcode')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(item1.name, response.data)
+
+    @patch('utils.get_settings')
+    @patch('views.get_db')
+    def tests_validate_participant_by_domain(self, get_db, get_settings):
+        domain = get_settings().domain = 'example.com'
+        email = '{}@{}'.format(identifier(), domain)
+        valid, _ = utils.validate_participant(get_db(), email, 1, 'by_domain')
+        self.assertTrue(valid)
+
+        different_domain = '{}@not.example.com'.format(identifier())
+        invalid, _ = utils.validate_participant(get_db(), different_domain, 1, 'by_domain')
+        self.assertFalse(invalid)
+
+    @patch('utils.get_participant')
+    @patch('views.get_db')
+    def tests_validate_participant_by_whitelist(self, get_db, get_participant):
+        # mock will be truthy when returned from the check for participant
+        valid, _ = utils.validate_participant(
+            get_db(), email(), 1, 'by_whitelist')
+        self.assertTrue(valid)
+
+        get_participant.return_value = None
+        invalid, _ = utils.validate_participant(
+            get_db(), email(), 1, 'by_whitelist')
+        self.assertFalse(invalid)
+
+    @patch('views.get_db')
+    def tests_validate_participant_anyone_can_participate(self, get_db):
+        valid, err_msg = utils.validate_participant(
+            get_db(), email(), 1, 'anyone')
+        self.assertTrue(valid)
+
+    @patch('views.get_item')
+    @patch('views.get_settings')
+    @patch('views.ready_to_send_statements')
+    @patch('views.get_participant')
+    @patch('views.xapi')
+    def test_whitelisted_participant_can_resume_hunt(self, xapi, b, c, d, e):
+        state_report = MagicMock()
+        state_report.get.return_value = False
+        xapi.update_state.return_value = state_report, MagicMock()
+        with app.test_client() as c:
+            participant_email = email()
+            name = identifier()
 
             # necessary to access item routes
             with c.session_transaction() as sess:
                 sess['email'] = participant_email
-                sess['intended_url'] = '/hunts/1'
-
-            name = identifier()
-            response = self.register_participant(c, participant_email, name)
-            self.assertEqual(response.status_code, 200)
+                sess['name'] = name
 
             response = c.get('/hunts/1/items/1', follow_redirects=True)
             self.assertEqual(response.status_code, 200)
             self.assertIn(name, response.data)
-
-    def test_not_whitelisted_participant(self):
-        with app.test_client() as c:
-            self.login(self.admin['email'], self.admin['password'])
-            self.create_hunt()
-            self.logout()
-
-            with c.session_transaction() as sess:
-                sess['admin_id'] = 1
-
-            c.get('/hunts/1/items/1', follow_redirects=True)
-            response = self.register_participant(c, email(), identifier())
-            self.assertIn(
-                'You are not on the list of allowed participants',
-                response.data
-            )
-
-    def test_index_items(self):
-        self.login(self.admin['email'], self.admin['password'])
-        items = [{'name': identifier()}, {'name': identifier()}]
-        participants = [{'email': email()}]
-        self.create_hunt(items=items, participants=participants)
-        self.logout()
-
-        self.app.get('hunts/1/items')
-        response = self.register_participant(
-            self.app, participants[0]['email'], identifier())
-        self.assertEqual(response.status_code, 200)
-
-        for item in items:
-            self.assertIn(item['name'], response.data)
-
-    def test_put_state_doc(self):
-        with app.test_request_context('/'):
-            hunt_id = 1
-            session_email = email()
-            params = xapi.default_params(session_email, hunt_id)
-
-            data = {'required_ids': [1, 2]}
-            setting = MockSetting(BASIC_LOGIN, BASIC_PASSWORD, WAX_SITE)
-
-            response = xapi.put_state(json.dumps(data), params, setting)
-            self.assertEqual(response.status_code, 204)
-
-            response = xapi.get_state_response(params, setting)
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.json(), data)
-
-    def test_post_state_doc(self):
-        with app.test_request_context('/'):
-            hunt_id = 1
-            session_email = email()
-            params = xapi.default_params(session_email, hunt_id)
-
-            data = {'required_ids': [1, 2]}
-            setting = MockSetting(BASIC_LOGIN, BASIC_PASSWORD, WAX_SITE)
-
-            response = xapi.post_state(json.dumps(data), params, setting)
-            self.assertEqual(response.status_code, 204)
-
-    def test_send_begin_hunt_statement(self):
-        with app.test_request_context('/'):
-            hunt = MockHunt(1, identifier())
-            statement = self.registered_statement(hunt)
-            setting = MockSetting(BASIC_LOGIN, BASIC_PASSWORD, WAX_SITE)
-            response = xapi.send_statement(statement, setting)
-            self.assertEqual(response.status_code, 200)
 
 
 if __name__ == '__main__':

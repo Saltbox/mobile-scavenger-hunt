@@ -1,24 +1,17 @@
-from flask import session, request, flash, redirect, url_for
+from flask import request, flash, redirect, url_for
 
 from models import Hunt, Participant, Item, Admin, db, Setting
 from forms import SettingForm
 from hunt import bcrypt
 
 
-# to do sha1
-def get_admin(db, email, password):
-    pw_hash = bcrypt.generate_password_hash(password)
-    return db.session.query(Admin).filter(
-        Admin.email == email, Admin.password == pw_hash
-    ).first()
+def valid_login(admin, email, password):
+    return admin and bcrypt.check_password_hash(
+        admin.pw_hash, password)
 
 
-def get_admin_id_from_login(method, db, form):
-    matched_admin = get_admin(
-        db, form.username.data, form.password.data)
-    if matched_admin:
-        return matched_admin.admin_id
-    raise Exception({'errors': {'email': 'Invalid email or password'}})
+def get_admin(db, email):
+    return db.session.query(Admin).filter(Admin.email == email).first()
 
 
 def get_settings(db, admin_id=None, hunt_id=None):
@@ -27,16 +20,6 @@ def get_settings(db, admin_id=None, hunt_id=None):
             Setting.admin_id == admin_id).first()
     elif hunt_id:
         return db.session.query(Setting).join(Admin).join(Hunt).first()
-    return None
-
-
-def update_settings(db, request, settings, form, admin_id):
-    if request.method == 'POST':
-        if form.validate():
-            form.populate_obj(settings)
-            settings.admin_id = admin_id
-            return settings
-        raise Exception({'errors': form.errors})
     return None
 
 
@@ -61,13 +44,9 @@ def get_participant(db, email, hunt_id):
         Participant.email == email, Participant.hunt_id == hunt_id).first()
 
 
-def item_path(hunt_id, item_id):
-    return "{}hunts/{}/items/{}".format(request.host_url, hunt_id, item_id)
-
-
 def get_domain_by_admin_id(db, admin_id):
     admin = db.session.query(Setting).filter(
-        Setting.admin_id == session['admin_id']).first()
+        Setting.admin_id == admin_id).first()
     if admin:
         return admin.domain
     return None
@@ -80,15 +59,24 @@ def get_intended_url(session, hunt_id):
         return '/hunt/{}'.format(hunt_id)
 
 
-def validate_participant(db, email, hunt_id):
-    participant_rule = db.session.query(Hunt).filter(
-        Hunt.hunt_id == hunt_id).first().participant_rule
+def ready_to_send_statements(db, admin_id=None, hunt_id=None):
+    settings = get_settings(db, admin_id=admin_id, hunt_id=hunt_id)
+    if settings:
+        return settings.wax_site and settings.login and settings.password
+    return False
+
+
+def item_path(hunt_id, item_id):
+    return "{}hunts/{}/items/{}".format(request.host_url, hunt_id, item_id)
+
+
+def validate_participant(db, email, hunt_id, participant_rule):
     if participant_rule == 'by_domain':
-        setting = get_settings(hunt_id=hunt_id)
+        setting = get_settings(db, hunt_id=hunt_id)
         return setting and email.split('@')[-1] == setting.domain, \
             "Only employees of this organization may participate"
     elif participant_rule == 'by_whitelist':
-        return get_participant(email, hunt_id), \
+        return get_participant(db, email, hunt_id) is not None, \
             "You are not on the list of allowed participants"
     # anyone can participate
     return True, ''
@@ -110,7 +98,7 @@ def initialize_hunt(form, hunt, admin_id, request):
         return p
 
     form.populate_obj(hunt)
-    hunt.admin_id = session['admin_id']
+    hunt.admin_id = admin_id
 
     # even though this is structured the same way as items
     # (which works), this workaround is necessary to create

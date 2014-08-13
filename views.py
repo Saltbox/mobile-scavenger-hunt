@@ -16,9 +16,12 @@ from utils import get_admin, get_settings, get_hunt, get_item, \
     get_participant, item_path, get_domain_by_admin_id, \
     validate_participant, get_intended_url, get_hunts, get_items, \
     initialize_hunt, initialize_registered_participant, mark_items_found, \
-    get_admin_id_from_login, update_settings
+    valid_login, ready_to_send_statements
 
 import xapi
+
+
+login_manager.login_view = "login"
 
 
 def get_db():
@@ -42,8 +45,8 @@ def login():
     errors = None
     form = AdminLoginForm(request.form)
     if request.method == 'POST' and form.validate():
-        admin = get_admin(g.db, form.username.data, form.password.data)
-        if admin:
+        admin = get_admin(g.db, form.email.data)
+        if valid_login(admin, form.email.data, form.password.data):
             login_user(admin)
             flash('You were logged in', 'info')
             return redirect(url_for('hunts'))
@@ -73,17 +76,19 @@ def admins():
         if form.validate():
             admin = Admin()
             form.populate_obj(admin)
-            admin.password = bcrypt.generate_password_hash(admin.password)
+            admin.pw_hash = bcrypt.generate_password_hash(form.password.data)
 
             g.db.session.add(admin)
             g.db.session.commit()
+
+            saved_admin = get_admin(g.db, admin.email)
+            login_user(saved_admin)
 
             domain = admin.email.split('@')[-1]
 
             flash('Successfully created admin', 'success')
             logger.info(
                 'Admin registration form was submitted successfully')
-
             return make_response(
                 render_template('settings.html', domain=domain))
 
@@ -101,15 +106,17 @@ def admins():
 @login_required
 def settings():
     errors = None
-
-    admin_settings = get_settings(g.db, admin_id=session['admin_id']) or Setting()
+    admin_settings = get_settings(
+        g.db, admin_id=current_user.admin_id) or Setting()
     form = SettingForm(request.form)
-    try:
-        admin_settings = update_settings(
-            g.db, request, admin_settings, form, session['admin_id'])
-    except Exception as e:
-        errors = e.args[0]
-
+    if request.method == 'POST':
+        if form.validate():
+            form.populate_obj(admin_settings)
+            admin_settings.admin_id = current_user.admin_id
+            g.db.session.add(admin_settings)
+            g.db.session.commit()
+        else:
+            errors = form.errors
     return make_response(render_template(
         'settings.html', login=admin_settings.login,
         password=admin_settings.password, domain=admin_settings.domain,
@@ -121,8 +128,7 @@ def settings():
 @app.route('/hunts', methods=['GET'])
 @login_required
 def hunts():
-    logger.debug('session: %s', session)
-    hunts = get_hunts(g.db, session['admin_id'])
+    hunts = get_hunts(g.db, current_user.admin_id)
     return render_template('hunts.html', hunts=hunts)
 
 
@@ -130,16 +136,15 @@ def hunts():
 @app.route('/new_hunt', methods=['GET', 'POST'])
 @login_required
 def new_hunt():
-    domain = get_domain_by_admin_id(g.db, session['admin_id'])
+    domain = get_domain_by_admin_id(g.db, current_user.admin_id)
     hunt = Hunt()
     form = HuntForm(request.form)
 
     if request.method == 'POST':
         if form.validate():
-            hunt = initialize_hunt(form, hunt, session['admin_id'], request)
+            hunt = initialize_hunt(form, hunt, current_user.admin_id, request)
 
             try:
-                # todo: session manager
                 g.db.session.add(hunt)
                 g.db.session.commit()
             except IntegrityError as e:
@@ -167,7 +172,7 @@ def new_hunt():
 @app.route('/hunts/<hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
-    domain = get_domain_by_admin_id(g.db, session['admin_id'])
+    domain = get_domain_by_admin_id(g.db, current_user.admin_id)
     hunt = get_hunt(g.db, hunt_id)
     if hunt:
         form = HuntForm(request.form)
@@ -206,10 +211,10 @@ def show_item_code(hunt_id, item_id):
 @app.route('/hunts/<int:hunt_id>/delete')
 @login_required
 def delete_hunt(hunt_id):
-    logger.info(
-        'preparing to delete hunt with hunt_id, {}'.format(hunt_id))
     hunt = get_hunt(g.db, hunt_id)
-    if hunt:
+    if hunt and hunt.admin_id == current_user.admin_id:
+        logger.info(
+            'preparing to delete hunt with hunt_id, {}'.format(hunt_id))
         g.db.session.delete(hunt)
         g.db.session.commit()
         flash('Successfully deleted hunt', 'success')
@@ -256,7 +261,7 @@ def show_item(hunt_id, item_id):
     item = get_item(g.db, item_id)
     admin_settings = get_settings(hunt_id=hunt_id)
 
-    if item and admin_settings:
+    if item and ready_to_send_statements(g.db, hunt_id=hunt_id):
         email = session.get('email')
         if email and get_participant(g.db, email, hunt_id):
             params = xapi.default_params(email, hunt_id)
@@ -295,12 +300,19 @@ def get_started(hunt_id):
 # validate and register participant before redirecting back to hunt
 @app.route('/register_participant', methods=['POST'])
 def register_participant():
+    hunt_id = request.args['hunt_id']
+    hunt = get_hunt(db, hunt_id)
+
+    # i don't think this can happen ever in the app
+    if not hunt:
+        abort(404)
+
     form = ParticipantForm(request.form)
     if form.validate():
-        hunt_id = request.args['hunt_id']
         email = form.email.data
 
-        participant_valid, err_msg = validate_participant(email, hunt_id)
+        participant_valid, err_msg = validate_participant(
+            g.db, email, hunt_id, hunt.participant_rule)
         if participant_valid:
             user_id = str(uuid.uuid4())
             session.update({
