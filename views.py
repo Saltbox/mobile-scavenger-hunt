@@ -102,6 +102,7 @@ def admins():
         'admin_registration.html', form=form, display_login_link=True)
 
 
+# settings page primarily for connecting to Wax LRS
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
@@ -161,7 +162,7 @@ def new_hunt():
                         hunt.name, hunt.admin_id)
             return redirect(url_for('hunts'))
         else:
-            flash('Error creating form', 'warning')
+            flash('Error creating form: {}'.format(form.errors), 'warning')
             logger.warning('Error creating form.\nForm errors: %s\nForm data: '
                            '%s ', form.errors, form.data)
     return make_response(
@@ -175,9 +176,8 @@ def hunt(hunt_id):
     domain = get_domain_by_admin_id(g.db, current_user.admin_id)
     hunt = get_hunt(g.db, hunt_id)
     if hunt:
-        form = HuntForm(request.form)
         return render_template(
-            'show_hunt.html', hunt=hunt, form=form, domain=domain)
+            'show_hunt.html', hunt=hunt, domain=domain)
     abort(404)
 
 
@@ -242,9 +242,9 @@ def index_items(hunt_id):
                 state = response.json()
                 items = mark_items_found(state, items)
 
-            return render_template(
+            return make_response(render_template(
                 'items.html', items=items, hunt_id=hunt_id,
-                hunt_name=hunt.name)
+                hunt_name=hunt.name))
 
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
         return make_response(
@@ -260,7 +260,8 @@ def index_items(hunt_id):
 def show_item(hunt_id, item_id):
     item = get_item(g.db, item_id)
     admin_settings = get_settings(hunt_id=hunt_id)
-
+    # maybe make check for item a check for a hunt with an item with that
+    # item id for one less call to db
     if item and ready_to_send_statements(g.db, hunt_id=hunt_id):
         email = session.get('email')
         if email and get_participant(g.db, email, hunt_id):
@@ -271,7 +272,8 @@ def show_item(hunt_id, item_id):
             state_report, updated_state = xapi.update_state(
                 state_response, email, hunt, item, params, g.db)
             xapi.send_statements(
-                updated_state, state_report, admin_settings, email, hunt, item=item)
+                updated_state, state_report, admin_settings, email, hunt,
+                item=item)
 
             if state_report.get('hunt_completed'):
                 return make_response(render_template('congratulations.html'))

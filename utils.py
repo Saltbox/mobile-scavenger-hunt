@@ -11,6 +11,7 @@ def valid_login(admin, email, password):
 
 
 def get_admin(db, email):
+    print 'email', email
     return db.session.query(Admin).filter(Admin.email == email).first()
 
 
@@ -56,7 +57,7 @@ def get_intended_url(session, hunt_id):
     if 'intended_url' in session:
         return session.pop('intended_url')
     else:
-        return '/hunt/{}'.format(hunt_id)
+        return '/hunts/{}/items'.format(hunt_id)
 
 
 def ready_to_send_statements(db, admin_id=None, hunt_id=None):

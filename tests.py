@@ -90,7 +90,7 @@ class HuntTestCase(unittest.TestCase):
             login=login, password=password
         ), follow_redirects=True)
 
-    def set_up_mock_admin(self, get_db, valid=False):
+    def create_mock_admin(self, get_db, valid=False):
         if valid:
             pw_hash = bcrypt.generate_password_hash(self.admin['password'])
             admin = MagicMock(pw_hash=pw_hash)
@@ -98,10 +98,41 @@ class HuntTestCase(unittest.TestCase):
             admin = MagicMock(admin_id=1)
 
         admin.get_id.return_value = 1
-        get_db().session.query().filter().first.return_value = admin
-        return get_db
+        return admin
 
     ### TESTS! ###
+
+    @patch('views.get_admin')
+    @patch('views.get_db')
+    def test_login_valid_credentials_allows_user_to_enter_site(
+            self, get_db, get_admin):
+        get_admin.return_value = self.create_mock_admin(get_db, valid=True)
+        with app.test_client() as c:
+            self.create_admin(c, self.admin['email'], self.admin['password'])
+            self.logout(c)
+            response = self.login(c, self.admin['email'], self.admin['password'])
+            self.assertEqual(response.status_code, 200)
+
+    @patch('views.get_admin')
+    def test_login_invalid_credentials_prevents_user_from_entering_site(
+            self, get_admin):
+        get_admin.return_value = None
+        with app.test_client() as c:
+            admin_email = email()
+            password = identifier()
+
+            response = self.login(c, admin_email, password)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(
+                'Invalid email and password combination', response.data)
+
+    @patch('views.get_admin')
+    @patch('views.get_db')
+    def test_pages_requiring_login(self, get_db, get_admin):
+        get_admin.return_value = self.create_mock_admin(get_db)
+        for route in ['/hunts', '/hunts/1', '/settings']:
+            response = self.app.get(route, follow_redirects=True)
+            self.assertIn('Please log in to access this page.', response.data)
 
     @patch('views.get_db')
     def test_visit_admins_page_works(self, get_db):
@@ -109,9 +140,10 @@ class HuntTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('Admin Registration', response.data)
 
+    @patch('views.get_admin')
     @patch('views.get_db')
-    def test_create_admin_works(self, get_db):
-        self.set_up_mock_admin(get_db)
+    def test_create_admin_works(self, get_db, get_admin):
+        get_admin.return_value = self.create_mock_admin(get_db)
         with app.test_client() as c:
             password = identifier()
             admin_email = email()
@@ -121,39 +153,15 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn('Successfully created admin', response.data)
 
-    @patch('views.get_db')
-    def test_login_valid_credentials_allows_user_to_enter_site(self, get_db):
-        self.set_up_mock_admin(get_db, valid=True)
-        with app.test_client() as c:
-            self.create_admin(c, self.admin['email'], self.admin['password'])
-            self.logout(c)
-            response = self.login(c, self.admin['email'], self.admin['password'])
-            self.assertEqual(response.status_code, 200)
-
+    @patch('views.current_user')
+    @patch('views.login_manager._login_disabled')
     @patch('views.get_admin')
-    def test_login_invalid_credentials_prevents_user_from_entering_site(self, get_admin):
-        get_admin.return_value = None
-        with app.test_client() as c:
-            admin_email = email()
-            password = identifier()
-
-            response = self.login(c, admin_email, password)
-            self.assertEqual(response.status_code, 200)
-            self.assertIn('Invalid email and password combination', response.data)
-
     @patch('views.get_db')
-    def test_pages_requiring_login(self, get_db):
-        self.set_up_mock_admin(get_db)
-        for route in ['/hunts', '/hunts/1', '/settings']:
-            response = self.app.get(route, follow_redirects=True)
-            self.assertIn('Please log in to access this page.', response.data)
-
-    @patch('views.get_db')
-    def test_create_settings(self, get_db):
-        self.set_up_mock_admin(get_db)
+    def test_create_settings(
+            self, get_db, get_admin, login_disabled, current_user):
+        get_admin.return_value = self.create_mock_admin(get_db)
+        current_user.admin_id = 1
         with app.test_client() as c:
-            self.create_admin(c, self.admin['email'], self.admin['password'])
-
             basic_login = identifier()
             domain = identifier()
             settings_response = self.create_settings(
@@ -163,9 +171,33 @@ class HuntTestCase(unittest.TestCase):
             self.assertIn(basic_login, settings_response.data)
             self.assertIn(domain, settings_response.data)
 
+    @patch('views.get_settings')
+    @patch('views.current_user')
+    @patch('views.login_manager._login_disabled')
     @patch('views.get_db')
-    def test_create_hunt_works(self, get_db):
-        self.set_up_mock_admin(get_db, valid=True)
+    @patch('views.get_admin')
+    def test_previously_saved_settings_appear_when_visiting_settings(
+            self, get_admin, get_db, login_disabled, current_user, get_settings):
+        login_disabled = True
+        get_admin.return_value = self.create_mock_admin(get_db)
+        current_user.admin_id = 1
+
+        domain = identifier()
+        wax_site = identifier()
+        login = identifier()
+        password = identifier()
+        get_settings.return_value = MagicMock(
+            domain=domain, wax_site=wax_site, login=login, password=password)
+        with app.test_client() as c:
+            response = c.get('/settings')
+            self.assertEqual(response.status_code, 200)
+            for text in [domain, wax_site, login, password]:
+                self.assertIn(text, response.data)
+
+    @patch('views.get_admin')
+    @patch('views.get_db')
+    def test_create_hunt_works(self, get_db, get_admin):
+        get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
             name = identifier()
             participants = [{'email': email()} for _ in xrange(2)]
@@ -198,24 +230,35 @@ class HuntTestCase(unittest.TestCase):
             for item in items:
                 self.assertIn(item['name'], show_hunt_response.data)
 
-    @patch('views.get_hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
-    @patch('views.get_db')
-    def test_delete_hunt_works(self, get_db, login_disabled, current_user, get_hunt):
+    def test_show_hunt_on_nonexistent_hunt_id_404s(
+            self, login_disabled, current_user):
         current_user.admin_id = 1
         login_disabled = True
-        self.set_up_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            hunt = MagicMock(admin_id=1)
-            get_hunt.return_value = hunt
-            response = c.get('/hunts/1/delete', follow_redirects=True)
+            response = self.app.get('/hunts/1', follow_redirects=True)
+            self.assertEqual(response.status_code, 404)
+
+    @patch('views.xapi')
+    @patch('views.get_hunt')
+    @patch('views.get_settings')
+    @patch('views.get_db')
+    @patch('views.get_items')
+    def test_index_items_displays_all_items(
+            self, get_items, _get_db, _get_settings, _get_hunt, _xapi):
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess['email'] = email()
+
+            items = [{'name': identifier()}, {'name': identifier()}]
+            get_items.return_value = items
+
+            response = c.get('hunts/1/items')
             self.assertEqual(response.status_code, 200)
 
-            # make get_hunt return None
-            get_hunt.return_value = None
-            response = c.get('/hunts/1', follow_redirects=True)
-            self.assertEqual(response.status_code, 404)
+            for item in items:
+                self.assertIn(item['name'], response.data)
 
     def test_get_started(self):
         response = self.app.get(
@@ -223,16 +266,18 @@ class HuntTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('Enter your name and email', response.data)
 
+    @patch('views.get_admin')
     @patch('views.get_hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     @patch('views.get_db')
-    def test_show_all_hunt_item_codes_works(self, get_db, login_disabled, current_user, get_hunt):
+    def test_show_all_hunt_item_codes_works(
+            self, get_db, login_disabled, current_user, get_hunt, get_admin):
         current_user.admin_id = 1
         login_disabled = True
-        self.set_up_mock_admin(get_db, valid=True)
+        get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            item1 = MagicMock().__se
+            item1 = MagicMock()
             item1.name = identifier()
             item1.item_id = 1
             item2 = MagicMock()
@@ -247,14 +292,16 @@ class HuntTestCase(unittest.TestCase):
             for item in [item1, item2]:
                 self.assertIn(item.name, response.data)
 
+    @patch('views.get_admin')
     @patch('views.get_hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     @patch('views.get_db')
-    def test_show_one_hunt_item_code_works(self, get_db, login_disabled, current_user, get_hunt):
+    def test_show_one_hunt_item_code_works(
+            self, get_db, login_disabled, current_user, get_hunt, get_admin):
         current_user.admin_id = 1
         login_disabled = True
-        self.set_up_mock_admin(get_db, valid=True)
+        get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
             item1 = MagicMock()
             item1.name = identifier()
@@ -266,43 +313,122 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn(item1.name, response.data)
 
+    @patch('views.get_admin')
+    @patch('views.get_hunt')
+    @patch('views.current_user')
+    @patch('views.login_manager._login_disabled')
+    @patch('views.get_db')
+    def test_delete_hunt_works(
+            self, get_db, login_disabled, current_user, get_hunt, get_admin):
+        current_user.admin_id = 1
+        login_disabled = True
+        get_admin.return_value = self.create_mock_admin(get_db, valid=True)
+        with app.test_client() as c:
+            hunt = MagicMock(admin_id=1)
+            get_hunt.return_value = hunt
+            response = c.get('/hunts/1/delete', follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+
+            # make get_hunt return None
+            get_hunt.return_value = None
+            response = c.get('/hunts/1', follow_redirects=True)
+            self.assertEqual(response.status_code, 404)
+
+    @patch('views.current_user')
+    @patch('views.login_manager._login_disabled')
+    def test_delete_nonexistent_hunt_404s(self, login_disabled, current_user):
+        current_user.admin_id = 1
+        login_disabled = True
+        with app.test_client() as c:
+            response = c.get('hunts/1/delete')
+            self.assertEqual(response.status_code, 404)
+
+    @patch('views.get_hunt')
+    @patch('views.current_user')
+    @patch('views.login_manager._login_disabled')
+    def test_delete_other_admin_hunt_404s(
+            self, login_disabled, current_user, get_hunt):
+        get_hunt().admin_id = 1
+        current_user.admin_id = 2
+        login_disabled = True
+        with app.test_client() as c:
+            response = c.get('hunts/1/delete')
+            self.assertEqual(response.status_code, 404)
+
     @patch('utils.get_settings')
     @patch('views.get_db')
-    def tests_validate_participant_by_domain(self, get_db, get_settings):
+    def test_validate_participant_by_domain(self, get_db, get_settings):
         domain = get_settings().domain = 'example.com'
         email = '{}@{}'.format(identifier(), domain)
         valid, _ = utils.validate_participant(get_db(), email, 1, 'by_domain')
         self.assertTrue(valid)
 
+    @patch('utils.get_settings')
+    @patch('views.get_db')
+    def test_validate_participant_by_domain(self, get_db, get_settings):
+        domain = get_settings().domain = 'example.com'
+        email = '{}@{}'.format(identifier(), domain)
+        valid, _ = utils.validate_participant(get_db(), email, 1, 'by_domain')
+        self.assertTrue(valid)
+
+    @patch('views.get_db')
+    def test_validate_participate_by_domain_invalid_domain(self, get_db):
         different_domain = '{}@not.example.com'.format(identifier())
-        invalid, _ = utils.validate_participant(get_db(), different_domain, 1, 'by_domain')
+        invalid, _ = utils.validate_participant(
+            get_db(), different_domain, 1, 'by_domain')
         self.assertFalse(invalid)
 
     @patch('utils.get_participant')
     @patch('views.get_db')
-    def tests_validate_participant_by_whitelist(self, get_db, get_participant):
+    def test_validate_participant_by_whitelist(self, get_db, get_participant):
         # mock will be truthy when returned from the check for participant
         valid, _ = utils.validate_participant(
             get_db(), email(), 1, 'by_whitelist')
         self.assertTrue(valid)
 
+    @patch('utils.get_participant')
+    @patch('views.get_db')
+    def test_validate_participant_by_whitelist_with_invalid_email(
+            self, get_db, get_participant):
         get_participant.return_value = None
         invalid, _ = utils.validate_participant(
             get_db(), email(), 1, 'by_whitelist')
         self.assertFalse(invalid)
 
     @patch('views.get_db')
-    def tests_validate_participant_anyone_can_participate(self, get_db):
+    def test_validate_participant_anyone_can_participate(self, get_db):
         valid, err_msg = utils.validate_participant(
             get_db(), email(), 1, 'anyone')
         self.assertTrue(valid)
+
+    # Flask-Login calls load_user which uses Admin, around the
+    # time response is returned
+    @patch('views.Admin')
+    @patch('views.xapi')
+    @patch('views.get_settings')
+    @patch('views.get_hunt')
+    @patch('views.get_db')
+    def test_valid_participant_can_register_for_hunt(
+            self, get_db, get_hunt, get_settings, xapi, Admin):
+        with app.test_client() as c:
+            response = c.post(
+                '/register_participant?hunt_id=1',
+                data={
+                    'email': email(),
+                    'name': identifier()
+                },
+                follow_redirects=True
+            )
+            self.assertEqual(response.status_code, 200)
 
     @patch('views.get_item')
     @patch('views.get_settings')
     @patch('views.ready_to_send_statements')
     @patch('views.get_participant')
     @patch('views.xapi')
-    def test_whitelisted_participant_can_resume_hunt(self, xapi, b, c, d, e):
+    def test_registered_participant_can_resume_hunt(
+            self, xapi, _get_participant, _ready_to_send_statements,
+            _get_settings, _get_item):
         state_report = MagicMock()
         state_report.get.return_value = False
         xapi.update_state.return_value = state_report, MagicMock()
