@@ -102,38 +102,6 @@ class HuntTestCase(unittest.TestCase):
 
     ### TESTS! ###
 
-    @patch('views.get_admin')
-    @patch('views.get_db')
-    def test_login_valid_credentials_allows_user_to_enter_site(
-            self, get_db, get_admin):
-        get_admin.return_value = self.create_mock_admin(get_db, valid=True)
-        with app.test_client() as c:
-            self.create_admin(c, self.admin['email'], self.admin['password'])
-            self.logout(c)
-            response = self.login(c, self.admin['email'], self.admin['password'])
-            self.assertEqual(response.status_code, 200)
-
-    @patch('views.get_admin')
-    def test_login_invalid_credentials_prevents_user_from_entering_site(
-            self, get_admin):
-        get_admin.return_value = None
-        with app.test_client() as c:
-            admin_email = email()
-            password = identifier()
-
-            response = self.login(c, admin_email, password)
-            self.assertEqual(response.status_code, 200)
-            self.assertIn(
-                'Invalid email and password combination', response.data)
-
-    @patch('views.get_admin')
-    @patch('views.get_db')
-    def test_pages_requiring_login(self, get_db, get_admin):
-        get_admin.return_value = self.create_mock_admin(get_db)
-        for route in ['/hunts', '/hunts/1', '/settings']:
-            response = self.app.get(route, follow_redirects=True)
-            self.assertIn('Please log in to access this page.', response.data)
-
     @patch('views.get_db')
     def test_visit_admins_page_works(self, get_db):
         response = self.app.get('/admins')
@@ -193,6 +161,48 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             for text in [domain, wax_site, login, password]:
                 self.assertIn(text, response.data)
+
+    @patch('views.get_admin')
+    @patch('views.get_db')
+    def test_login_valid_credentials_allows_user_to_enter_site(
+            self, get_db, get_admin):
+        get_admin.return_value = self.create_mock_admin(get_db, valid=True)
+        with app.test_client() as c:
+            self.create_admin(c, self.admin['email'], self.admin['password'])
+            self.logout(c)
+            response = self.login(c, self.admin['email'], self.admin['password'])
+            self.assertEqual(response.status_code, 200)
+
+    @patch('views.get_admin')
+    def test_login_invalid_credentials_prevents_user_from_entering_site(
+            self, get_admin):
+        get_admin.return_value = None
+        with app.test_client() as c:
+            admin_email = email()
+            password = identifier()
+
+            response = self.login(c, admin_email, password)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(
+                'Invalid email and password combination', response.data)
+
+    @patch('views.get_admin')
+    @patch('views.get_db')
+    def test_pages_requiring_login(self, get_db, get_admin):
+        get_admin.return_value = self.create_mock_admin(get_db)
+        for route in ['/hunts', '/hunts/1', '/settings']:
+            response = self.app.get(route, follow_redirects=True)
+            self.assertIn('Please log in to access this page.', response.data)
+
+    @patch('views.get_db')
+    @patch('views.login_manager._login_disabled')
+    @patch('views.current_user')
+    def test_visiting_new_hunt_works(self, current_user, login_disabled, get_db):
+        login_disabled = True
+        current_user.admin_id = 1
+        with app.test_client() as c:
+            response = c.get('/new_hunt')
+            self.assertEqual(response.status_code, 200)
 
     @patch('views.get_admin')
     @patch('views.get_db')
@@ -260,6 +270,13 @@ class HuntTestCase(unittest.TestCase):
             for item in items:
                 self.assertIn(item['name'], response.data)
 
+    @patch('views.login_manager._login_disabled')
+    def test_index_items_on_nonexistent_hunt_404s(self, login_disabled):
+        login_disabled = True
+        with app.test_client() as c:
+            response = c.get('hunts/1/items')
+            self.assertEqual(response.status_code, 404)
+
     def test_get_started(self):
         response = self.app.get(
             '/get_started/hunts/1', follow_redirects=True)
@@ -309,9 +326,10 @@ class HuntTestCase(unittest.TestCase):
             hunt = MagicMock(items=[item1])
             get_hunt.return_value = hunt
 
-            response = self.app.get('/hunts/1/items/1/qrcode')
+            response = c.get('/hunts/1/items/1/qrcode')
             self.assertEqual(response.status_code, 200)
             self.assertIn(item1.name, response.data)
+
 
     @patch('views.get_admin')
     @patch('views.get_hunt')
@@ -444,6 +462,38 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('/hunts/1/items/1', follow_redirects=True)
             self.assertEqual(response.status_code, 200)
             self.assertIn(name, response.data)
+
+    @patch('views.get_item')
+    @patch('views.get_settings')
+    @patch('views.ready_to_send_statements')
+    @patch('views.get_participant')
+    @patch('views.xapi')
+    def test_registered_participant_congratulated_on_hunt_finish(
+        self, xapi, get_participant, ready_to_send_statements,
+            get_settings, get_item):
+        state_report = MagicMock()
+        state_report.get.return_value = True
+        xapi.update_state.return_value = state_report, MagicMock()
+        with app.test_client() as c:
+            participant_email = email()
+            with c.session_transaction() as sess:
+                sess['email'] = participant_email
+            response = c.get('/hunts/1/items/1')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('congratulations!', response.data)
+
+    def test_show_item_on_nonexistent_hunt_404s(self):
+        with app.test_client() as c:
+            response = c.get('/hunts/1/items/1', follow_redirects=True)
+            self.assertEqual(response.status_code, 404)
+
+    @patch('views.get_item')
+    @patch('views.get_db')
+    def test_show_item_for_nonexistent_item_404s(self, get_db, get_item):
+        get_item.return_value = None
+        with app.test_client() as c:
+            response = c.get('/hunts/1/items/1')
+            self.assertEqual(response.status_code, 404)
 
 
 if __name__ == '__main__':

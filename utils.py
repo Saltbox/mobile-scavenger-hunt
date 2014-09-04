@@ -60,11 +60,8 @@ def get_intended_url(session, hunt_id):
         return '/hunts/{}/items'.format(hunt_id)
 
 
-def ready_to_send_statements(db, admin_id=None, hunt_id=None):
-    settings = get_settings(db, admin_id=admin_id, hunt_id=hunt_id)
-    if settings:
-        return settings.wax_site and settings.login and settings.password
-    return False
+def ready_to_send_statements(db, settings):
+    return settings.wax_site and settings.login and settings.password
 
 
 def item_path(hunt_id, item_id):

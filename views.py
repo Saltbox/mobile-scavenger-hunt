@@ -137,7 +137,6 @@ def hunts():
 @app.route('/new_hunt', methods=['GET', 'POST'])
 @login_required
 def new_hunt():
-    domain = get_domain_by_admin_id(g.db, current_user.admin_id)
     hunt = Hunt()
     form = HuntForm(request.form)
 
@@ -154,7 +153,6 @@ def new_hunt():
                 logger.warning(
                     'Exception found while creating hunt with an existing name: %s\n'
                     'Form data: %s ', e, form.data)
-                # can you flash on a 400 page?
                 abort(400)
 
             flash('New scavenger hunt added', 'success')
@@ -165,6 +163,8 @@ def new_hunt():
             flash('Error creating form: {}'.format(form.errors), 'warning')
             logger.warning('Error creating form.\nForm errors: %s\nForm data: '
                            '%s ', form.errors, form.data)
+
+    domain = get_domain_by_admin_id(g.db, current_user.admin_id)
     return make_response(
         render_template('new_hunt.html', form=form, domain=domain))
 
@@ -173,9 +173,9 @@ def new_hunt():
 @app.route('/hunts/<hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
-    domain = get_domain_by_admin_id(g.db, current_user.admin_id)
     hunt = get_hunt(g.db, hunt_id)
     if hunt:
+        domain = get_domain_by_admin_id(g.db, current_user.admin_id)
         return render_template(
             'show_hunt.html', hunt=hunt, domain=domain)
     abort(404)
@@ -258,35 +258,35 @@ def index_items(hunt_id):
 # information about one item for scavenger to read
 @app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
 def show_item(hunt_id, item_id):
-    item = get_item(g.db, item_id)
-    admin_settings = get_settings(hunt_id=hunt_id)
-    # maybe make check for item a check for a hunt with an item with that
-    # item id for one less call to db
-    if item and ready_to_send_statements(g.db, hunt_id=hunt_id):
-        email = session.get('email')
-        if email and get_participant(g.db, email, hunt_id):
-            params = xapi.default_params(email, hunt_id)
-            hunt = get_hunt(g.db, hunt_id)
+    admin_settings = get_settings(g.db, hunt_id=hunt_id)
+    # admin_settings found through hunt_id means hunt exists
+    if admin_settings and ready_to_send_statements(g.db, admin_settings):
+        item = get_item(g.db, item_id)
+        if item:
+            email = session.get('email')
+            if email and get_participant(g.db, email, hunt_id):
+                params = xapi.default_params(email, hunt_id)
+                hunt = get_hunt(g.db, hunt_id)
 
-            state_response = xapi.get_state_response(params, admin_settings)
-            state_report, updated_state = xapi.update_state(
-                state_response, email, hunt, item, params, g.db)
-            xapi.send_statements(
-                updated_state, state_report, admin_settings, email, hunt,
-                item=item)
+                state_response = xapi.get_state_response(params, admin_settings)
+                state_report, updated_state = xapi.update_state(
+                    state_response, email, hunt, item, params, g.db)
+                xapi.send_statements(
+                    updated_state, state_report, admin_settings, email, hunt,
+                    item=item)
 
-            if state_report.get('hunt_completed'):
-                return make_response(render_template('congratulations.html'))
-            return make_response(render_template(
-                'item.html', item=item, username=session['name'],
-                num_found=updated_state['num_found'],
-                total_items=updated_state['total_items'], hunt_id=hunt_id))
-        else:
-            session['intended_url'] = '/hunts/{}/items/{}'.format(
-                hunt_id, item_id)
-            return make_response(render_template(
-                'welcome.html',
-                action_url="/get_started/hunts/{}".format(hunt_id)))
+                if state_report.get('hunt_completed'):
+                    return make_response(render_template('congratulations.html'))
+                return make_response(render_template(
+                    'item.html', item=item, username=session['name'],
+                    num_found=updated_state['num_found'],
+                    total_items=updated_state['total_items'], hunt_id=hunt_id))
+            else:
+                session['intended_url'] = '/hunts/{}/items/{}'.format(
+                    hunt_id, item_id)
+                return make_response(render_template(
+                    'welcome.html',
+                    action_url="/get_started/hunts/{}".format(hunt_id)))
     abort(404)
 
 
@@ -316,12 +316,7 @@ def register_participant():
         participant_valid, err_msg = validate_participant(
             g.db, email, hunt_id, hunt.participant_rule)
         if participant_valid:
-            user_id = str(uuid.uuid4())
-            session.update({
-                'user_id': user_id,
-                'email': email,
-                'name': form.name.data
-            })
+            session.update({'email': email, 'name': form.name.data})
 
             participant = initialize_registered_participant(
                 form, Participant(), hunt_id)
@@ -330,9 +325,9 @@ def register_participant():
             g.db.session.commit()
 
             logger.info(
-                "user id, name, and email set to %s, %s, and %s\n"
+                "name and email set to %s, and %s\n"
                 "preparing requested item information.",
-                user_id, session['name'], email)
+                session['name'], email)
 
             redirect_url = get_intended_url(session, hunt_id)
             return make_response(redirect(redirect_url))
