@@ -1,59 +1,233 @@
 console.log('loading main.js');
 
-$(document).ready(function() {
-  var itemCount = $('.hunt-items').length;
-  var participantCount = 0;
+// functions for manipulating data
 
-  var huntId = function() {
-    return $('form[hunt_id]').attr('hunt_id');
-  };
+var validEmail = function(email) {
+  var validEmailRegex = /[\w-]+@([\w-]+\.)+[\w-]+/;
+  return validEmailRegex.test(email);
+};
 
-  // show checkmarks for selected participant rule
-  var participant_rule_el = $('input[name=participant_rule][checked=on]');
-  if (participant_rule_el) {
-    $(participant_rule_el).siblings().show();
-  }
+var addItemsToForm = function(allRequired, formData) {
+  $('input[name=item]').each(function(i, e) {
+    formData['items-' + i + '-name'] = $(e).val();
 
-  // make new item checkbox
-  var tdCheckbox = function(checked) {
-    if (checked) {
-      return "<td class='td-with-input'><input type='checkbox' class='hunt-items' name='item-required' checked='on'> Required</td>";
-    }
-    return "<td class='td-with-input'><input type='checkbox' class='hunt-items' name='item-required'> Required</td>";
-  };
-
-  var tdGlyphOkRequired = function() {
-    return "<td class='td-with-span'><span class='glyphicon glyphicon-ok'></span> Required</td>";
-  };
-
-  // gives admin something to delete items
-  var deleteIconTd = function(type) {
-    var glyphiconRemove = '<span class="glyphicon glyphicon-remove"></span>';
-    return '<td class="'+ type + '-delete">' + glyphiconRemove + '</td>';
-  };
-
-  // add tr to item table
-  var addItemRow = function(itemCount, fieldValue) {
-    var all_required = $("input[name=all_required]").prop('checked');
-    var tdInput = "<td>" + "<input type='text' value=" + fieldValue + " name='item' class='form-control'>" + "</td>";
-
-    var item_required;
-    if (all_required) {
-      item_required = tdGlyphOkRequired();
+    if (allRequired) {
+      formData['items-' + i + '-required'] = true;
     }
     else {
-      item_required = tdCheckbox(itemCount, all_required);
+      var input = $($($(e)).parent().siblings().find('input'));
+      var checked = input.prop('checked');
+      formData['items-' + i + '-required'] = checked;
     }
-    var row = "<tr>" + tdInput + item_required + deleteIconTd('item') + "</tr>";
-    $('#items-table tbody').append(row);
-  };
+  });
+  return formData;
+};
 
-  // add tr to participant table
-  var addParticipantRow = function(email, registered) {
-    var emailTd = "<td><input type='email' value=" + email + " name=participant class='form-control'></td>";
-    var listRow = "<tr>" + emailTd + deleteIconTd('participant') + "</tr>";
-    $('#participants-table').append(listRow);
-  };
+var addParticipantsToForm = function(formData) {
+  $('input[name=participant]').each(function(i, e) {
+    formData['participants-' + i + '-email'] = $(e).val();
+  });
+  return formData;
+};
+
+var tooManyRequired = function() {
+  var num_required = $('input[name=num_required]').val();
+  var num_items = $('input[name=item]').length;
+  return num_required > num_items;
+};
+
+var missingRequiredFields = function(formData) {
+  // minimally the form needs to have 3 field values:
+  // hunt name, participant_rule, an item
+  var required = ['name', 'items-0-name', 'participant_rule'];
+  for (var ii in required) {
+    if (!(required[ii] in formData)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+var getFormData = function() {
+  var formData = {};
+  formData['name'] = $('input#name').val();
+
+  var allRequired = $('input[name=all_required]').prop('checked');
+  formData['all_required'] = allRequired;
+
+  var selectedRule = $('input[name=participant_rule]');
+  selectedRule.prop('checked', 'on');
+  formData['participant_rule'] = selectedRule.val();
+
+  var welcomeMessage = $('textarea[name=welcome_message]').val();
+  formData['welcome_message'] = welcomeMessage;
+  var congratsMessage = $('textarea[name=congratulations_message]').val();
+  formData['congratulations_message'] = congratsMessage;
+
+  formData = addItemsToForm(allRequired, formData);
+  formData = addParticipantsToForm(formData);
+
+  return formData;
+}
+
+var validFormData = function(formData) {
+  if (formData['name'].length < 4) {
+    $('#short_hunt_name').show();
+    return false;
+  }
+  var allRequired = $('input[name=all_required]').prop('checked');
+  if (!allRequired && tooManyRequired()){
+    $('#too-many-required').show();
+    return false;
+  }
+  if (missingRequiredFields(formData)) {
+    $('#missing-fields').show();
+    return false;
+  }
+  return formData;
+}
+
+var submitForm = function(formData) {
+  var validFormData = validFormData(formData);
+  if (validFormData) {
+    $.ajax({
+      url: '/new_hunt',
+      method: 'POST',
+      data: validFormData
+    })
+    .success(function() {
+      console.log('formdata', validFormData);
+      window.location.replace("/hunts");
+    })
+    .error(function() {
+      window.location.replace("/new_hunt");
+    });
+  }
+};
+
+
+// functions for making/manipulating dom bits
+
+
+var huntId = function() {
+  return $('form[hunt_id]').attr('hunt_id');
+};
+
+// make new item checkbox
+var tdCheckbox = function(checked) {
+  var checkbox = checked ? "checked='on'" : '';
+  return "<td class='td-with-input'><input type='checkbox' class='hunt-items' name='item-required'" + checkbox + "> Required</td>";
+};
+
+var tdGlyphOkRequired = function() {
+  return "<td class='td-with-span'><span class='glyphicon glyphicon-ok'></span> Required</td>";
+};
+
+// gives admin something to delete items
+var deleteIconTd = function(type) {
+  var glyphiconRemove = '<span class="glyphicon glyphicon-remove"></span>';
+  return '<td class="'+ type + '-delete">' + glyphiconRemove + '</td>';
+};
+
+// add tr to item table
+var addItemRow = function(itemCount, fieldValue) {
+  var allRequired = $("input[name=all_required]").prop('checked');
+  var tdInput = "<td><input type='text' value=" + fieldValue + " name='item' class='form-control'></td>";
+
+  var itemRequired;
+  if (allRequired) {
+    itemRequired = tdGlyphOkRequired();
+  }
+  else {
+    itemRequired = tdCheckbox(itemCount, allRequired);
+  }
+  var row = "<tr>" + tdInput + itemRequired + deleteIconTd('item') + "</tr>";
+  $('#items-table tbody').append(row);
+};
+
+// add tr to participant table
+var addParticipantRow = function(email, registered) {
+  var emailTd = "<td><input type='email' value=" + email + " name=participant class='form-control'></td>";
+  var listRow = "<tr>" + emailTd + deleteIconTd('participant') + "</tr>";
+  $('#participants-table').append(listRow);
+};
+
+// add input on enter
+var addInputByKeydown = function(event, type, count) {
+  if (event.keyCode == 13) {
+    event.preventDefault();
+    addInput(type, count);
+  }
+};
+
+// updates count and makes item/participant table appear with the first added row
+var incrementCount = function(countType, count) {
+  if (count < 1) {
+    $('#' + countType + '-table').show('slide', {'direction': 'up'}, 'fast');
+  }
+  count += 1;
+  return count;
+};
+
+// updates count and makes item/participant table disappear on the last item deleted
+var decrementCount = function(countType, count) {
+  count -= 1;
+  if (count < 1) {
+    $('#' + countType + '-table').hide('slow');
+  }
+  return count;
+};
+
+// add item or participant to respective table
+var addInput = function(fieldType, count) {
+  var fieldInput = $('input#' + fieldType + '-template');
+  var fieldValue = fieldInput.val();
+
+  if (fieldValue) {
+    // find smarter way to do this
+    if (fieldType == 'items') {
+      addItemRow(itemCount, fieldValue);
+      itemCount = incrementCount('items', count);
+    }
+    else {
+      if (validEmail(fieldValue)) {
+        addParticipantRow(fieldValue, true);
+        participantCount = incrementCount('participants', count);
+      }
+      else {
+        $('#participant-error').show('slow');
+      }
+    }
+    fieldInput.val('');
+  }
+};
+
+// time formatter
+$('.uglytime').each(function(index, e) {
+  var currentTime = $(e).html();
+  var prettyTime = moment(currentTime).fromNow();
+  $(e).text(prettyTime);
+});
+
+var toggleParticipantTable = function(participantRule) {
+  if (participantRule == 'by_whitelist') {
+    $('#participants-group').show('slide', {'direction': 'up'}, 'slow');
+  }
+  else {
+    $('#participants-group').hide('slide', {'direction': 'up'}, 'slow');
+  }
+};
+
+
+$(document).ready(function() {
+  var itemCount = 0;
+  var participantCount = 0;
+
+  // show checkmarks for selected participant rule
+  var participantRuleEl = $('input[name=participant_rule][checked=on]');
+  if (participantRuleEl) {
+    $(participantRuleEl).siblings().show();
+  }
 
   // toggle if all items are required for success
   $("input[name=all_required]").change(function() {
@@ -61,70 +235,13 @@ $(document).ready(function() {
     if (allItemsRequired) {
       $('input.hunt-items').prop('checked', true);
       $('#num-items-group').hide('slow');
-      formData['all_required'] = true;
       $('.td-with-input').replaceWith(tdGlyphOkRequired());
     }
     else {
       $('#num-items-group').show('slow');
-      formData['all_required'] = false;
       $('.td-with-span').replaceWith(tdCheckbox(true));
     }
   });
-
-  var validEmail = function(email) {
-    var validEmailRegex = /[\w-]+@([\w-]+\.)+[\w-]+/;
-    return validEmailRegex.test(email);
-  };
-
-  // add item or participant to respective table
-  var addInput = function(fieldType, count) {
-    var fieldInput = $('input#' + fieldType + '-template');
-    var fieldValue = fieldInput.val();
-
-    if (fieldValue) {
-      // find smarter way to do this
-      if (fieldType == 'items') {
-        addItemRow(itemCount, fieldValue);
-        itemCount = incrementCount('items', count);
-      }
-      else {
-        if (validEmail(fieldValue)) {
-          addParticipantRow(fieldValue, true);
-          participantCount = incrementCount('participants', count);
-        }
-        else {
-          $('#participant-error').show('slow');
-        }
-      }
-      fieldInput.val('');
-    }
-  };
-
-  // add input on enter
-  var addInputByKeydown = function(event, type, count) {
-    if (event.keyCode == 13) {
-      event.preventDefault();
-      addInput(type, count);
-    }
-  };
-
-  // updates count and makes item/participant table appear with the first added row
-  var incrementCount = function(countType, count) {
-    if (count < 1) {
-      $('#' + countType + '-table').show('slide', {'direction': 'up'}, 'fast');
-    }
-    count += 1;
-    return count;
-  };
-
-  // updates count and makes item/participant table disappear on the last item deleted
-  var decrementCount = function(countType, count) {
-    count -= 1;
-    if (count < 1) {
-      $('#' + countType + '-table').hide('slow');
-    }
-    return count;
-  };
 
   // add participant to list for later submission via button
   $("#add-participant").on("click", (function() {
@@ -147,7 +264,7 @@ $(document).ready(function() {
     addInputByKeydown(event, 'items', itemCount);
   });
 
-  // remove item from list and delete on backend
+  // remove item from list
   $('#participants-table tbody').on('click', 'td.participant-delete', function() {
     $(this).parents('tr').remove();
     participantCount = decrementCount('participants', participantCount);
@@ -159,13 +276,6 @@ $(document).ready(function() {
     itemCount = decrementCount('items', itemCount);
   });
 
-  // time formatter
-  $('.uglytime').each(function(index, e) {
-    var currentTime = $(e).html();
-    var prettyTime = moment(currentTime).format("MM-DD-YYYY");
-    $(e).text(prettyTime);
-  });
-
   // various events for updating ui upon participant rule selection
   $('#participant-rules .panel-rect').on({
     click: function(e) {
@@ -175,13 +285,7 @@ $(document).ready(function() {
 
       var selectedRule = $(this).find($('input[name=participant_rule]'));
       selectedRule.prop('checked', 'on');
-      if (selectedRule.val() == 'by_whitelist') {
-        $('#participants-group').show('slide', {'direction': 'up'}, 'slow');
-      }
-      else {
-        $('#participants-group').hide('slide', {'direction': 'up'}, 'slow');
-      }
-      formData['participant_rule'] = selectedRule.val();
+      toggleParticipantTable(selectedRule.val());
     },
     mouseenter: function() {
       $(this).addClass('panel-rect-hover');
@@ -191,94 +295,10 @@ $(document).ready(function() {
     }
   });
 
-  var addItemsToForm = function(allRequired, formData) {
-    $('input[name=item]').each(function(i, e) {
-      formData['items-' + i + '-name'] = $(e).val();
-
-      if (allRequired) {
-        formData['items-' + i + '-required'] = true;
-      }
-      else {
-        var input = $($($(e)).parent().siblings().find('input'));
-        var checked = input.prop('checked');
-        formData['items-' + i + '-required'] = checked;
-      }
-    });
-    return formData;
-  };
-
-  var addParticipantsToForm = function(formData) {
-    $('input[name=participant]').each(function(i, e) {
-      formData['participants-' + i + '-email'] = $(e).val();
-    });
-    return formData;
-  };
-
-  var tooManyRequired = function() {
-    var num_required = $('input[name=num_required]').val();
-    var num_items = $('input[name=item]').length;
-    return num_required > num_items;
-  };
-
-  var missingRequiredFields = function(formData) {
-    // minimally the form needs to have 3 field values:
-    // hunt name, participant_rule, an item
-    var required = ['name', 'items-0-name', 'participant_rule'];
-    for (var ii in required) {
-      if (!(required[ii] in formData)) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  var formData = {};
-  var submitForm = function() {
-    console.log('ah', formData);
-    formData['name'] = $('input#name').val();
-    if (formData['name'].length < 4) {
-      $('#short_hunt_name').show();
-      return;
-    }
-    var allRequired = $('input[name=all_required]').prop('checked');
-    formData['all_required'] = allRequired;
-
-    if (!allRequired && tooManyRequired()){
-      $('#too-many-required').show();
-      return;
-    }
-
-    formData['welcome_message'] = $(
-      'textarea[name=welcome_message]').val();
-    formData['congratulations_message'] = $(
-      'textarea[name=congratulations_message]').val();
-
-    formData = addItemsToForm(allRequired, formData);
-    formData = addParticipantsToForm(formData);
-
-
-    if (missingRequiredFields(formData)) {
-      $('#missing-fields').show();
-      return;
-    }
-
-    $.ajax({
-      url: '/new_hunt',
-      method: 'POST',
-      data: formData
-    })
-    .success(function() {
-      console.log('formdata', formData);
-      window.location.replace("/hunts");
-    })
-    .error(function() {
-      window.location.replace("/new_hunt");
-    });
-  };
-
   $('#submit-hunt-btn').on('click', function(e) {
     e.preventDefault();
-    submitForm();
+    var formData = getFormData();
+    submitForm(formData);
   });
 
   $('#printqr').on('click', function(e) {
