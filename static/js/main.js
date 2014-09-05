@@ -323,4 +323,20 @@ $(document).ready(function() {
     sectionPrint.focus();
     sectionPrint.print();
   });
+
+  $('#name').on({
+    keypress: function() {
+      $('.form-group h3').text($('#name').val());
+    },
+    keydown: function(e) {
+      // backspace or delete
+      if (e.keyCode == 46 || e.keyCode == 8) {
+        var newValue = $('#name').val().slice(0, -1);
+        if (newValue.length < 1) {
+          newValue = "What's your hunt's name?";
+        }
+        $('.form-group h3').text(newValue);
+      }
+    }
+  });
 });
