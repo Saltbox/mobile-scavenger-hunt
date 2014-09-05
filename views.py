@@ -1,5 +1,5 @@
 from flask import session, abort, flash, url_for, make_response, request, \
-    render_template, redirect, g
+    render_template, redirect, g, jsonify
 from sqlalchemy.exc import IntegrityError
 from flask.ext.login import login_user, logout_user, login_required, \
     current_user
@@ -54,7 +54,7 @@ def login():
     else:
         errors = form.errors
     return make_response(render_template(
-        'login.html', errors=errors, form=form, display_login_link=True))
+        'homepage.html', errors=errors, form=form, display_login_link=True))
 
 
 @app.route('/logout')
@@ -69,7 +69,7 @@ def root():
 
 
 # create or list admins who can create hunts
-@app.route('/admins', methods=['GET', 'POST'])
+@app.route('/admins', methods=['POST'])
 def admins():
     form = AdminForm(request.form)
     if request.method == 'POST':
@@ -98,8 +98,8 @@ def admins():
         flash(
             'There was an error creating your admin profile.'
             ' Please try again.', 'warning')
-    return render_template(
-        'admin_registration.html', form=form, display_login_link=True)
+        return render_template(
+            'homepage.html', form=form, display_login_link=True)
 
 
 # settings page primarily for connecting to Wax LRS
@@ -158,7 +158,9 @@ def new_hunt():
             flash('New scavenger hunt added', 'success')
             logger.info('hunt, %s, created for admin with id, %s',
                         hunt.name, hunt.admin_id)
-            return redirect(url_for('hunts'))
+
+            saved_hunt = g.db.session.query(Hunt).order_by(Hunt.hunt_id.desc()).first()
+            return jsonify({'hunt_id': saved_hunt.hunt_id})
         else:
             flash('Error creating form: {}'.format(form.errors), 'warning')
             logger.warning('Error creating form.\nForm errors: %s\nForm data: '

@@ -93,25 +93,15 @@ var submitForm = function(formData) {
     $.ajax({
       url: '/new_hunt',
       method: 'POST',
-      data: validFormData
+      data: validFormData,
+      async: false
     })
-    .success(function() {
-      console.log('formdata', validFormData);
-      return true;
+    .success(function(data) {
+      window.location.replace("/hunts/" + data['hunt_id']);
     })
-    .error(function() {
-      return false;
+    .error(function(xhr, status) {
+      window.location.replace("/new_hunt");
     });
-  }
-  return false;
-};
-
-var changePageOnSubmit = function(formSubmitted) {
-  if (formSubmitted) {
-    window.location.replace("/hunts");
-  }
-  else {
-    window.location.replace("/new_hunt");
   }
 };
 
@@ -195,7 +185,7 @@ var addInput = function(fieldType, count) {
   if (fieldValue) {
     // find smarter way to do this
     if (fieldType == 'items') {
-      addItemRow(allRequired, itemCount, fieldValue);
+      addItemRow(allRequired, count, fieldValue);
       itemCount = incrementCount('items', count);
     }
     else {
@@ -321,8 +311,7 @@ $(document).ready(function() {
   $('#submit-hunt-btn').on('click', function(e) {
     e.preventDefault();
     var formData = getFormData();
-    var formSubmitted = submitForm(formData);
-    changePageOnSubmit(formSubmitted);
+    submitForm(formData);
   });
 
   $('#printqr').on('click', function(e) {
