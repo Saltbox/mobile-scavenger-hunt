@@ -7,7 +7,14 @@ var validEmail = function(email) {
   return validEmailRegex.test(email);
 };
 
-var addItemsToForm = function(allRequired, formData) {
+var addParticipantsToFormData = function(formData) {
+  $('input[name=participant]').each(function(i, e) {
+    formData['participants-' + i + '-email'] = $(e).val();
+  });
+  return formData;
+};
+
+var addItemsToFormData = function(allRequired, formData) {
   $('input[name=item]').each(function(i, e) {
     formData['items-' + i + '-name'] = $(e).val();
 
@@ -23,17 +30,8 @@ var addItemsToForm = function(allRequired, formData) {
   return formData;
 };
 
-var addParticipantsToForm = function(formData) {
-  $('input[name=participant]').each(function(i, e) {
-    formData['participants-' + i + '-email'] = $(e).val();
-  });
-  return formData;
-};
-
-var tooManyRequired = function() {
-  var num_required = $('input[name=num_required]').val();
-  var num_items = $('input[name=item]').length;
-  return num_required > num_items;
+var tooManyRequiredItems = function(formData) {
+  return formData.num_required > formData.num_items;
 };
 
 var missingRequiredFields = function(formData) {
@@ -54,6 +52,9 @@ var getFormData = function() {
 
   var allRequired = $('input[name=all_required]').prop('checked');
   formData['all_required'] = allRequired;
+  formData['num_required'] = $('input[name=num_required]').val();
+  // num_items isn't actually used on backend, this is just for validating
+  formData['num_items'] = $('input[name=item]').length;
 
   var selectedRule = $('input[name=participant_rule]');
   selectedRule.prop('checked', 'on');
@@ -64,31 +65,30 @@ var getFormData = function() {
   var congratsMessage = $('textarea[name=congratulations_message]').val();
   formData['congratulations_message'] = congratsMessage;
 
-  formData = addItemsToForm(allRequired, formData);
-  formData = addParticipantsToForm(formData);
+  formData = addItemsToFormData(allRequired, formData);
+  formData = addParticipantsToFormData(formData);
 
   return formData;
 }
 
-var validFormData = function(formData) {
+var validateFormData = function(formData) {
+  if (missingRequiredFields(formData)) {
+    $('#missing-fields').show();
+    return false;
+  }
   if (formData['name'].length < 4) {
     $('#short_hunt_name').show();
     return false;
   }
-  var allRequired = $('input[name=all_required]').prop('checked');
-  if (!allRequired && tooManyRequired()){
+  if (!formData.allRequired && tooManyRequiredItems(formData)) {
     $('#too-many-required').show();
-    return false;
-  }
-  if (missingRequiredFields(formData)) {
-    $('#missing-fields').show();
     return false;
   }
   return formData;
 }
 
 var submitForm = function(formData) {
-  var validFormData = validFormData(formData);
+  var validFormData = validateFormData(formData);
   if (validFormData) {
     $.ajax({
       url: '/new_hunt',
@@ -97,14 +97,23 @@ var submitForm = function(formData) {
     })
     .success(function() {
       console.log('formdata', validFormData);
-      window.location.replace("/hunts");
+      return true;
     })
     .error(function() {
-      window.location.replace("/new_hunt");
+      return false;
     });
   }
+  return false;
 };
 
+var changePageOnSubmit = function(formSubmitted) {
+  if (formSubmitted) {
+    window.location.replace("/hunts");
+  }
+  else {
+    window.location.replace("/new_hunt");
+  }
+};
 
 // functions for making/manipulating dom bits
 
@@ -130,8 +139,7 @@ var deleteIconTd = function(type) {
 };
 
 // add tr to item table
-var addItemRow = function(itemCount, fieldValue) {
-  var allRequired = $("input[name=all_required]").prop('checked');
+var addItemRow = function(allRequired, itemCount, fieldValue) {
   var tdInput = "<td><input type='text' value=" + fieldValue + " name='item' class='form-control'></td>";
 
   var itemRequired;
@@ -182,11 +190,12 @@ var decrementCount = function(countType, count) {
 var addInput = function(fieldType, count) {
   var fieldInput = $('input#' + fieldType + '-template');
   var fieldValue = fieldInput.val();
+  var allRequired = $("input[name=all_required]").prop('checked');
 
   if (fieldValue) {
     // find smarter way to do this
     if (fieldType == 'items') {
-      addItemRow(itemCount, fieldValue);
+      addItemRow(allRequired, itemCount, fieldValue);
       itemCount = incrementCount('items', count);
     }
     else {
@@ -298,7 +307,8 @@ $(document).ready(function() {
   $('#submit-hunt-btn').on('click', function(e) {
     e.preventDefault();
     var formData = getFormData();
-    submitForm(formData);
+    var formSubmitted = submitForm(formData);
+    changePageOnSubmit(formSubmitted);
   });
 
   $('#printqr').on('click', function(e) {

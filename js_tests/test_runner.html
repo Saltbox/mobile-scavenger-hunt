@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Mocha Tests</title>
+  <title>Scavenger Hunt - Mocha Tests</title>
   <link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
 </head>
 <body>
@@ -11,12 +11,10 @@
   <script src="../node_modules/mocha/mocha.js"></script>
   <script>mocha.setup('bdd')</script>
   <script src="../node_modules/chai/chai.js"></script>
-  <script src="../node_modules/jsdom/jsdom.js"></script>
   <script>
     var assert = chai.assert;
     var expect = chai.expect;
     var should = chai.should();
-    var jsdom = jsdom.jsdom();
   </script>
   <script src="../static/js/main.js"></script>
   <script src="test.js"></script>
