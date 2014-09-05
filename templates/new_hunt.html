@@ -1,6 +1,5 @@
 {% extends "admin_layout.html" %}
 {% block adminbody %}
-  {% if session.logged_in %}
   <div class="container content">
     <form class="form-horizontal" role="form" name="new_hunt">
       <div class="col-md-6 col-md-offset-2">
@@ -165,5 +164,4 @@
       </div>
     </form>
   </div>
-  {% endif %}
 {% endblock %}

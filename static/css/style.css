@@ -349,3 +349,23 @@ input[name=item], input[name=participant] {
   border: none;
   color: black;
 }
+
+.clickable a {
+  display: inline-block;
+  width: 100%;
+  padding: 15px;
+}
+
+.clickable {
+  padding: 0;
+}
+
+@media (min-width: 1200px) {
+  div.container {
+    width: 100%;
+  }
+}
+
+div, span, table, input, label, textarea {
+  font-size: 24px;
+}

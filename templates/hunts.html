@@ -1,25 +1,24 @@
 {% extends "admin_layout.html" %}
 {% block adminbody %}
-  {% if session.logged_in %}
   <div class="container content">
     <div class="row">
       <div class="panel-default titlerow">
         <div class="panel-rect col-sm-12 col-md-5">
           <h2>Scavenger Hunt List</h2>
         </div>
-        <div class="panel-rect tertiary center col-sm-12 col-md-2">
+        <div class="clickable panel-rect tertiary center col-sm-12 col-md-2">
           <a class="center" href="/new_hunt">
             <i class="glyphicon glyphicon-plus hugeicon"></i><br>
             Create Hunt
           </a>
         </div>
-        <div class="panel-rect quarternary center col-sm-12 col-md-2">
+        <div class="clickable panel-rect quarternary center col-sm-12 col-md-2">
           <a class="center" href="/settings">
             <i class="glyphicon glyphicon-cog hugeicon"></i><br>
             Settings
           </a>
         </div>
-        <div class="panel-rect pentary center col-sm-12 col-md-2">
+        <div class="clickable panel-rect pentary center col-sm-12 col-md-2">
           <a class="center" href="/logout">
             <i class="glyphicon glyphicon-log-out hugeicon"></i><br>
             Logout
@@ -45,7 +44,7 @@
               <tr>
                 <td><a href="/hunts/{{hunt.hunt_id}}">{{ hunt.name }}</a></td>
                 <td>
-                  <a href="/hunts/{{hunt.hunt_id}}/qrcodes">Printable QR Codes</a>
+                  <a href="/hunts/{{hunt.hunt_id}}/qrcodes">Printable QR Codes <i class="glyphicon glyphicon-print"></i></a>
                 </td>
                 <td class="uglytime">{{ hunt.date_created }}</td>
                 <td class="uglytime">{{ hunt.last_modified }}</td>
@@ -64,5 +63,4 @@
       </div>
     </div>
   </div>
-  {% endif %}
 {% endblock %}

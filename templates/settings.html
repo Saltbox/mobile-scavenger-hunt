@@ -1,7 +1,7 @@
 {% extends "admin_layout.html" %}
 {% block adminbody %}
 <div class="container content settings">
-  <div class="col-md-12">
+  <div class="col-md-12 col-lg-11 col-lg-offset-1">
     <div class="col-md-offset-2 col-md-5">
       <div class="row">
         <div class="underline"><h1>Settings</h1></div>
@@ -71,7 +71,7 @@
       </div> -->
       {% if wax_site %}
       <div class="row">
-        <div class="panel-rect tertiary center">
+        <div class="clickable panel-rect tertiary center">
           <a class="center" href="/new_hunt">
             <i class="glyphicon glyphicon-plus hugeicon"></i><br>
             Create Hunt
@@ -79,7 +79,7 @@
         </div>
       </div>
       <div class="row">
-        <div class="panel-rect tertiary center">
+        <div class="clickable panel-rect tertiary center">
           <a class="center" href="/hunts">
             <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
             Hunts
