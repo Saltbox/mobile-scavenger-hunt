@@ -304,6 +304,20 @@ $(document).ready(function() {
     }
   });
 
+  $('#register-here').on('click', function(e) {
+    e.preventDefault();
+    $('#login-form').hide();
+    $('#registration-form').show();
+    $('input[name=email]').focus();
+  });
+
+  $('#login-here').on('click', function(e) {
+    e.preventDefault();
+    $('#login-form').show();
+    $('#registration-form').hide();
+    $('input[name=email]').focus();
+  });
+
   $('#submit-hunt-btn').on('click', function(e) {
     e.preventDefault();
     var formData = getFormData();

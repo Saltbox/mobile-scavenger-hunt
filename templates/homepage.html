@@ -1,0 +1,103 @@
+{% extends "admin_layout.html" %}
+{% block adminbody %}
+<div class="user container">
+  <div class="row">
+    {% if error %}
+      <p class="alert"><strong>Error:</strong> {{ error }}
+    {% endif %}
+    <div class="col-md-4 col-md-offset-8" id="login-form">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <span class="glyphicon glyphicon-lock"></span>
+          Admin Login
+        </div>
+        <div class="panel-body">
+          <form class="form-horizontal" role="form" action="{{ url_for('login') }}" method="POST">
+            <div class="form-group">
+              <label for="email" class="col-sm-3 control-label">
+                Email
+              </label>
+              <div class="col-sm-9">
+                {{form.email(type="email", id="email", class="form-control",
+                            autofocus=true, required=true, placeholder="Email")}}
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="password" class="col-sm-3 control-label">
+                Password
+              </label>
+              <div class="col-sm-9">
+                {{form.password(type="password", required=true, id="password", placeholder="Password", class="form-control")}}
+              </div>
+            </div>
+            <div class="form-group last">
+              <div class="col-sm-offset-3 col-sm-9">
+                <button type="submit" class="btn btn-primary btn-sm form-control">
+                  Sign in
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="panel-footer">
+          Not Registered?
+          <a href="#">
+            <span id="register-here">Register here</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-md-offset-8" id="registration-form" style="display: none;">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <span class="glyphicon glyphicon-lock"></span>
+          Admin Registration
+        </div>
+        <div class="panel-body">
+          <form class="form-horizontal" role="form" action="{{ url_for('admins') }}" method="POST">
+            <div class="form-group">
+              {% if form.email.errors %}
+                {% for error in form.email.errors %}
+                  {{error}}
+                {% endfor %}
+              {% endif %}
+              <label for="email" class="col-sm-3 control-label">
+                Email
+              </label>
+              <div class="col-sm-9">
+                {{form.email(type="email", id="email", autofocus=true, required=true, class="form-control", placeholder="Email")}}
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="password" class="col-sm-3 control-label">
+                Password
+              </label>
+              <div class="col-sm-9">
+                {{form.password(type="password", id="password", required=true, class="form-control", placeholder="Password")}}
+              </div>
+            </div>
+            <div class="form-group last">
+              <div class="col-sm-offset-3 col-sm-9">
+                <button type="submit" class="btn btn-primary btn-sm form-control">
+                  Register
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="panel-footer">
+          Already Registered?
+          <a href="#">
+            <span id="login-here">Login here</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <script>
+      if (!("autofocus" in document.createElement("input"))) {
+        document.getElementById("email").focus();
+      }
+    </script>
+  </div>
+</div>
+{% endblock %}
