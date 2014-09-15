@@ -105,10 +105,10 @@ class Setting(db.Model):
     __tablename__ = 'settings'
     settings_id = db.Column(db.Integer, primary_key=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
-    domain = db.Column(db.String(500))
-    wax_site = db.Column(db.String(500))
-    login = db.Column(db.String(50))
-    password = db.Column(db.String(50))  # todo: something more private
+    domain = db.Column(db.String(500), nullable=False)
+    wax_site = db.Column(db.String(500), nullable=False)
+    login = db.Column(db.String(50), nullable=False)
+    password = db.Column(db.String(50), nullable=False)  # todo: something more private
 
     def __repr__(self):
         return '<Settings for admin id: %r>' % self.admin_id

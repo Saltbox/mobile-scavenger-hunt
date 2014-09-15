@@ -116,19 +116,34 @@ def settings():
             admin_settings.admin_id = current_user.admin_id
             g.db.session.add(admin_settings)
             g.db.session.commit()
+
+            domain = get_domain_by_admin_id(g.db, current_user.admin_id)
+            return make_response(
+                render_template('new_hunt.html', form=HuntForm(), domain=domain))
+
         else:
             errors = form.errors
     return make_response(render_template(
         'settings.html', login=admin_settings.login,
         password=admin_settings.password, domain=admin_settings.domain,
-        wax_site=admin_settings.wax_site, errors=errors
+        wax_site=admin_settings.wax_site, errors=errors, form=form
     ))
 
+
+def finished_setting(setting):
+    return setting.domain and setting.wax_site and setting.login and setting.password
 
 # create or list hunts
 @app.route('/hunts', methods=['GET'])
 @login_required
 def hunts():
+    setting = get_settings(g.db, current_user.admin_id)
+    if not setting or not finished_setting(setting):
+            email = current_user.email
+            domain = email.split('@')[-1]
+            return make_response(
+                render_template('settings.html', domain=domain))
+
     hunts = get_hunts(g.db, current_user.admin_id)
     return render_template('hunts.html', hunts=hunts)
 
@@ -159,7 +174,8 @@ def new_hunt():
             logger.info('hunt, %s, created for admin with id, %s',
                         hunt.name, hunt.admin_id)
 
-            saved_hunt = g.db.session.query(Hunt).order_by(Hunt.hunt_id.desc()).first()
+            saved_hunt = g.db.session.query(Hunt).order_by(
+                Hunt.hunt_id.desc()).first()
             return jsonify({'hunt_id': saved_hunt.hunt_id})
         else:
             flash('Error creating form: {}'.format(form.errors), 'warning')
@@ -219,8 +235,11 @@ def delete_hunt(hunt_id):
             'preparing to delete hunt with hunt_id, {}'.format(hunt_id))
         g.db.session.delete(hunt)
         g.db.session.commit()
-        flash('Successfully deleted hunt', 'success')
-        return make_response(render_template('hunts.html'))
+
+        flash('Successfully deleted hunt: {}'.format(hunt.name), 'success')
+
+        hunts = get_hunts(g.db, current_user.admin_id)
+        return make_response(render_template('hunts.html', hunts=hunts))
     abort(404)
 
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
@@ -237,7 +256,7 @@ def index_items(hunt_id):
         if session.get('email'):
             items = get_items(g.db, hunt_id)
             params = xapi.default_params(session['email'], hunt_id)
-            admin_settings = get_settings(hunt_id=hunt_id)
+            admin_settings = get_settings(g.db, hunt_id=hunt_id)
 
             response = xapi.get_state_response(params, admin_settings)
             if response.status_code == 200:
