@@ -8,14 +8,14 @@
         </div>
       </div>
       <div class="row participant-rules quarternary panel-rect">
-        Participants limited to 
+        <h4>Participants limited to 
         {% if hunt.participant_rule == 'by_domain' %}
           {{domain}} emails
         {% elif hunt.participant_rule == 'by_whitelist' %}
           those specified by you
         {% else %}
           anyone who finds the QR codes
-        {% endif %}
+        {% endif %}</h4>
       </div>
       {% if hunt.participants %}
       <div class="row quarternary panel-rect">
@@ -47,11 +47,14 @@
       {% endif %}
       <div class="row secondary panel-rect">
         <div>
-          {% if hunt.all_required %}
-            Finding all items is required for success
-          {% else %}
-            Number of items required for success: {{hunt.num_required}}
-          {% endif %}
+          <h4>
+            {% if hunt.all_required %}
+              Finding all items is required for success
+            {% else %}
+              Number of items required for success: {{hunt.num_required}}
+            {% endif %}
+          </h4>
+          </span>
         </div>
         <div>
           <table class="table table-condensed">
@@ -64,15 +67,22 @@
                 </td>
                 <td class="item-required">
                   {% if hunt.all_required or item.required %}
-                    <span style="display: {{visible if item.required else none}};" class="glyphicon glyphicon-ok"></span> Required
+                    <span style="display: {{visible if item.required else none}};"
+                          class="glyphicon glyphicon-ok"></span> Required
                   {% else %}
-                  Not Required
+                    Not Required
                   {% endif %}
                 </td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
+          <span class="pull-right">
+            <a href="/hunts/{{hunt.hunt_id}}/qrcodes" target="_blank">
+              Printable QR Codes
+              <i class="glyphicon glyphicon-print"></i>
+            </a>
+          </span>
         </div>
       </div>
       <div class="row">

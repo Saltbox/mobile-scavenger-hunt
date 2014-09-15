@@ -7,10 +7,6 @@
   font-family: 'SegoeUI', Helvetica Neue, Helvetica, Arial;
 }
 
-body {
-  background-color: lightcyan;
-}
-
 span.participant-list-item {
   margin: 10px;
 }
@@ -154,6 +150,7 @@ div.panel-default > .panel-heading,
   min-height: 125px;
   vertical-align: bottom;
   color: white;
+  font-size: 16px;
 }
 
 .row.participant-rules.quarternary.panel-rect {
@@ -164,8 +161,12 @@ div.panel-default > .panel-heading,
   margin: 0;
 }
 
-#participant-rules .panel-rect {
+.panel-rect a {
   font-size: 16px;
+}
+
+.panel-rect a:hover {
+  color: blue;
 }
 
 .titlerow .panel-rect:first-child {
@@ -282,7 +283,7 @@ textarea.update {
 }
 
 .table td a:hover {
-  color: lightgray;
+  color: blue;
   text-decoration: underline;
 }
 
@@ -358,6 +359,7 @@ input[name=item], input[name=participant] {
 
 .clickable {
   padding: 0;
+  font-size: 16px;
 }
 
 @media (min-width: 1200px) {
@@ -366,6 +368,8 @@ input[name=item], input[name=participant] {
   }
 }
 
-div, span, table, input, label, textarea {
-  font-size: 24px;
+.user button.btn {
+  font-size: 16px;
+  padding: 0;
+  line-height: 0;
 }

@@ -5,6 +5,18 @@
     <div class="col-md-offset-2 col-md-5">
       <div class="row">
         <div class="underline"><h1>Settings</h1></div>
+        {% if error %}
+          <p class="alert">Error: {{error}}</p>
+        {% endif %}
+        {% if form.errors %}
+          <ul class="errors">
+            {% for field_name, field_errors in form.errors|dictsort if field_errors %}
+              {% for error in field_errors %}
+                <li>{{ form[field_name].label }}: {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        {% endif %}
         <h2>Learning Record Store</h2>
         <form role="form" action="/settings" method="POST">
           <div>
@@ -12,7 +24,7 @@
               Provide your Wax LRS site name below
             </p>
             <div class="form-group">
-              <input class="form-control" type="text" name="wax_site" value="{{wax_site}}" placeholder="wax_site_name">
+              <input class="form-control" type="text" name="wax_site" value="{{wax_site}}" placeholder="your wax site name">
             </div>
           </div>
           <div>
@@ -44,7 +56,11 @@
                      name="password" value="{{password}}">
             </div>
             <button class="btn btn-info pentary" value="submit">
-              Update Settings
+              {% if wax_site %}
+                Update Settings
+              {% else %}
+                Save Settings and Create Hunt
+              {% endif %}
             </button>
           </div>
         </form>
