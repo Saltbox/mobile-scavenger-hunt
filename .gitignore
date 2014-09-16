@@ -60,3 +60,4 @@ hunt.db
 huntschema.sql
 
 static/.webassets-cache/
+/node_modules

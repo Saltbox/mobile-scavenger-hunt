@@ -1,5 +1,5 @@
 var addItemsTable = function() {
-   $('body').append('<table id="items-table"><tbody></tbody></table>');
+  $('body').append('<table id="items-table"><tbody></tbody></table>');
 };
 
 (function() {

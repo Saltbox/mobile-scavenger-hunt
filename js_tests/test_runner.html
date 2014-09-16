@@ -17,12 +17,19 @@
     var should = chai.should();
   </script>
   <script src="../static/js/main.js"></script>
-  <script src="test.js"></script>
+  <script src="mochajs_tests.js"></script>
+  <script src="phantomjs_tests.js"></script>
+
 
   <script>
-    mocha.checkLeaks();
-    mocha.globals(['jQuery']);
-    mocha.run();
+    if (window.mochaPhantomJS) {
+      mochaPhantomJS.run();
+    }
+    else {
+      mocha.checkLeaks();
+      mocha.globals(['jQuery']);
+      mocha.run();
+    }
   </script>
 </body>
 </html>
