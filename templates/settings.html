@@ -8,7 +8,7 @@
         {% if error %}
           <p class="alert">Error: {{error}}</p>
         {% endif %}
-        {% if form.errors %}
+        {% if form and form.errors %}
           <ul class="errors">
             {% for field_name, field_errors in form.errors|dictsort if field_errors %}
               {% for error in field_errors %}
@@ -24,7 +24,7 @@
               Provide your Wax LRS site name below
             </p>
             <div class="form-group">
-              <input class="form-control" type="text" name="wax_site" value="{{wax_site}}" placeholder="your wax site name">
+              <input class="form-control" type="text" name="wax_site" value="{{wax_site or ''}}" placeholder="your wax site name">
             </div>
           </div>
           <div>
@@ -36,7 +36,7 @@
             <div class="form-group">
               <div class="input-group">
                 <div class="input-group-addon">@</div>
-                <input class="form-control" type="text" name="domain" value="{{domain}}">
+                <input class="form-control" type="text" name="domain" value="{{domain or ''}}">
               </div>
             </div>
           </div>
@@ -48,12 +48,12 @@
             <div class="form-group">
               <label class="control-label">Login</label>
               <input class="form-control" type="text"
-                     name="login" value="{{login}}">
+                     name="login" value="{{login or ''}}">
             </div>
             <div class="form-group">
               <label class="control-label">Password</label>
               <input class="form-control" type="password"
-                     name="password" value="{{password}}">
+                     name="password" value="{{password or ''}}">
             </div>
             <button class="btn btn-info pentary" value="submit">
               {% if wax_site %}

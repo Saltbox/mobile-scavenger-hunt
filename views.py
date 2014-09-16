@@ -90,7 +90,7 @@ def admins():
             logger.info(
                 'Admin registration form was submitted successfully')
             return make_response(
-                render_template('settings.html', domain=domain))
+                render_template('settings.html', domain=domain, form=SettingForm()))
 
         logger.info(
             'Admin registration form was submitted with'
@@ -137,13 +137,6 @@ def finished_setting(setting):
 @app.route('/hunts', methods=['GET'])
 @login_required
 def hunts():
-    setting = get_settings(g.db, current_user.admin_id)
-    if not setting or not finished_setting(setting):
-            email = current_user.email
-            domain = email.split('@')[-1]
-            return make_response(
-                render_template('settings.html', domain=domain))
-
     hunts = get_hunts(g.db, current_user.admin_id)
     return render_template('hunts.html', hunts=hunts)
 
@@ -152,6 +145,15 @@ def hunts():
 @app.route('/new_hunt', methods=['GET', 'POST'])
 @login_required
 def new_hunt():
+    setting = get_settings(g.db, current_user.admin_id)
+    if not setting or not finished_setting(setting):
+        email = current_user.email
+        domain = email.split('@')[-1]
+        flash('You must complete your settings information before'
+              ' creating a hunt', 'warning')
+        return make_response(
+            render_template('settings.html', domain=domain, form=SettingForm()))
+
     hunt = Hunt()
     form = HuntForm(request.form)
 
