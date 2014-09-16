@@ -8,7 +8,7 @@
         </div>
       </div>
       <div class="row participant-rules quarternary panel-rect">
-        <h4>Participants limited to 
+        <h4>Participants limited to
         {% if hunt.participant_rule == 'by_domain' %}
           {{domain}} emails
         {% elif hunt.participant_rule == 'by_whitelist' %}
@@ -17,29 +17,29 @@
           anyone who finds the QR codes
         {% endif %}</h4>
       </div>
-      {% if hunt.participants %}
+      {% if hunt and hunt.participants %}
       <div class="row quarternary panel-rect">
         <table class="table table-condensed" id="participants-table">
           <thead>
             <tr>
               <th>Participants</th>
-              {% if hunt and hunt.participant_rule == 'by_whitelist' %}
+              {% if hunt.participant_rule == 'by_whitelist' %}
               <th>Registered</th>
               {% endif %}
             </tr>
           </thead>
           <tbody>
             {% for participant in hunt.participants %}
-            {% if (hunt.participant_rule == 'by_whitelist') or participant.registered %}
-            <tr>
-              <td>{{participant.email}}</td>
-              <td>
-              {% if hunt.participant_rule == 'by_whitelist' and participant.registered %}
-                <span class='glyphicon glyphicon-ok'></span>
+              {% if (hunt.participant_rule == 'by_whitelist') or participant.registered %}
+              <tr>
+                <td>{{participant.email}}</td>
+                <td>
+                {% if hunt.participant_rule == 'by_whitelist' and participant.registered %}
+                  <span class='glyphicon glyphicon-ok'></span>
+                {% endif %}
+                </td>
+              </tr>
               {% endif %}
-              </td>
-            </tr>
-            {% endif %}
             {% endfor %}
           </tbody>
         </table>

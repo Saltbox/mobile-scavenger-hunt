@@ -271,7 +271,7 @@ def index_items(hunt_id):
 
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
         return make_response(
-            render_template('welcome.html',
+            render_template('welcome.html', hunt_name=hunt.name,
                             action_url="/get_started/hunts/{}".format(
                                 hunt_id)))
 
@@ -300,8 +300,10 @@ def show_item(hunt_id, item_id):
 
                 if state_report.get('hunt_completed'):
                     return make_response(render_template('congratulations.html'))
+
                 return make_response(render_template(
-                    'item.html', item=item, username=session['name'],
+                    'items.html', item=item, items=get_items(g.db, hunt_id),
+                    username=session['name'], hunt_name=hunt.name,
                     num_found=updated_state['num_found'],
                     total_items=updated_state['total_items'], hunt_id=hunt_id))
             else:

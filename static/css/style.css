@@ -30,6 +30,9 @@ span.participant-list-item {
 .container.content label {
   font-size: 14px;
   margin-bottom: 0;
+}
+
+label {
   font-weight: bold;
 }
 

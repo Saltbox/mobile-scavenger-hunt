@@ -1,6 +1,9 @@
 {% extends "user_layout.html" %}
 {% block userbody %}
-  <h2>{{hunt_name}}</h2>
+  {% if total_items and num_found %}
+    {{username}}! you found {{item.name}}<br>
+    you still have {{total_items - num_found}} items left to find out of {{total_items}}
+  {% endif %}
   <table class="table">
     <thead>
       <th>Item Name</th>
