@@ -56,7 +56,7 @@ var getFormData = function() {
   // num_items isn't actually used on backend, this is just for validating
   formData['num_items'] = $('input[name=item]').length;
 
-  var selectedRule = $('input[name=participant_rule]');
+  var selectedRule = $('input[name=participant_rule][checked=checked]');
   selectedRule.prop('checked', 'on');
   formData['participant_rule'] = selectedRule.val();
 
@@ -283,7 +283,7 @@ $(document).ready(function() {
       $($(this).find('.glyphicon-ok')).show();
 
       var selectedRule = $(this).find($('input[name=participant_rule]'));
-      selectedRule.prop('checked', 'on');
+      selectedRule.attr('checked', 'on');
       toggleParticipantTable(selectedRule.val());
     },
     mouseenter: function() {
