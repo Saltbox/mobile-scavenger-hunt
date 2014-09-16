@@ -373,3 +373,7 @@ input[name=item], input[name=participant] {
   padding: 0;
   line-height: 0;
 }
+
+.user button[type=submit] {
+  margin-top: 30px;
+}
