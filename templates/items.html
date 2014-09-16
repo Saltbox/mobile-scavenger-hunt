@@ -6,7 +6,7 @@
   {% endif %}
   <table class="table">
     <thead>
-      <th>Item Name</th>
+      <th>Item</th>
       <th>Required</th>
       <th>Found</th>
     </thead>
@@ -14,7 +14,10 @@
     {% for item in items %}
       <tr>
         <td>{{item.name}}</td>
-        <td>{{item.required}}</td>
+        <td>
+          <span style="display: {{visible if item.required else none}};"
+                class="glyphicon glyphicon-ok"></span>
+        </td>
         <td>
           <span style="display: {{visible if item.found else none}};"
                 class="glyphicon glyphicon-ok"></span>

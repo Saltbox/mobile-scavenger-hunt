@@ -320,15 +320,16 @@ def show_item(hunt_id, item_id):
 @app.route('/get_started/hunts/<hunt_id>', methods=['GET'])
 def get_started(hunt_id):
     # todo: track duration
+    hunt = get_hunt(g.db, hunt_id)
     return render_template('get_started.html', form=ParticipantForm(),
-                           hunt_id=hunt_id)
+                           hunt_id=hunt_id, hunt_name=hunt.name)
 
 
 # validate and register participant before redirecting back to hunt
 @app.route('/register_participant', methods=['POST'])
 def register_participant():
     hunt_id = request.args['hunt_id']
-    hunt = get_hunt(db, hunt_id)
+    hunt = get_hunt(g.db, hunt_id)
 
     # i don't think this can happen ever in the app
     if not hunt:

@@ -1,7 +1,10 @@
 {% extends "base_layout.html" %}
 {% block body %}
 <div class="container content">
-  <h1>Scavenger Hunt: {{hunt_name}}</h1>
-  {% block userbody %}{% endblock %}
+  <div class="row center">
+    <h1>{{hunt_name}}</h1>
+    <h3>Scavenger Hunt</h3>
+    {% block userbody %}{% endblock %}
+  </div>
 </div>
 {% endblock %}

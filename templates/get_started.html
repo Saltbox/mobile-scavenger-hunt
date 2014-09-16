@@ -4,9 +4,13 @@
   Enter your name and email (your information will be recorded)
   <form action="/register_participant?hunt_id={{hunt_id}}"
         method="POST" id="userinfo-form">
-    {{form.name(placeholder="Name or Alias")}}
-    {{form.email(placeholder="email@example.org")}}
-    <input type="submit" value="Submit">
+    <div class="form-group">
+      {{form.name(placeholder="Name or Alias", class="form-control")}}
+    </div>
+    <div class="form-group">
+      {{form.email(placeholder="email@example.org", class="form-control")}}
+    </div>
+    <button type="submit" class="btn btn-primary form-control">Submit</button>
   </form>
 </div>
 {% endblock %}

@@ -186,7 +186,7 @@ var addItemsTable = function() {
           "<input id=name value='" + name + "'></input>",
           "<input name=all_required type=checkbox checked=" + checked + "></input>",
           "<input name=num_required value=" + num_required + "></input>",
-          "<input name=participant_rule value=" + participant_rule + "></input>",
+          "<input name=participant_rule type='radio' checked='checked' value=" + participant_rule + "></input>",
           "<textarea name=welcome_message>" + welcome_message + "</textarea>",
           "<textarea name=congratulations_message>" + congratulations_message + "</textarea>"
         ];

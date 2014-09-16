@@ -130,7 +130,7 @@ var deleteIconTd = function(type) {
 
 // add tr to item table
 var addItemRow = function(allRequired, itemCount, fieldValue) {
-  var tdInput = "<td><input type='text' value=" + fieldValue + " name='item' class='form-control'></td>";
+  var tdInput = "<td><input type='text' value='" + fieldValue + "' name='item' class='form-control'></td>";
 
   var itemRequired;
   if (allRequired) {
