@@ -90,7 +90,8 @@ def admins():
             logger.info(
                 'Admin registration form was submitted successfully')
             return make_response(
-                render_template('settings.html', domain=domain, form=SettingForm()))
+                render_template(
+                    'settings.html', domain=domain, form=SettingForm()))
 
         logger.info(
             'Admin registration form was submitted with'

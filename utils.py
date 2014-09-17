@@ -11,7 +11,6 @@ def valid_login(admin, email, password):
 
 
 def get_admin(db, email):
-    print 'email', email
     return db.session.query(Admin).filter(Admin.email == email).first()
 
 

@@ -103,10 +103,10 @@ class HuntTestCase(unittest.TestCase):
     ### TESTS! ###
 
     @patch('views.get_db')
-    def test_visit_admins_page_works(self, get_db):
-        response = self.app.get('/admins')
+    def test_visit_homepage_works(self, get_db):
+        response = self.app.get('/')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('Admin Registration', response.data)
+        self.assertIn('Sign in', response.data)
 
     @patch('views.get_admin')
     @patch('views.get_db')
@@ -121,23 +121,23 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn('Successfully created admin', response.data)
 
+    @patch('views.get_settings')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     @patch('views.get_admin')
     @patch('views.get_db')
     def test_create_settings(
-            self, get_db, get_admin, login_disabled, current_user):
+            self, get_db, get_admin, login_disabled, current_user, get_settings):
         get_admin.return_value = self.create_mock_admin(get_db)
         current_user.admin_id = 1
         with app.test_client() as c:
-            basic_login = identifier()
-            domain = identifier()
-            settings_response = self.create_settings(
-                c, domain=domain, login=basic_login, password=identifier())
+            domain = "{}.com".format(identifier())
+            response = self.create_settings(
+                c, domain=domain, login=identifier(), password=identifier())
 
-            self.assertEqual(settings_response.status_code, 200)
-            self.assertIn(basic_login, settings_response.data)
-            self.assertIn(domain, settings_response.data)
+            self.assertEqual(response.status_code, 200)
+            # successfully saving settings redirects to new hunt page
+            self.assertIn("Let's create a hunt!", response.data)
 
     @patch('views.get_settings')
     @patch('views.current_user')
@@ -277,7 +277,8 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('hunts/1/items')
             self.assertEqual(response.status_code, 404)
 
-    def test_get_started(self):
+    @patch('views.get_hunt')
+    def test_get_started(self, get_hunt):
         response = self.app.get(
             '/get_started/hunts/1', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
@@ -439,14 +440,15 @@ class HuntTestCase(unittest.TestCase):
             )
             self.assertEqual(response.status_code, 200)
 
+    @patch('views.get_hunt')
     @patch('views.get_item')
     @patch('views.get_settings')
     @patch('views.ready_to_send_statements')
     @patch('views.get_participant')
     @patch('views.xapi')
     def test_registered_participant_can_resume_hunt(
-            self, xapi, _get_participant, _ready_to_send_statements,
-            _get_settings, _get_item):
+            self, xapi, get_participant, ready_to_send_statements,
+            get_settings, get_item, get_hunt):
         state_report = MagicMock()
         state_report.get.return_value = False
         xapi.update_state.return_value = state_report, MagicMock()
