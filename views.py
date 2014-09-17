@@ -115,10 +115,11 @@ def settings():
         if form.validate():
             form.populate_obj(admin_settings)
             admin_settings.admin_id = current_user.admin_id
+
             g.db.session.add(admin_settings)
             g.db.session.commit()
 
-            domain = get_domain_by_admin_id(g.db, current_user.admin_id)
+            domain = admin_settings.domain
             return make_response(
                 render_template('new_hunt.html', form=HuntForm(), domain=domain))
 
@@ -149,11 +150,10 @@ def new_hunt():
     setting = get_settings(g.db, current_user.admin_id)
     if not setting or not finished_setting(setting):
         email = current_user.email
-        domain = email.split('@')[-1]
         flash('You must complete your settings information before'
               ' creating a hunt', 'warning')
         return make_response(
-            render_template('settings.html', domain=domain, form=SettingForm()))
+            render_template('settings.html', domain=setting.domain, form=SettingForm()))
 
     hunt = Hunt()
     form = HuntForm(request.form)
@@ -185,9 +185,8 @@ def new_hunt():
             logger.warning('Error creating form.\nForm errors: %s\nForm data: '
                            '%s ', form.errors, form.data)
 
-    domain = get_domain_by_admin_id(g.db, current_user.admin_id)
     return make_response(
-        render_template('new_hunt.html', form=form, domain=domain))
+        render_template('new_hunt.html', form=form, domain=setting.domain))
 
 
 # page to view hunt
