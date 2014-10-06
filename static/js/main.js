@@ -325,7 +325,7 @@ $(document).ready(function() {
   });
 
   $('#name').on({
-    keypress: function() {
+    keyup: function() {
       $('.form-group h3').text($('#name').val());
     },
     keydown: function(e) {
