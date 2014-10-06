@@ -2,7 +2,7 @@
 {% block adminbody %}
   <div class="container content">
     <form class="form-horizontal" role="form" name="new_hunt">
-      <div class="col-md-6 col-md-offset-2">
+      <div class="col-md-offset-1 col-md-6">
         <h1>Let's create a hunt!</h1>
         {% if error %}
           <p class="alert">Error: {{error}}</p>
@@ -16,15 +16,19 @@
             {% endfor %}
           </ul>
         {% endif %}
-        <div class="row hunt_name primary panel-rect">
+        <div class="row hunt_name panel-rect">
           <div class="form-group">
-            <h3>What's your hunt's name?</h3>
+            <div class="panel-header-container">
+              <div class="panel-header primary"><h3>What's your hunt's name?</h3></div>
+            </div>
             <p>(minimum 4 characters)</p>
             {{form.name(class="form-control hunt-name", required=true)}}
           </div>
         </div>
-        <div class="row participant-rules quarternary panel-rect">
-          <h3>Who can participate?</h3>
+        <div class="row participant-rules panel-rect">
+          <div class="panel-header-container">
+            <div class="panel-header secondary"><h3>Who can participate?</h3></div>
+          </div>
           <div class="panel-default" id="participant-rules">
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect by_domain">
               <div class="row"><span class="domain">@{{domain}}</span> emails</div>
@@ -55,9 +59,9 @@
             </div>
           </div>
         </div>
-        <div class="row quarternary panel-rect" id="participants-group" style="display: none;">
+        <div class="row panel-rect" id="participants-group" style="display: none;">
           <div class="form-group">
-            <label>Add participants</label>
+            <label>Add participant emails</label>
             <div class="input-group">
               <input class="form-control" type="email" id="participants-template">
               <span class="input-group-btn">
@@ -74,8 +78,12 @@
             <tbody></tbody>
           </table>
         </div>
-        <div class="row secondary panel-rect">
-          <h3>What should we have them find?</h3>
+        <div class="row panel-rect">
+          <div class="panel-header-container">
+            <div class="panel-header quarternary">
+              <h3>What should we have them find?</h3>
+            </div>
+          </div>
           <div class="form-group">
             <label class="control-label">
               {{ form.all_required(type="checkbox", checked="on")}}
@@ -102,17 +110,25 @@
             <tbody></tbody>
           </table>
         </div>
-        <div class="row pentary panel-rect">
-          <h3>Welcome the team!</h3>
+        <div class="row panel-rect">
+          <div class="panel-header-container">
+            <div class="panel-header pentary">
+              <h3>Welcome the team!</h3>
+            </div>
+          </div>
           <div class="form-group">
             <textarea class="form-control" name="welcome_message" maxlength=500>Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'.</textarea>
           </div>
         </div>
-        <div class="row pentary panel-rect">
-          <h3>
-            They finished the hunt! <br>
-            Let's congratulate them.
-          </h3>
+        <div class="row panel-rect">
+          <div class="panel-header-container">
+            <div class="panel-header pentary">
+              <h3>
+                They finished the hunt! <br>
+                Let's congratulate them.
+              </h3>
+            </div>
+          </div>
           <div class="form-group">
             <textarea class="form-control" name="congratulations_message" maxlength=500>Congratulations! You have successfully completed the scavenger hunt.</textarea>
           </div>
@@ -120,7 +136,7 @@
         <div class="row">
           <div class="form-group">
             <button class="btn btn-primary pull-right form-control"
-                    id="submit-hunt-btn">
+                    id="submit-hunt-btn" type="submit">
               Create Hunt
             </button>
           </div>
@@ -137,16 +153,9 @@
           </div>
         </div>
       </div>
-      <div class="col-md-offset-1 col-md-3">
+      <div class="col-md-2">
         <div class="row">
-<!--           <div class="panel-rect tertiary center">
-          <a class="center" href="/reports">
-            <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
-            Reports
-          </a> -->
-        </div>
-        <div class="row">
-          <div class="panel-rect tertiary center">
+          <div class="panel-rect panel-link tertiary center">
             <a class="center" href="/hunts">
               <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
               Hunts
@@ -154,7 +163,7 @@
           </div>
         </div>
         <div class="row">
-          <div class="panel-rect tertiary center">
+          <div class="panel-rect panel-link tertiary center">
             <a class="center" href="/settings">
               <i class="glyphicon glyphicon-cog hugeicon"></i><br>
               Settings

@@ -19,10 +19,6 @@ span.participant-list-item {
   background-image: none;
 }
 
-.navbar > .container .navbar-brand {
-  margin: 0;
-}
-
 .container.content {
   margin-bottom: 50px;
 }
@@ -43,11 +39,6 @@ input[name=endpoint] {
 .center {
   text-align: center;
   vertical-align: middle;
-}
-
-div.container {
-  margin: 0;
-  padding: 0;
 }
 
 div.container.content{
@@ -73,23 +64,19 @@ button.btn-default {
   color: white;
 }
 
+.container.content div.row,
+.titlerow {
+  margin-bottom: 10px;
+}
+
 .titlerow {
   padding-top: 50px;
-  margin-bottom: 10px;
   min-height: 125px;
+  color: white;
 }
 
 div.titlerow.col-md-12 {
   padding-left: 0;
-}
-
-.titlerow h3, .titlerow h1, .titlerow span {
-  padding-left: 15px;
-  padding-bottom: 5px;
-}
-
-.titlerow .fullwidth {
-  width: 100%;
 }
 
 .titlerow div:first-child, .primary {
@@ -97,7 +84,6 @@ div.titlerow.col-md-12 {
 }
 
 div.row {
-  margin-top: 10px;
   margin-right: 0;
   margin-left: 0;
 }
@@ -145,22 +131,27 @@ div.panel-default > .panel-heading,
 .panel-body {
   background: #60c4e2;
   border: none;
-  color: white;
 }
 
 .panel-rect {
-  padding: 15px;
   min-height: 125px;
   vertical-align: bottom;
-  color: white;
   font-size: 16px;
+  margin: 20px 0 0 0;
+}
+
+.panel-rect h3, div.container {
+  margin: 0;
+  padding: 0;
 }
 
 .row.participant-rules.quarternary.panel-rect {
   min-height: 50px;
 }
 
-.panel-rect .row {
+.navbar > .container .navbar-brand,
+.panel-rect .row,
+.form-horizontal div.form-group {
   margin: 0;
 }
 
@@ -170,6 +161,27 @@ div.panel-default > .panel-heading,
 
 .panel-rect a:hover {
   color: blue;
+}
+
+.panel-link {
+  padding: 15px;
+}
+
+form[name=new_hunt] .row:first-child .panel-link {
+  margin-top: 130px;
+}
+
+.panel-header-container {
+  height: 50px;
+  display: table;
+  width: 100%;
+}
+
+.panel-header {
+  display: table-cell;
+  vertical-align: middle;
+  color: white;
+  padding: 10px;
 }
 
 .titlerow .panel-rect:first-child {
@@ -228,12 +240,10 @@ input.form-control {
   border-radius: 0;
 }
 
-div.form-group {
+.settings input.form-control,
+div.form-group,
+.titlerow .fullwidth {
   width: 100%;
-}
-
-.form-horizontal div.form-group {
-  margin: 0;
 }
 
 .form-group > div {
@@ -275,6 +285,7 @@ textarea {
   min-height: 100px;
   width: 100%;
   border-color: lightgrey;
+  border-radius: 0;
 }
 
 textarea.update {
@@ -294,10 +305,6 @@ textarea.update {
   padding-right: 0;
 }
 
-.settings input.form-control {
-  width: 100%;
-}
-
 .settings .panel-rect {
   margin: 100px 0 0 20px;
   height: 100%;
@@ -307,10 +314,6 @@ textarea.update {
 .underline {
   width: 100%;
   border-bottom: thin solid black;
-}
-
-span.glyphicon-remove {
-  color: white;
 }
 
 span.glyphicon-remove:hover {
@@ -377,7 +380,7 @@ input[name=item], input[name=participant] {
   line-height: 0;
 }
 
-.user button[type=submit], .userinfo button[type=submit] {
+button[type=submit], .userinfo button[type=submit] {
   margin-top: 30px;
 }
 
