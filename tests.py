@@ -14,9 +14,6 @@ import utils
 from mock import patch, MagicMock
 
 app.config['DEBUG'] = True
-BASIC_LOGIN = app.config['WAX_LOGIN']
-BASIC_PASSWORD = app.config['WAX_PASSWORD']
-WAX_SITE = app.config['WAX_SITE']
 
 
 def identifier():
@@ -82,9 +79,8 @@ class HuntTestCase(unittest.TestCase):
         return self.app.post(
             '/new_hunt', data=self.imdict, follow_redirects=True)
 
-    def create_settings(self, app, wax_site=WAX_SITE, admin_id=1,
-                        domain='example.com', login=BASIC_LOGIN,
-                        password=BASIC_PASSWORD):
+    def create_settings(self, app, wax_site, admin_id,
+                        domain, login, password):
         return app.post('/settings', data=dict(
             wax_site=wax_site, admin_id=admin_id, domain=domain,
             login=login, password=password
@@ -133,7 +129,7 @@ class HuntTestCase(unittest.TestCase):
         with app.test_client() as c:
             domain = "{}.com".format(identifier())
             response = self.create_settings(
-                c, domain=domain, login=identifier(), password=identifier())
+                c, identifier(), 1, domain, identifier(), identifier())
 
             self.assertEqual(response.status_code, 200)
             # successfully saving settings redirects to new hunt page
@@ -209,11 +205,10 @@ class HuntTestCase(unittest.TestCase):
     def test_create_hunt_works(self, get_db, get_admin):
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            name = identifier()
             participants = [{'email': email()} for _ in xrange(2)]
             items = [{'name': identifier()} for _ in xrange(2)]
             create_hunt_response = self.create_hunt(
-                name=name, participants=participants, items=items)
+                name=identifier(), participants=participants, items=items)
 
             self.assertEqual(create_hunt_response.status_code, 200)
 

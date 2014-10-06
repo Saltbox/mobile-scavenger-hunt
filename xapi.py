@@ -9,6 +9,7 @@ from utils import get_items
 
 
 def hunt_activity_id(hunt_id):
+    print 'host url', request.host_url
     return "{}hunts/{}".format(request.host_url, hunt_id)
 
 
@@ -143,7 +144,6 @@ def make_agent(email):
     return {"mbox": "mailto:{}".format(email)}
 
 
-# update s
 def update_state(response, email, hunt, item, params, db):
     def update(state, params, setting):
         item_id = int(item_id)
@@ -180,7 +180,7 @@ def update_state(response, email, hunt, item, params, db):
             complete = state['num_found'] == hunt.num_required and required_found
             report['hunt_completed'] = complete
     else:
-        # would this ever happen?
+        # todo: get worker to retry
         logger.warning(
             "An unexpected error occurred retrieving information from"
             " the state api using params, %s, with status, %s, and"

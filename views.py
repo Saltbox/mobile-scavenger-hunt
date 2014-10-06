@@ -120,9 +120,7 @@ def settings():
             g.db.session.commit()
 
             domain = admin_settings.domain
-            return make_response(
-                render_template('new_hunt.html', form=HuntForm(), domain=domain))
-
+            return new_hunt()
         else:
             errors = form.errors
     return make_response(render_template(
@@ -153,7 +151,8 @@ def new_hunt():
         flash('You must complete your settings information before'
               ' creating a hunt', 'warning')
         return make_response(
-            render_template('settings.html', domain=setting.domain, form=SettingForm()))
+            render_template(
+                'settings.html', domain=setting.domain, form=SettingForm()))
 
     hunt = Hunt()
     form = HuntForm(request.form)
@@ -181,8 +180,8 @@ def new_hunt():
                 Hunt.hunt_id.desc()).first()
             return jsonify({'hunt_id': saved_hunt.hunt_id})
         else:
-            flash('Error creating form: {}'.format(form.errors), 'warning')
-            logger.warning('Error creating form.\nForm errors: %s\nForm data: '
+            flash('Error creating hunt: {}'.format(form.errors), 'warning')
+            logger.warning('Error creating hunt.\nForm errors: %s\nForm data: '
                            '%s ', form.errors, form.data)
 
     return make_response(
@@ -299,7 +298,8 @@ def show_item(hunt_id, item_id):
                     item=item)
 
                 if state_report.get('hunt_completed'):
-                    return make_response(render_template('congratulations.html'))
+                    return make_response(
+                        render_template('congratulations.html'))
 
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),

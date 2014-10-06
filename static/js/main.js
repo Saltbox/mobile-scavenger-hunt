@@ -105,8 +105,8 @@ var submitForm = function(formData) {
   }
 };
 
-// functions for making/manipulating dom bits
 
+// functions for making/manipulating dom bits
 
 var huntId = function() {
   return $('form[hunt_id]').attr('hunt_id');
