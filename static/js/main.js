@@ -1,5 +1,8 @@
 console.log('loading main.js');
 
+var itemCount = 0;
+var participantCount = 0;
+
 // functions for manipulating data
 
 var validEmail = function(email) {
@@ -219,9 +222,6 @@ var toggleParticipantTable = function(participantRule) {
 
 
 $(document).ready(function() {
-  var itemCount = 0;
-  var participantCount = 0;
-
   // show checkmarks for selected participant rule
   var participantRuleEl = $('input[name=participant_rule][checked=on]');
   if (participantRuleEl) {
@@ -326,7 +326,11 @@ $(document).ready(function() {
 
   $('#name').on({
     keyup: function() {
-      $('.form-group h3').text($('#name').val());
+      var newValue = $('#name').val();
+      if (!newValue) {
+        newValue = "What's your hunt's name?";
+      }
+      $('.form-group h3').text(newValue);
     },
     keydown: function(e) {
       // backspace or delete
