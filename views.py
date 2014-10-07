@@ -48,7 +48,6 @@ def login():
         admin = get_admin(g.db, form.email.data)
         if valid_login(admin, form.email.data, form.password.data):
             login_user(admin)
-            flash('You were logged in', 'info')
             return redirect(url_for('hunts'))
         flash('Invalid email and password combination')
     else:
@@ -120,7 +119,8 @@ def settings():
             g.db.session.commit()
 
             domain = admin_settings.domain
-            return new_hunt()
+            return make_response(
+                render_template('new_hunt.html', form=HuntForm(), domain=domain))
         else:
             errors = form.errors
     return make_response(render_template(

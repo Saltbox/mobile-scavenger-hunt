@@ -20,31 +20,17 @@
         <h2>Learning Record Store</h2>
         <form role="form" action="/settings" method="POST">
           <div>
-            <p>
-              Provide your Wax LRS site name below
-            </p>
-            <div class="form-group">
-              <input class="form-control" type="text" name="wax_site" value="{{wax_site or ''}}" placeholder="your wax site name">
-            </div>
-          </div>
-          <div>
-            <label>Domain</label>
-            <p>
-              Your domain identifies the organization you are representing
-              By default, we set this to the domain found in your email: {{domain}}
-            </p>
-            <div class="form-group">
-              <div class="input-group">
-                <div class="input-group-addon">@</div>
-                <input class="form-control" type="text" name="domain" value="{{domain or ''}}">
-              </div>
-            </div>
-          </div>
-          <div>
             <h3>LRS Basic Credentials</h3>
             <a href="http://support.saltbox.com/support/solutions/articles/1000085089-creating-new">
               About basic credentials
             </a>
+
+            <div class="form-group">
+              <p>
+                Provide your Wax LRS site name below
+              </p>
+              <input class="form-control" type="text" name="wax_site" value="{{wax_site or ''}}" placeholder="your wax site name">
+            </div>
             <div class="form-group">
               <label class="control-label">Login</label>
               <input class="form-control" type="text"
@@ -54,6 +40,19 @@
               <label class="control-label">Password</label>
               <input class="form-control" type="password"
                      name="password" value="{{password or ''}}">
+            </div>
+          </div>
+          <div>
+            <h3>Domain</h3>
+            <p>
+              Your domain identifies the organization you are representing
+              By default, we set this to the domain found in your email: {{domain}}
+            </p>
+            <div class="form-group">
+              <div class="input-group">
+                <div class="input-group-addon">@</div>
+                <input class="form-control" type="text" name="domain" value="{{domain or ''}}">
+              </div>
             </div>
             <button class="btn btn-info pentary" value="submit">
               {% if wax_site %}
@@ -78,13 +77,6 @@
       </div>
     </div>
     <div class="col-md-offset-1 col-md-2">
-<!--       <div class="row">
-        <div class="panel-rect tertiary center">
-        <a class="center" href="/reports">
-          <i class="glyphicon glyphicon-list-alt hugeicon"></i><br>
-          Reports
-        </a>
-      </div> -->
       {% if wax_site %}
       <div class="row">
         <div class="clickable panel-rect tertiary center">
