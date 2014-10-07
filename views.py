@@ -13,7 +13,7 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
 import hunt
 from hunt import app, logger, login_manager, db, bcrypt
 from utils import get_admin, get_settings, get_hunt, get_item, \
-    get_participant, item_path, get_domain_by_admin_id, \
+    get_participant, item_path, \
     validate_participant, get_intended_url, get_hunts, get_items, \
     initialize_hunt, initialize_registered_participant, mark_items_found, \
     valid_login, ready_to_send_statements
@@ -83,14 +83,11 @@ def admins():
             saved_admin = get_admin(g.db, admin.email)
             login_user(saved_admin)
 
-            domain = admin.email.split('@')[-1]
-
-            flash('Successfully created admin', 'success')
+            flash('Welcome to xAPI Scavenger Hunt', 'success')
             logger.info(
                 'Admin registration form was submitted successfully')
-            return make_response(
-                render_template(
-                    'settings.html', domain=domain, form=SettingForm()))
+            return make_response(render_template(
+                'settings.html', form=SettingForm()))
 
         logger.info(
             'Admin registration form was submitted with'
@@ -118,20 +115,18 @@ def settings():
             g.db.session.add(admin_settings)
             g.db.session.commit()
 
-            domain = admin_settings.domain
-            return make_response(
-                render_template('new_hunt.html', form=HuntForm(), domain=domain))
+            return make_response(redirect(url_for('new_hunt')))
         else:
             errors = form.errors
     return make_response(render_template(
         'settings.html', login=admin_settings.login,
-        password=admin_settings.password, domain=admin_settings.domain,
+        password=admin_settings.password,
         wax_site=admin_settings.wax_site, errors=errors, form=form
     ))
 
 
 def finished_setting(setting):
-    return setting.domain and setting.wax_site and setting.login and setting.password
+    return setting.wax_site and setting.login and setting.password
 
 # create or list hunts
 @app.route('/hunts', methods=['GET'])
@@ -147,12 +142,10 @@ def hunts():
 def new_hunt():
     setting = get_settings(g.db, current_user.admin_id)
     if not setting or not finished_setting(setting):
-        email = current_user.email
         flash('You must complete your settings information before'
               ' creating a hunt', 'warning')
         return make_response(
-            render_template(
-                'settings.html', domain=setting.domain, form=SettingForm()))
+            render_template('settings.html', form=SettingForm()))
 
     hunt = Hunt()
     form = HuntForm(request.form)
@@ -183,9 +176,10 @@ def new_hunt():
             flash('Error creating hunt: {}'.format(form.errors), 'warning')
             logger.warning('Error creating hunt.\nForm errors: %s\nForm data: '
                            '%s ', form.errors, form.data)
-
+    domain = current_user.email.split('@')[-1]
+    logger.debug('domain: %s %s', domain, current_user.email)
     return make_response(
-        render_template('new_hunt.html', form=form, domain=setting.domain))
+        render_template('new_hunt.html', form=form, domain=domain))
 
 
 # page to view hunt
@@ -194,9 +188,8 @@ def new_hunt():
 def hunt(hunt_id):
     hunt = get_hunt(g.db, hunt_id)
     if hunt:
-        domain = get_domain_by_admin_id(g.db, current_user.admin_id)
         return render_template(
-            'show_hunt.html', hunt=hunt, domain=domain)
+            'show_hunt.html', hunt=hunt)
     abort(404)
 
 

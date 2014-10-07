@@ -1,7 +1,6 @@
 from flask import request, flash, redirect, url_for
 
 from models import Hunt, Participant, Item, Admin, db, Setting
-from forms import SettingForm
 from hunt import bcrypt
 
 
@@ -44,11 +43,10 @@ def get_participant(db, email, hunt_id):
         Participant.email == email, Participant.hunt_id == hunt_id).first()
 
 
-def get_domain_by_admin_id(db, admin_id):
-    admin = db.session.query(Setting).filter(
-        Setting.admin_id == admin_id).first()
-    if admin:
-        return admin.domain
+def get_hunt_domain(db, hunt_id):
+    hunt = db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
+    if hunt:
+        return hunt.domain
     return None
 
 
@@ -69,8 +67,8 @@ def item_path(hunt_id, item_id):
 
 def validate_participant(db, email, hunt_id, participant_rule):
     if participant_rule == 'by_domain':
-        setting = get_settings(db, hunt_id=hunt_id)
-        return setting and email.split('@')[-1] == setting.domain, \
+        domain = get_hunt_domain(db, hunt_id)
+        return domain == email.split('@')[-1], \
             "Only employees of this organization may participate"
     elif participant_rule == 'by_whitelist':
         return get_participant(db, email, hunt_id) is not None, \

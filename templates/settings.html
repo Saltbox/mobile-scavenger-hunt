@@ -26,9 +26,9 @@
             </a>
 
             <div class="form-group">
-              <p>
+              <h5>
                 Provide your Wax LRS site name below
-              </p>
+              </h5>
               <input class="form-control" type="text" name="wax_site" value="{{wax_site or ''}}" placeholder="your wax site name">
             </div>
             <div class="form-group">
@@ -42,26 +42,13 @@
                      name="password" value="{{password or ''}}">
             </div>
           </div>
-          <div>
-            <h3>Domain</h3>
-            <p>
-              Your domain identifies the organization you are representing
-              By default, we set this to the domain found in your email: {{domain}}
-            </p>
-            <div class="form-group">
-              <div class="input-group">
-                <div class="input-group-addon">@</div>
-                <input class="form-control" type="text" name="domain" value="{{domain or ''}}">
-              </div>
-            </div>
-            <button class="btn btn-info pentary" value="submit">
-              {% if wax_site %}
-                Update Settings
-              {% else %}
-                Save Settings and Create Hunt
-              {% endif %}
-            </button>
-          </div>
+          <button class="btn btn-info pentary" value="submit">
+            {% if wax_site %}
+              Update Settings
+            {% else %}
+              Save Settings and Create Hunt
+            {% endif %}
+          </button>
         </form>
       </div>
       <div class="row">

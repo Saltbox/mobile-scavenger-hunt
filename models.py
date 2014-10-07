@@ -73,6 +73,7 @@ class Hunt(db.Model):
     welcome_message = db.Column(db.String(500))
     congratulations_message = db.Column(db.String(500))
     admin_id = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
+    domain = db.Column(db.String(50))
 
     def __repr__(self):
         return '<Hunt %r>' % self.name
@@ -105,7 +106,6 @@ class Setting(db.Model):
     __tablename__ = 'settings'
     settings_id = db.Column(db.Integer, primary_key=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
-    domain = db.Column(db.String(500), nullable=False)
     wax_site = db.Column(db.String(500), nullable=False)
     login = db.Column(db.String(50), nullable=False)
     password = db.Column(db.String(50), nullable=False)  # todo: something more private
