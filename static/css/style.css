@@ -320,7 +320,8 @@ span.glyphicon-remove:hover {
   cursor: pointer;
 }
 
-.input-group-btn button:hover {
+.input-group-btn button:hover,
+#printqr:hover {
   border-color: #0C7BE8;
 }
 
@@ -349,6 +350,10 @@ span.glyphicon-remove:hover {
 
 .qrcode-box div:last-child {
   display: inline-block;
+}
+
+#printqr {
+  margin-top: 25px;
 }
 
 input[name=item], input[name=participant] {
