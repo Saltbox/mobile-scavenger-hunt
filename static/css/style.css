@@ -129,7 +129,6 @@ div.panel-body {
 
 div.panel-default > .panel-heading,
 .panel-body {
-  background: #60c4e2;
   border: none;
 }
 
@@ -155,20 +154,20 @@ div.panel-default > .panel-heading,
   margin: 0;
 }
 
-.panel-rect a {
-  font-size: 16px;
-}
-
-.panel-rect a:hover {
-  color: blue;
-}
-
 .panel-link {
   padding: 15px;
 }
 
 form[name=new_hunt] .row:first-child .panel-link {
   margin-top: 130px;
+}
+
+.panel-link a {
+  color: white;
+}
+
+.panel-rect a {
+  font-size: 16px;
 }
 
 .panel-header-container {
@@ -273,8 +272,17 @@ div.user.container {
   font-size: 16px;
 }
 
+tbody tr td a {
+  color: blue;
+}
+
 .table > thead > tr .th {
   vertical-align: middle;
+}
+
+.table td a:hover {
+  color: blue;
+  text-decoration: underline;
 }
 
 #participant-error {
@@ -290,15 +298,6 @@ textarea {
 
 textarea.update {
   color: black;
-}
-
-.table td a {
-  color: white;
-}
-
-.table td a:hover {
-  color: blue;
-  text-decoration: underline;
 }
 
 .col-md-4.panel {
