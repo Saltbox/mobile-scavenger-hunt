@@ -35,7 +35,6 @@
                 <th>Hunt Name</th>
                 <th>QR Codes</th>
                 <th>Created</th>
-                <th>Last Modified</th>
                 <th></th>
               </tr>
             </thead>
@@ -47,7 +46,6 @@
                   <a href="/hunts/{{hunt.hunt_id}}/qrcodes">Printable QR Codes <i class="glyphicon glyphicon-print"></i></a>
                 </td>
                 <td class="uglytime">{{ hunt.date_created }}</td>
-                <td class="uglytime">{{ hunt.last_modified }}</td>
                 <td>
                   <a href="/hunts/{{hunt.hunt_id}}/delete">
                     <span class="glyphicon glyphicon-remove"></span>

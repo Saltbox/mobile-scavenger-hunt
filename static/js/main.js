@@ -50,25 +50,23 @@ var missingRequiredFields = function(formData) {
 };
 
 var getFormData = function() {
-  var formData = {};
-  formData['name'] = $('input#name').val();
+  var participationRule = $('input[name=participant_rule][checked=checked]');
+  participationRule.prop('checked', 'on');
+  var allRequired = $('input[name=all_required]');
 
-  var allRequired = $('input[name=all_required]').prop('checked');
-  formData['all_required'] = allRequired;
-  formData['num_required'] = $('input[name=num_required]').val();
+  var formData = {
+    'name': $('input#name').val(),
+    'all_required': allRequired.prop('checked'),
+    'num_required': $('input[name=num_required]').val(),
+    'num_items': $('input[name=item]').length,
+    'participant_rule': participationRule.val(),
+    'domain': $('input[name=domain]').val(),
+    'welcome_message': $('textarea[name=welcome_message]').val(),
+    'congratulations_message': $('textarea[name=congratulations_message]').val(),
+  };
   // num_items isn't actually used on backend, this is just for validating
-  formData['num_items'] = $('input[name=item]').length;
 
-  var selectedRule = $('input[name=participant_rule][checked=checked]');
-  selectedRule.prop('checked', 'on');
-  formData['participant_rule'] = selectedRule.val();
-
-  var welcomeMessage = $('textarea[name=welcome_message]').val();
-  formData['welcome_message'] = welcomeMessage;
-  var congratsMessage = $('textarea[name=congratulations_message]').val();
-  formData['congratulations_message'] = congratsMessage;
-
-  formData = addItemsToFormData(allRequired, formData);
+  formData = addItemsToFormData(allRequired.val(), formData);
   formData = addParticipantsToFormData(formData);
 
   return formData;
@@ -278,7 +276,6 @@ $(document).ready(function() {
   // various events for updating ui upon participant rule selection
   $('#participant-rules .panel-rect').on({
     click: function(e) {
-      // $(this).addClass('active').siblings().removeClass('active');
       $('.panel-rect .btn').removeClass('active');
       $(this).find('.btn').addClass('active');
       if ($(this).hasClass('by_domain')) {
