@@ -7,47 +7,46 @@
   font-family: 'SegoeUI', Helvetica Neue, Helvetica, Arial;
 }
 
-span.participant-list-item {
-  margin: 10px;
+/*i put a table in a centered row so this resets*/
+table td {
+  text-align: left;
 }
 
-.btn.btn-default {
-  border-radius: 0;
-  background-repeat: no-repeat;
-  border-color: lightgray;
-  background-color: white;
-  background-image: none;
+ul {
+  list-style-type: none;
 }
 
-.container.content {
-  margin-bottom: 50px;
-}
-
-.container.content label {
-  font-size: 14px;
-  margin-bottom: 0;
+li {
+  font-size: 16px;
 }
 
 label {
   font-weight: bold;
 }
 
-input[name=endpoint] {
-  min-width: 50%;
+textarea {
+  min-height: 100px;
+  width: 100%;
+  border-color: lightgrey;
+  border-radius: 0;
 }
 
-.center {
-  text-align: center;
-  vertical-align: middle;
+tbody tr td a {
+  color: blue;
 }
 
-div.container.content{
-  padding-left: 40px;
-  padding-right: 40px;
+/*** BUTTONS ***/
+
+.btn.btn-default {
+  background-repeat: no-repeat;
+  border-color: lightgray;
+  background-color: white;
+  background-image: none;
 }
 
-.content .form-group {
-  margin-bottom: 25px;
+.btn.btn-info,
+.btn.btn-default {
+  border-radius: 0;
 }
 
 button.btn {
@@ -57,6 +56,59 @@ button.btn {
 
 button.btn-default {
   border-color: lightgray;
+}
+
+.user button.btn {
+  font-size: 16px;
+  padding: 0;
+  line-height: 0;
+}
+
+button[type=submit] {
+  margin-top: 30px;
+}
+
+/*** Miscellaneous Bootstrap Overrides ***/
+
+.container.content {
+  margin-bottom: 50px;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+
+.container.content label {
+  font-size: 14px;
+  margin-bottom: 0;
+}
+
+div.row {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+@media (min-width: 1200px) {
+  div.container {
+    width: 100%;
+  }
+}
+
+/***************************************/
+
+input[name=endpoint] {
+  min-width: 50%;
+}
+
+span.participant-list-item {
+  margin: 10px;
+}
+
+.center {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.content .form-group {
+  margin-bottom: 25px;
 }
 
 .hugeicon {
@@ -83,11 +135,6 @@ div.titlerow.col-md-12 {
   background-color: #0D48FF;
 }
 
-div.row {
-  margin-right: 0;
-  margin-left: 0;
-}
-
 div.half {
   min-height: 250px;
 }
@@ -112,6 +159,9 @@ div.col-md-6.half:last-child {
   padding-right: 0;
 }
 
+
+/************ Panels /************/
+
 div.panel {
   border-radius: 0;
   padding-left: 0;
@@ -133,10 +183,17 @@ div.panel-default > .panel-heading,
 }
 
 .panel-rect {
-  min-height: 125px;
   vertical-align: bottom;
   font-size: 16px;
   margin: 20px 0 0 0;
+}
+
+.panel-rect, .panel-rect button.btn-info {
+  min-height: 125px;
+}
+
+.panel-rect button {
+  white-space: normal;
 }
 
 .panel-rect h3, div.container {
@@ -144,25 +201,12 @@ div.panel-default > .panel-heading,
   padding: 0;
 }
 
-.row.participant-rules.quarternary.panel-rect {
-  min-height: 50px;
-}
-
-.navbar > .container .navbar-brand,
-.panel-rect .row,
-.form-horizontal div.form-group {
-  margin: 0;
-}
-
 .panel-link {
   padding: 15px;
 }
 
-form[name=new_hunt] .row:first-child .panel-link {
-  margin-top: 130px;
-}
-
-.panel-link a {
+.panel-link a,
+.panel-rect a {
   color: white;
 }
 
@@ -186,25 +230,13 @@ form[name=new_hunt] .row:first-child .panel-link {
 .titlerow .panel-rect:first-child {
   margin-left: 0;
 }
-
-.secondary {
-  background-color: #60c4e2;
+.row.participant-rules.quarternary.panel-rect {
+  min-height: 50px;
 }
 
-.tertiary {
-  background-color: #FF7F00;
-}
-
-.quarternary {
-  background-color: #0CE8E0;
-}
-
-.pentary {
-  background-color: #53A0EC;
-}
-
-.panel-rect a {
-  color: white;
+.panel-rect-hover {
+  opacity: 0.7;
+  cursor: pointer;
 }
 
 .panel-rect.col-md-5 {
@@ -235,6 +267,43 @@ form[name=new_hunt] .row:first-child .panel-link {
   min-height: 100px;
 }
 
+/*********************************************/
+.navbar > .container .navbar-brand,
+.panel-rect .row,
+.form-horizontal div.form-group {
+  margin: 0;
+}
+
+
+form[name=new_hunt] .row:first-child .panel-link {
+  margin-top: 130px;
+}
+
+/*** Colors ***/
+
+.secondary {
+  background-color: #60c4e2;
+}
+
+.tertiary {
+  background-color: #FF7F00;
+}
+
+.quarternary {
+  background-color: #0CE8E0;
+}
+
+.pentary {
+  background-color: #53A0EC;
+}
+
+.error {
+  color: red;
+}
+
+.plain {
+  background-color: white;
+}
 input.form-control {
   border-radius: 0;
 }
@@ -272,10 +341,6 @@ div.user.container {
   font-size: 16px;
 }
 
-tbody tr td a {
-  color: blue;
-}
-
 .table > thead > tr .th {
   vertical-align: middle;
 }
@@ -283,17 +348,6 @@ tbody tr td a {
 .table td a:hover {
   color: blue;
   text-decoration: underline;
-}
-
-#participant-error {
-  color: red;
-}
-
-textarea {
-  min-height: 100px;
-  width: 100%;
-  border-color: lightgrey;
-  border-radius: 0;
 }
 
 textarea.update {
@@ -325,23 +379,10 @@ span.glyphicon-remove:hover {
   border-color: #0C7BE8;
 }
 
-.panel-rect-hover {
-  opacity: 0.7;
-  cursor: pointer;
-}
-
-.error {
-  color: red;
-}
-
 .flash {
   text-align: center;
   font-size: 16px;
   height: 50px;
-}
-
-.plain {
-  background-color: white;
 }
 
 .qrcode-box {
@@ -372,23 +413,7 @@ input[name=item], input[name=participant] {
   font-size: 16px;
 }
 
-@media (min-width: 1200px) {
-  div.container {
-    width: 100%;
-  }
+input.domain {
+  width: 100%;
 }
 
-.user button.btn {
-  font-size: 16px;
-  padding: 0;
-  line-height: 0;
-}
-
-button[type=submit], .userinfo button[type=submit] {
-  margin-top: 30px;
-}
-
-/*i put a table in a centered row so this resets*/
-table td {
-  text-align: left;
-}

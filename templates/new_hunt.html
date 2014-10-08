@@ -29,35 +29,29 @@
           <div class="panel-header-container">
             <div class="panel-header pentary"><h3>Who can participate?</h3></div>
           </div>
-          <div class="panel-default" id="participant-rules">
+          <div class="panel-default btn-group" id="participant-rules">
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect by_domain">
-              <div class="row"><span class="domain">@{{domain}}</span> emails</div>
-              <div class="row">
-                <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
-                <span style="display: none;">
-                  {{ form.participant_rule(type="radio", value="by_domain") }}
-                </span>
-              </div>
+              <button type="button" class="btn btn-lg btn-info">Emails on a domain</button>
+              <span style="display: none;">
+                {{ form.participant_rule(type="radio", value="by_domain") }}
+              </span>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect anyone">
-              <div class="row">Anyone who finds the qrcodes</div>
-              <div class="row">
-                <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
-                <span style="display: none;">
-                  {{ form.participant_rule(type="radio", value="anyone") }}
-                </span>
-              </div>
+              <button type="button" class="btn btn-lg btn-info active">Anyone who finds the qrcodes</button>
+              <span style="display: none;">
+                {{ form.participant_rule(type="radio", value="anyone", checked="on") }}
+              </span>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect by_whitelist">
-              <div class="row">Specific emails</div>
-              <div class="row">
-                <span style="display: none;" class="glyphicon glyphicon-ok pull-right"></span>
-                <span style="display: none;">
-                  {{ form.participant_rule(type="radio", value="by_whitelist") }}
-                </span>
-              </div>
+              <button type="button" class="btn btn-lg btn-info">Specific emails</button>
+              <span style="display: none;">
+                {{ form.participant_rule(type="radio", value="by_whitelist") }}
+              </span>
             </div>
           </div>
+        </div>
+        <div class="row">
+          {{ form.domain(type="text", value=domain, class="domain form-control", style="display: none;")}}
         </div>
         <div class="row panel-rect" id="participants-group" style="display: none;">
           <div class="form-group">
@@ -70,7 +64,7 @@
                 </button>
               </span>
             </div>
-            <div id="participant-error" style="display: none;">
+            <div id="participant-error" class="error" style="display: none;">
               Please enter a valid email address
             </div>
           </div>
@@ -117,7 +111,7 @@
             </div>
           </div>
           <div class="form-group">
-            <textarea class="form-control" name="welcome_message" maxlength=500>Welcome! You are about to participate in the (your scavenger hunt name). If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'.</textarea>
+            <textarea class="form-control" name="welcome_message" maxlength=500>Welcome! You are about to participate in our company scavenger hunt. If you don't think you're supposed to do this, tap on 'Oops'. Otherwise, tap on 'Get Started'.</textarea>
           </div>
         </div>
         <div class="row panel-rect">

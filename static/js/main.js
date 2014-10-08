@@ -278,16 +278,24 @@ $(document).ready(function() {
   // various events for updating ui upon participant rule selection
   $('#participant-rules .panel-rect').on({
     click: function(e) {
-      $(this).css('opacity', 1).siblings().css('opacity', 0.7);
-      $('.glyphicon-ok').hide('slow');
-      $($(this).find('.glyphicon-ok')).show();
+      // $(this).addClass('active').siblings().removeClass('active');
+      $('.panel-rect .btn').removeClass('active');
+      $(this).find('.btn').addClass('active');
+      if ($(this).hasClass('by_domain')) {
+        $('#domain').show();
+      }
+      else {
+        $('#domain').hide();
+      }
 
       var selectedRule = $(this).find($('input[name=participant_rule]'));
       selectedRule.attr('checked', 'on');
       toggleParticipantTable(selectedRule.val());
     },
     mouseenter: function() {
-      $(this).addClass('panel-rect-hover');
+      if (!$(this).find('active')) {
+        $(this).addClass('panel-rect-hover');
+      }
     },
     mouseleave: function() {
       $(this).removeClass('panel-rect-hover');
