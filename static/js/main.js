@@ -343,11 +343,21 @@ $(document).ready(function() {
     sectionPrint.print();
   });
 
+  $('#hunts-table .glyphicon-remove').on('click', function(e) {
+    $(this).siblings('.btn-group').show();
+    $(this).hide();
+  });
+
+  $('#hunts-table .btn-default').on('click', function() {
+    $(this).parent('.btn-group').hide().siblings('.glyphicon-remove').show();
+  });
+
+  var huntNamePrompt = "What's your hunt's name?";
   $('#name').on({
     keyup: function() {
       var newValue = $('#name').val();
       if (!newValue) {
-        newValue = "What's your hunt's name?";
+        newValue = huntNamePrompt;
       }
       $('.form-group h3').text(newValue);
     },
@@ -355,8 +365,8 @@ $(document).ready(function() {
       // backspace or delete
       if (e.keyCode == 46 || e.keyCode == 8) {
         var newValue = $('#name').val().slice(0, -1);
-        if (newValue.length < 1) {
-          newValue = "What's your hunt's name?";
+        if (newValue.length == 0) {
+          newValue = huntNamePrompt;
         }
         $('.form-group h3').text(newValue);
       }

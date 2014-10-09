@@ -96,6 +96,12 @@ div.row {
   }
 }
 
+table td a.btn:hover {
+  color: initial;
+  text-decoration: none;
+}
+
+
 /***************************************/
 
 input[name=endpoint] {

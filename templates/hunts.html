@@ -47,9 +47,15 @@
                 </td>
                 <td class="uglytime">{{ hunt.date_created }}</td>
                 <td>
-                  <a href="/hunts/{{hunt.hunt_id}}/delete">
-                    <span class="glyphicon glyphicon-remove"></span>
-                  </a>
+                  <span class="glyphicon glyphicon-remove"></span>
+                  <div class="btn-group pull-right" style="display: none;">
+                    <a href="/hunts/{{hunt.hunt_id}}/delete" class="btn btn-danger">
+                      Delete Hunt
+                    </a>
+                    <button class="btn btn-default">
+                      Cancel
+                    </button>
+                  </div>
                 </td>
               </tr>
             {% else %}
