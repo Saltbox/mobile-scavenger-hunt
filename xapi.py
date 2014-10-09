@@ -8,14 +8,13 @@ import uuid
 from utils import get_items
 
 
-def hunt_activity_id(hunt_id):
-    print 'host url', request.host_url
-    return "{}hunts/{}".format(request.host_url, hunt_id)
+def hunt_activity_id(hunt_id, host_url):
+    return "{}hunts/{}".format(host_url, hunt_id)
 
 
-def hunt_activity(hunt):
+def hunt_activity(hunt, host_url):
     return {
-        "id": hunt_activity_id(hunt.hunt_id),
+        "id": hunt_activity_id(hunt.hunt_id, host_url),
         "definition": {
             "type": "{}activities/type/scavengerhunt".format(
                 request.host_url),
@@ -27,7 +26,7 @@ def hunt_activity(hunt):
     }
 
 
-def begin_hunt_statement(actor, hunt):
+def begin_hunt_statement(actor, hunt, host_url):
     logger.debug(
         'participant began hunt. sending statement to Wax')
     return {
@@ -38,7 +37,7 @@ def begin_hunt_statement(actor, hunt):
                 "en-US": "registered"
             }
         },
-        "object": hunt_activity(hunt)
+        "object": hunt_activity(hunt, host_url)
     }
 
 
@@ -51,7 +50,7 @@ def verb_completed():
     }
 
 
-def found_item_statement(actor, hunt, item):
+def found_item_statement(actor, hunt, item, host_url):
     return {
         "actor": actor,
         "verb": verb_completed(),
@@ -69,18 +68,22 @@ def found_item_statement(actor, hunt, item):
         },
         "context": {
             "contextActivities": {
-                "parent": hunt_activity(hunt)
+                "parent": hunt_activity(hunt, host_url)
             }
         }
     }
 
 
 # participant found every item
-def completed_hunt_statement(actor, hunt):
+def completed_hunt_statement(actor, hunt, host_url):
     return {
         'actor': actor,
         'verb': verb_completed(),
-        "object": hunt_activity(hunt)
+        "object": hunt_activity(hunt, host_url),
+        "result": {
+            "success": True,
+            "completion": True,
+        }
     }
 
 
@@ -123,10 +126,10 @@ def get_state_response(params, settings):
     )
 
 
-def default_params(email, hunt_id):
+def default_params(email, hunt_id, host_url):
     return {
         'agent': json.dumps(make_agent(email)),
-        'activityId': "{}/hunts/{}".format(request.host_url, hunt_id),
+        'activityId': "{}/hunts/{}".format(host_url, hunt_id),
         'stateId': 'hunt_progress'
     }
 
@@ -166,7 +169,7 @@ def update_state(response, email, hunt, item, params, db):
 
         state = prepare_initial_state(
             int(item.item_id), required_ids, len(items))
-        # put_state(json.dumps(state), params, admin_settings)
+        put_state(json.dumps(state), params, admin_settings)
         report['state_created'] = True
     elif response.status_code == 200:
         state = response.json()
@@ -175,7 +178,7 @@ def update_state(response, email, hunt, item, params, db):
                 'Updating state api for %s on hunt, %s.', email, hunt.name)
             state = update(state, params, admin_settings)
             report['state_updated'] = True
-            # post_state(state, params, admin_settings)
+            post_state(state, params, admin_settings)
             required_found = set(state['found_ids']) == set(state['required_ids'])
             complete = state['num_found'] == hunt.num_required and required_found
             report['hunt_completed'] = complete
@@ -190,24 +193,24 @@ def update_state(response, email, hunt, item, params, db):
 
 
 # send statements based off of found state
-def send_statements(state, state_report, settings, email, hunt, item=None):
+def send_statements(
+    state, state_report, settings, email, hunt, host_url, item=None):
     statements = []
     actor = make_agent(email)
     if state_report.get('state_created'):
-        statements.append(begin_hunt_statement(actor, hunt))
+        statements.append(begin_hunt_statement(actor, hunt, host_url))
     if state_report.get('state_updated'):
-        statements.append(found_item_statement(actor, hunt, item))
+        statements.append(found_item_statement(actor, hunt, item, host_url))
     if state_report.get('hunt_completed'):
-        statements.append(completed_hunt_statement(actor, hunt))
+        statements.append(completed_hunt_statement(actor, hunt, host_url))
 
     if statements:
-        # return requests.post(
-        #     'https://{}.waxlrs.com/TCAPI/statements'.format(settings.wax_site),
-        #     headers={
-        #         "Content-Type": "application/json",
-        #         "x-experience-api-version": "1.0.0"
-        #     },
-        #     data=json.dumps(statements),
-        #     auth=(settings.login, settings.password)
-        # )
-        pass
+        return requests.post(
+            'https://{}.waxlrs.com/TCAPI/statements'.format(settings.wax_site),
+            headers={
+                "Content-Type": "application/json",
+                "x-experience-api-version": "1.0.0"
+            },
+            data=json.dumps(statements),
+            auth=(settings.login, settings.password)
+        )
