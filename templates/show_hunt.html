@@ -21,26 +21,38 @@
           <div class="panel-default">
             <div class="by_domain">
             </div>
-            {% if hunt and hunt.participants %}
+            <table class="table table-condensed" id="registered-participants">
+              <thead class="secondary">
+                <tr>
+                  <th>Registered participants</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% if registered_participants %}
+                {% for participant in registered_participants %}
+                  <tr>
+                    <td>{{ participant.email }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr><td>There are currently no registered participants</td></tr>
+              {% endif %}
+              </tbody>
+            </table>
+            {% if unregistered_participants and hunt.participant_rule == 'by_whitelist' %}
             <table class="table table-condensed" id="participants-table">
               <thead class="secondary">
                 <tr>
-                  <th>Participants</th>
+                  <th>Allowed but not registered</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {% for participant in hunt.participants %}
-                  {% if (hunt.participant_rule == 'by_whitelist') or participant.registered %}
-                  <tr>
-                    <td>{{participant.email}}</td>
-                    <td>
-                    {% if hunt.participant_rule == 'by_whitelist' and participant.registered %}
-                      <span class='glyphicon glyphicon-ok'></span>
-                    {% endif %}
-                    </td>
-                  </tr>
-                  {% endif %}
+                {% for participant in unregistered_participants %}
+                <tr>
+                  <td>{{ participant.email }}</td>
+                  <td></td>
+                </tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -54,7 +66,7 @@
                 {% if hunt.all_required %}
                   Finding all items is required for success
                 {% else %}
-                  Number of items required for success: {{hunt.num_required}}
+                  Number of items required for success: {{hunt.num_required or 0}}
                 {% endif %}
               </h4>
             </div>
@@ -89,7 +101,7 @@
         <div class="row ">
           <div class="panel-header-container">
             <div class="panel-header pentary">
-              <h4>Welcome</h4>
+              <h4>Welcome a new participant</h4>
             </div>
           </div>
           <div class="panel-body">

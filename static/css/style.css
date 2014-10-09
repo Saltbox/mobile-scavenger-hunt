@@ -436,6 +436,6 @@ input.domain {
   width: 100%;
 }
 
-#participants-table {
+.panel-default table {
   margin-top: 15px;
 }

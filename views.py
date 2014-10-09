@@ -13,10 +13,9 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
 import hunt
 from hunt import app, logger, login_manager, db, bcrypt
 from utils import get_admin, get_settings, get_hunt, get_item, \
-    get_participant, item_path, \
-    validate_participant, get_intended_url, get_hunts, get_items, \
-    initialize_hunt, initialize_registered_participant, mark_items_found, \
-    valid_login, ready_to_send_statements
+    get_participant, item_path, validate_participant, get_intended_url, \
+    get_hunts, get_items, initialize_hunt, initialize_registered_participant, \
+    mark_items_found, valid_login, finished_setting
 
 import xapi
 
@@ -125,10 +124,7 @@ def settings():
     ))
 
 
-def finished_setting(setting):
-    return setting.wax_site and setting.login and setting.password
-
-# create or list hunts
+# list hunts
 @app.route('/hunts', methods=['GET'])
 @login_required
 def hunts():
@@ -140,12 +136,11 @@ def hunts():
 @app.route('/new_hunt', methods=['GET', 'POST'])
 @login_required
 def new_hunt():
-    setting = get_settings(g.db, current_user.admin_id)
+    setting = get_settings(g.db, admin_id=current_user.admin_id)
     if not setting or not finished_setting(setting):
         flash('You must complete your settings information before'
               ' creating a hunt', 'warning')
-        return make_response(
-            render_template('settings.html', form=SettingForm()))
+        return redirect(url_for('settings'))
 
     hunt = Hunt()
     form = HuntForm(request.form)
@@ -177,7 +172,6 @@ def new_hunt():
             logger.warning('Error creating hunt.\nForm errors: %s\nForm data: '
                            '%s ', form.errors, form.data)
     domain = current_user.email.split('@')[-1]
-    logger.debug('domain: %s %s', domain, current_user.email)
     return make_response(
         render_template('new_hunt.html', form=form, domain=domain))
 
@@ -188,8 +182,16 @@ def new_hunt():
 def hunt(hunt_id):
     hunt = get_hunt(g.db, hunt_id)
     if hunt:
+        registered = []
+        unregistered = []
+        for participant in hunt.participants:
+            if participant.registered:
+                registered.append(participant)
+            else:
+                unregistered.append(participant)
         return render_template(
-            'show_hunt.html', hunt=hunt)
+            'show_hunt.html', hunt=hunt, registered_participants=registered,
+            unregistered_participants=unregistered)
     abort(404)
 
 
@@ -249,7 +251,7 @@ def index_items(hunt_id):
     if hunt:
         if session.get('email'):
             items = get_items(g.db, hunt_id)
-            params = xapi.default_params(session['email'], hunt_id)
+            params = xapi.default_params(session['email'], hunt_id, request.host_url)
             admin_settings = get_settings(g.db, hunt_id=hunt_id)
 
             response = xapi.get_state_response(params, admin_settings)
@@ -272,15 +274,15 @@ def index_items(hunt_id):
 
 # information about one item for scavenger to read
 @app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
-def show_item(hunt_id, item_id):
+def find_item(hunt_id, item_id):
     admin_settings = get_settings(g.db, hunt_id=hunt_id)
     # admin_settings found through hunt_id means hunt exists
-    if admin_settings and ready_to_send_statements(g.db, admin_settings):
+    if finished_setting(admin_settings):
         item = get_item(g.db, item_id)
         if item:
             email = session.get('email')
             if email and get_participant(g.db, email, hunt_id):
-                params = xapi.default_params(email, hunt_id)
+                params = xapi.default_params(email, hunt_id, request.host_url)
                 hunt = get_hunt(g.db, hunt_id)
 
                 state_response = xapi.get_state_response(params, admin_settings)
@@ -288,7 +290,7 @@ def show_item(hunt_id, item_id):
                     state_response, email, hunt, item, params, g.db)
                 xapi.send_statements(
                     updated_state, state_report, admin_settings, email, hunt,
-                    item=item)
+                    request.host_url, item=item)
 
                 if state_report.get('hunt_completed'):
                     return make_response(

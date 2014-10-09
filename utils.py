@@ -57,8 +57,8 @@ def get_intended_url(session, hunt_id):
         return '/hunts/{}/items'.format(hunt_id)
 
 
-def ready_to_send_statements(db, settings):
-    return settings.wax_site and settings.login and settings.password
+def finished_setting(setting):
+    return setting.wax_site and setting.login and setting.password
 
 
 def item_path(hunt_id, item_id):
@@ -69,7 +69,7 @@ def validate_participant(db, email, hunt_id, participant_rule):
     if participant_rule == 'by_domain':
         domain = get_hunt_domain(db, hunt_id)
         return domain == email.split('@')[-1], \
-            "Only employees of this organization may participate"
+            "Only participants with emails on the domain, {}, may participate".format(domain)
     elif participant_rule == 'by_whitelist':
         return get_participant(db, email, hunt_id) is not None, \
             "You are not on the list of allowed participants"

@@ -20,7 +20,7 @@ def identifier():
     return uuid.uuid4().hex
 
 
-def email():
+def example_email():
     return '{}@example.com'.format(identifier())
 
 
@@ -28,9 +28,9 @@ class HuntTestCase(unittest.TestCase):
     def setUp(self):
         self.request = MagicMock()
         self.app = app.test_client()
-        self.admin = {'email': email(), 'password': identifier()}
+        self.admin = {'email': example_email(), 'password': identifier()}
 
-    def registered_statement(self, hunt, email=email()):
+    def registered_statement(self, hunt, email=example_email()):
         return {
             "actor": xapi.make_agent(email),
             "verb": {
@@ -58,7 +58,7 @@ class HuntTestCase(unittest.TestCase):
     def create_hunt(self,
                     name=identifier(),
                     participant_rule='by_whitelist',
-                    participants=[{'email': email()}],
+                    participants=[{'email': example_email()}],
                     items=[{'name': identifier()}], all_required=True):
 
         # this is how wtforms-alchemy expects data
@@ -109,7 +109,7 @@ class HuntTestCase(unittest.TestCase):
         get_admin.return_value = self.create_mock_admin(get_db)
         with app.test_client() as c:
             password = identifier()
-            admin_email = email()
+            admin_email = example_email()
             response = self.create_admin(
                 app=c, email=admin_email, password=password)
 
@@ -171,7 +171,7 @@ class HuntTestCase(unittest.TestCase):
             self, get_admin):
         get_admin.return_value = None
         with app.test_client() as c:
-            admin_email = email()
+            admin_email = example_email()
             password = identifier()
 
             response = self.login(c, admin_email, password)
@@ -202,7 +202,7 @@ class HuntTestCase(unittest.TestCase):
     def test_create_hunt_works(self, get_db, get_admin):
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            participants = [{'email': email()} for _ in xrange(2)]
+            participants = [{'email': example_email()} for _ in xrange(2)]
             items = [{'name': identifier()} for _ in xrange(2)]
             create_hunt_response = self.create_hunt(
                 name=identifier(), participants=participants, items=items)
@@ -212,7 +212,10 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.get_hunt')
     def test_show_hunt_works(self, get_hunt):
         name = identifier()
-        participants = [{'email': email()} for _ in xrange(2)]
+        participants = [
+            MagicMock(email=example_email(), registered=True)
+            for _ in xrange(2)
+        ]
         items = [{'name': identifier()} for _ in xrange(2)]
         get_hunt.return_value = MagicMock(
             name=name, participants=participants, items=items,
@@ -227,7 +230,7 @@ class HuntTestCase(unittest.TestCase):
             self.assertIn(name, show_hunt_response.data)
 
             for participant in participants:
-                self.assertIn(participant['email'], show_hunt_response.data)
+                self.assertIn(participant.email, show_hunt_response.data)
 
             for item in items:
                 self.assertIn(item['name'], show_hunt_response.data)
@@ -251,7 +254,7 @@ class HuntTestCase(unittest.TestCase):
             self, get_items, _get_db, _get_settings, _get_hunt, _xapi):
         with app.test_client() as c:
             with c.session_transaction() as sess:
-                sess['email'] = email()
+                sess['email'] = example_email()
 
             items = [{'name': identifier()}, {'name': identifier()}]
             get_items.return_value = items
@@ -386,7 +389,7 @@ class HuntTestCase(unittest.TestCase):
     def test_validate_participant_by_whitelist(self, get_db, get_participant):
         # mock will be truthy when returned from the check for participant
         valid, _ = utils.validate_participant(
-            get_db(), email(), 1, 'by_whitelist')
+            get_db(), example_email(), 1, 'by_whitelist')
         self.assertTrue(valid)
 
     @patch('utils.get_participant')
@@ -395,13 +398,13 @@ class HuntTestCase(unittest.TestCase):
             self, get_db, get_participant):
         get_participant.return_value = None
         invalid, _ = utils.validate_participant(
-            get_db(), email(), 1, 'by_whitelist')
+            get_db(), example_email(), 1, 'by_whitelist')
         self.assertFalse(invalid)
 
     @patch('views.get_db')
     def test_validate_participant_anyone_can_participate(self, get_db):
         valid, err_msg = utils.validate_participant(
-            get_db(), email(), 1, 'anyone')
+            get_db(), example_email(), 1, 'anyone')
         self.assertTrue(valid)
 
     # Flask-Login calls load_user which uses Admin, around the
@@ -417,7 +420,7 @@ class HuntTestCase(unittest.TestCase):
             response = c.post(
                 '/register_participant?hunt_id=1',
                 data={
-                    'email': email(),
+                    'email': example_email(),
                     'name': identifier()
                 },
                 follow_redirects=True
@@ -427,17 +430,15 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.get_hunt')
     @patch('views.get_item')
     @patch('views.get_settings')
-    @patch('views.ready_to_send_statements')
     @patch('views.get_participant')
     @patch('views.xapi')
     def test_registered_participant_can_resume_hunt(
-            self, xapi, get_participant, ready_to_send_statements,
-            get_settings, get_item, get_hunt):
+            self, xapi, get_participant, get_settings, get_item, get_hunt):
         state_report = MagicMock()
         state_report.get.return_value = False
         xapi.update_state.return_value = state_report, MagicMock()
         with app.test_client() as c:
-            participant_email = email()
+            participant_email = example_email()
             name = identifier()
 
             # necessary to access item routes
@@ -451,17 +452,15 @@ class HuntTestCase(unittest.TestCase):
 
     @patch('views.get_item')
     @patch('views.get_settings')
-    @patch('views.ready_to_send_statements')
     @patch('views.get_participant')
     @patch('views.xapi')
     def test_registered_participant_congratulated_on_hunt_finish(
-        self, xapi, get_participant, ready_to_send_statements,
-            get_settings, get_item):
+            self, xapi, get_participant, get_settings, get_item):
         state_report = MagicMock()
         state_report.get.return_value = True
         xapi.update_state.return_value = state_report, MagicMock()
         with app.test_client() as c:
-            participant_email = email()
+            participant_email = example_email()
             with c.session_transaction() as sess:
                 sess['email'] = participant_email
             response = c.get('/hunts/1/items/1')
