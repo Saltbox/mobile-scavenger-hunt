@@ -12,6 +12,10 @@ table td {
   text-align: left;
 }
 
+table th {
+  color: white;
+}
+
 ul {
   list-style-type: none;
 }
@@ -248,6 +252,10 @@ div.panel-default > .panel-heading,
   width: 17%;
 }
 
+.panel-default table thead th {
+  padding-left: 10px;
+}
+
 /*it probably would've been simpler to put a div with margin inside the col-md's*/
 @media(max-width: 768px) {
   .panel-rect.col-md-2 {
@@ -267,17 +275,6 @@ div.panel-default > .panel-heading,
   min-height: 100px;
 }
 
-/*********************************************/
-.navbar > .container .navbar-brand,
-.panel-rect .row,
-.form-horizontal div.form-group {
-  margin: 0;
-}
-
-
-form[name=new_hunt] .row:first-child .panel-link {
-  margin-top: 130px;
-}
 
 /*** Colors ***/
 
@@ -301,6 +298,8 @@ form[name=new_hunt] .row:first-child .panel-link {
   color: red;
 }
 
+/**************/
+
 .plain {
   background-color: white;
 }
@@ -312,6 +311,16 @@ input.form-control {
 div.form-group,
 .titlerow .fullwidth {
   width: 100%;
+}
+
+.navbar > .container .navbar-brand,
+.panel-rect .row,
+.form-horizontal div.form-group {
+  margin: 0;
+}
+
+form[name=new_hunt] .row:first-child .panel-link {
+  margin-top: 130px;
 }
 
 .form-group > div {
@@ -369,6 +378,10 @@ textarea.update {
   border-bottom: thin solid black;
 }
 
+span.glyphicon-remove {
+  vertical-align: -webkit-baseline-middle;
+}
+
 span.glyphicon-remove:hover {
   color: red;
   cursor: pointer;
@@ -417,3 +430,6 @@ input.domain {
   width: 100%;
 }
 
+#participants-table {
+  margin-top: 15px;
+}

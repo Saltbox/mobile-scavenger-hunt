@@ -278,11 +278,20 @@ $(document).ready(function() {
     click: function(e) {
       $('.panel-rect .btn').removeClass('active');
       $(this).find('.btn').addClass('active');
+      $('.explanation div').hide();
+
       if ($(this).hasClass('by_domain')) {
         $('#domain').show();
+        $('.explanation .by_domain').show();
       }
       else {
         $('#domain').hide();
+        if ($(this).hasClass('anyone')) {
+          $('.explanation .anyone').show();
+        }
+        else {
+          $('.explanation .by_whitelist').show();
+        }
       }
 
       var selectedRule = $(this).find($('input[name=participant_rule]'));
@@ -345,6 +354,20 @@ $(document).ready(function() {
           newValue = "What's your hunt's name?";
         }
         $('.form-group h3').text(newValue);
+      }
+    }
+  });
+
+  $('#domain').on({
+    keyup: function() {
+      var newValue = $(this).val();
+      $('.explanation .by_domain span').text(newValue);
+    },
+    keydown: function(e) {
+      // backspace or delete
+      if (e.keyCode == 46 || e.keyCode == 8) {
+        var newValue = $('#domain').val().slice(0, -1);
+        $('.explanation .domain span').text(newValue);
       }
     }
   });
