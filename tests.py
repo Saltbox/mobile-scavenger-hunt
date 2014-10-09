@@ -79,10 +79,9 @@ class HuntTestCase(unittest.TestCase):
         return self.app.post(
             '/new_hunt', data=self.imdict, follow_redirects=True)
 
-    def create_settings(self, app, wax_site, admin_id,
-                        domain, login, password):
+    def create_settings(self, app, wax_site, admin_id, login, password):
         return app.post('/settings', data=dict(
-            wax_site=wax_site, admin_id=admin_id, domain=domain,
+            wax_site=wax_site, admin_id=admin_id,
             login=login, password=password
         ), follow_redirects=True)
 
@@ -115,7 +114,7 @@ class HuntTestCase(unittest.TestCase):
                 app=c, email=admin_email, password=password)
 
             self.assertEqual(response.status_code, 200)
-            self.assertIn('Successfully created admin', response.data)
+            self.assertIn('Welcome to xAPI Scavenger Hunt', response.data)
 
     @patch('views.get_settings')
     @patch('views.current_user')
@@ -127,9 +126,8 @@ class HuntTestCase(unittest.TestCase):
         get_admin.return_value = self.create_mock_admin(get_db)
         current_user.admin_id = 1
         with app.test_client() as c:
-            domain = "{}.com".format(identifier())
             response = self.create_settings(
-                c, identifier(), 1, domain, identifier(), identifier())
+                c, identifier(), 1, identifier(), identifier())
 
             self.assertEqual(response.status_code, 200)
             # successfully saving settings redirects to new hunt page
@@ -146,16 +144,15 @@ class HuntTestCase(unittest.TestCase):
         get_admin.return_value = self.create_mock_admin(get_db)
         current_user.admin_id = 1
 
-        domain = identifier()
         wax_site = identifier()
         login = identifier()
         password = identifier()
         get_settings.return_value = MagicMock(
-            domain=domain, wax_site=wax_site, login=login, password=password)
+            wax_site=wax_site, login=login, password=password)
         with app.test_client() as c:
             response = c.get('/settings')
             self.assertEqual(response.status_code, 200)
-            for text in [domain, wax_site, login, password]:
+            for text in [wax_site, login, password]:
                 self.assertIn(text, response.data)
 
     @patch('views.get_admin')
@@ -369,27 +366,19 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('hunts/1/delete')
             self.assertEqual(response.status_code, 404)
 
-    @patch('utils.get_settings')
+    @patch('utils.get_hunt_domain')
     @patch('views.get_db')
-    def test_validate_participant_by_domain(self, get_db, get_settings):
-        domain = get_settings().domain = 'example.com'
-        email = '{}@{}'.format(identifier(), domain)
-        valid, _ = utils.validate_participant(get_db(), email, 1, 'by_domain')
-        self.assertTrue(valid)
-
-    @patch('utils.get_settings')
-    @patch('views.get_db')
-    def test_validate_participant_by_domain(self, get_db, get_settings):
-        domain = get_settings().domain = 'example.com'
+    def test_validate_participant_by_domain(self, get_db, get_hunt_domain):
+        domain = get_hunt_domain.return_value = 'example.com'
         email = '{}@{}'.format(identifier(), domain)
         valid, _ = utils.validate_participant(get_db(), email, 1, 'by_domain')
         self.assertTrue(valid)
 
     @patch('views.get_db')
     def test_validate_participate_by_domain_invalid_domain(self, get_db):
-        different_domain = '{}@not.example.com'.format(identifier())
+        different_domain_email = '{}@not.example.com'.format(identifier())
         invalid, _ = utils.validate_participant(
-            get_db(), different_domain, 1, 'by_domain')
+            get_db(), different_domain_email, 1, 'by_domain')
         self.assertFalse(invalid)
 
     @patch('utils.get_participant')
