@@ -73,22 +73,27 @@ var getFormData = function() {
 }
 
 var validateFormData = function(formData) {
+  var errors = 0;
   if (missingRequiredFields(formData)) {
     $('#missing-fields').show();
-    return false;
+    errors += 1;
   }
   if (formData['name'].length < 4) {
     $('#short_hunt_name').show();
-    return false;
+    errors += 1;
   }
   if (!formData.allRequired && tooManyRequiredItems(formData)) {
     $('#too-many-required').show();
-    return false;
+    errors += 1;
+  }
+  if (errors) {
+    return false
   }
   return formData;
 }
 
 var submitForm = function(formData) {
+  $('.error').hide();
   var validFormData = validateFormData(formData);
   if (validFormData) {
     $.ajax({
