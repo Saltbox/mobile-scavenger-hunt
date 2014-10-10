@@ -5,14 +5,11 @@
     <div class="col-md-offset-2 col-md-5">
       <div class="row">
         <div class="underline"><h1>Settings</h1></div>
-        {% if error %}
-          <p class="alert">Error: {{error}}</p>
-        {% endif %}
         {% if form and form.errors %}
           <ul class="errors">
             {% for field_name, field_errors in form.errors|dictsort if field_errors %}
               {% for error in field_errors %}
-                <li>{{ form[field_name].label }}: {{ error }}</li>
+                <li class="error">{{ form[field_name].label }}: {{ error }}</li>
               {% endfor %}
             {% endfor %}
           </ul>

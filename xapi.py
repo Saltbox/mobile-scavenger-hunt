@@ -27,8 +27,6 @@ def hunt_activity(hunt, host_url):
 
 
 def begin_hunt_statement(actor, hunt, host_url):
-    logger.debug(
-        'participant began hunt. sending statement to Wax')
     return {
         "actor": actor,
         "verb": {
@@ -178,9 +176,11 @@ def update_state(response, email, hunt, item, params, db):
                 'Updating state api for %s on hunt, %s.', email, hunt.name)
             state = update(state, params, admin_settings)
             report['state_updated'] = True
+
             post_state(state, params, admin_settings)
+
             required_found = set(state['found_ids']) == set(state['required_ids'])
-            complete = state['num_found'] == hunt.num_required and required_found
+            complete = state['num_found'] >= hunt.num_required and required_found
             report['hunt_completed'] = complete
     else:
         # todo: get worker to retry
@@ -194,15 +194,21 @@ def update_state(response, email, hunt, item, params, db):
 
 # send statements based off of found state
 def send_statements(
-    state, state_report, settings, email, hunt, host_url, item=None):
+        state, state_report, settings, email, hunt, host_url, item=None):
     statements = []
     actor = make_agent(email)
     if state_report.get('state_created'):
         statements.append(begin_hunt_statement(actor, hunt, host_url))
+        logger.debug(
+            '%s began hunt. sending statement to Wax', email)
     if state_report.get('state_updated'):
         statements.append(found_item_statement(actor, hunt, item, host_url))
+        logger.debug(
+            '%s found hunt item. sending statement to Wax', email)
     if state_report.get('hunt_completed'):
         statements.append(completed_hunt_statement(actor, hunt, host_url))
+        logger.debug(
+            '%s completed hunt. sending statement to Wax', email)
 
     if statements:
         return requests.post(

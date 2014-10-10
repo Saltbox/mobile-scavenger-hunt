@@ -1,4 +1,4 @@
-from wtforms import Form, StringField, FieldList, validators, \
+from wtforms import Form, StringField, FieldList, validators, PasswordField, \
     FormField
 from wtforms_alchemy import ModelFieldList, model_form_factory
 
@@ -14,7 +14,7 @@ class LoginForm(Form):
 
 
 class AdminLoginForm(LoginForm):
-    password = StringField('Password')
+    password = PasswordField('Password')
 
 
 class AdminForm(ModelForm):

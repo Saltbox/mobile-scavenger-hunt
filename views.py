@@ -52,7 +52,7 @@ def login():
     else:
         errors = form.errors
     return make_response(render_template(
-        'homepage.html', errors=errors, form=form, display_login_link=True))
+        'homepage.html', form=form, display_login_link=True))
 
 
 @app.route('/logout')
@@ -84,18 +84,20 @@ def admins():
 
             flash('Welcome to xAPI Scavenger Hunt', 'success')
             logger.info(
-                'Admin registration form was submitted successfully')
+                'Admin registration form was submitted successfully for %s',
+                admin.email)
             return make_response(render_template(
                 'settings.html', form=SettingForm()))
 
         logger.info(
             'Admin registration form was submitted with'
-            ' invalid information: %s', request.form)
+            ' invalid information. Errors: %s', form.errors)
         flash(
             'There was an error creating your admin profile.'
             ' Please try again.', 'warning')
         return render_template(
             'homepage.html', form=form, display_login_link=True)
+    return login()
 
 
 # settings page primarily for connecting to Wax LRS
@@ -116,11 +118,13 @@ def settings():
 
             return make_response(redirect(url_for('new_hunt')))
         else:
-            errors = form.errors
+            logger.info(
+                '%s attempted to submit settings information'
+                ' resulting in errors: %s', current_user.email, form.errors)
     return make_response(render_template(
         'settings.html', login=admin_settings.login,
         password=admin_settings.password,
-        wax_site=admin_settings.wax_site, errors=errors, form=form
+        wax_site=admin_settings.wax_site, form=form
     ))
 
 
@@ -137,7 +141,7 @@ def hunts():
 @login_required
 def new_hunt():
     setting = get_settings(g.db, admin_id=current_user.admin_id)
-    if not setting or not finished_setting(setting):
+    if not finished_setting(setting):
         flash('You must complete your settings information before'
               ' creating a hunt', 'warning')
         return redirect(url_for('settings'))
@@ -156,8 +160,8 @@ def new_hunt():
                 flash('Error creating form: hunt name, "{}", '
                       'already exists'.format(hunt.name), 'warning')
                 logger.warning(
-                    'Exception found while creating hunt with an existing name: %s\n'
-                    'Form data: %s ', e, form.data)
+                    'Exception found while creating hunt with an existing '
+                    ' name: %s\n Form data: %s ', e, form.data)
                 abort(400)
 
             flash('New scavenger hunt added', 'success')
@@ -251,7 +255,8 @@ def index_items(hunt_id):
     if hunt:
         if session.get('email'):
             items = get_items(g.db, hunt_id)
-            params = xapi.default_params(session['email'], hunt_id, request.host_url)
+            params = xapi.default_params(
+                session['email'], hunt_id, request.host_url)
             admin_settings = get_settings(g.db, hunt_id=hunt_id)
 
             response = xapi.get_state_response(params, admin_settings)
@@ -285,7 +290,8 @@ def find_item(hunt_id, item_id):
                 params = xapi.default_params(email, hunt_id, request.host_url)
                 hunt = get_hunt(g.db, hunt_id)
 
-                state_response = xapi.get_state_response(params, admin_settings)
+                state_response = xapi.get_state_response(
+                    params, admin_settings)
                 state_report, updated_state = xapi.update_state(
                     state_response, email, hunt, item, params, g.db)
                 xapi.send_statements(
@@ -326,35 +332,37 @@ def register_participant():
     hunt_id = request.args['hunt_id']
     hunt = get_hunt(g.db, hunt_id)
 
-    # i don't think this can happen ever in the app
-    if not hunt:
-        abort(404)
+    if hunt:
+        form = ParticipantForm(request.form)
+        if form.validate():
+            email = form.email.data
 
-    form = ParticipantForm(request.form)
-    if form.validate():
-        email = form.email.data
+            participant_valid, err_msg = validate_participant(
+                g.db, email, hunt_id, hunt.participant_rule)
+            if participant_valid:
+                session.update({'email': email, 'name': form.name.data})
 
-        participant_valid, err_msg = validate_participant(
-            g.db, email, hunt_id, hunt.participant_rule)
-        if participant_valid:
-            session.update({'email': email, 'name': form.name.data})
+                participant = initialize_registered_participant(
+                    form, Participant(), hunt_id)
 
-            participant = initialize_registered_participant(
-                form, Participant(), hunt_id)
+                g.db.session.add(participant)
+                g.db.session.commit()
 
-            g.db.session.add(participant)
-            g.db.session.commit()
+                logger.info(
+                    "name and email set to %s, and %s\n"
+                    "preparing requested item information.",
+                    session['name'], email)
 
-            logger.info(
-                "name and email set to %s, and %s\n"
-                "preparing requested item information.",
-                session['name'], email)
-
-            redirect_url = get_intended_url(session, hunt_id)
-            return make_response(redirect(redirect_url))
-        else:
-            return err_msg
-    abort(400)
+                redirect_url = get_intended_url(session, hunt_id)
+                return make_response(redirect(redirect_url))
+            else:
+                return err_msg
+    else:
+        # i don't think this can happen ever in the app
+        logger.warning('A user attempted to register for hunt with id, %s,'
+                       ' but the hunt could not be found. Form data: %s',
+                       hunt_id, request.form)
+        abort(400)
 
 
 @app.route('/oops')

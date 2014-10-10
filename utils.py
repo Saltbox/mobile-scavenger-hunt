@@ -58,7 +58,7 @@ def get_intended_url(session, hunt_id):
 
 
 def finished_setting(setting):
-    return setting.wax_site and setting.login and setting.password
+    return setting and setting.wax_site and setting.login and setting.password
 
 
 def item_path(hunt_id, item_id):
