@@ -143,17 +143,24 @@
               Create Hunt
             </button>
           </div>
-          <div class='error' id="short_hunt_name" style="display: none;">
-            Your hunt name must be at least four characters.
-          </div>
-          <div class='error' id="missing-fields" style="display: none;">
-            Please be sure to fill out the entire form before submitting.
-          </div>
-          <div class='error' id="too-many-required" style="display: none;">
-            The number of required items to be found is greater than the
-            number of items you have provided. Please adjust the number or
-            add more items.
-          </div>
+          <ul class='errors'>
+            <li class='error' id="short_hunt_name" style="display: none;">
+              Your hunt name must be at least four characters.
+            </li>
+            <li class='error' id="missing-fields" style="display: none;">
+              Please be sure to fill out the entire form before submitting.
+            </li>
+            <li class='error' id="too-many-required" style="display: none;">
+              The number of required items to be found is greater than the
+              number of items you have provided. Please adjust the number or
+              add more items.
+            </li>
+            <li class='error' id="too-many-marked-required" style="display: none;">
+              The number you inputted indicating the minimum number of required
+              items is less than the number of items individually marked as
+              required. Please increase your inputted number.
+            </li>
+          </ul>
         </div>
       </div>
       <div class="col-md-2">

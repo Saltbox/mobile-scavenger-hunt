@@ -86,6 +86,11 @@ var validateFormData = function(formData) {
     $('#too-many-required').show();
     errors += 1;
   }
+  var numItemsMarkedRequired = $('input[name=item-required]:checked').length;
+  if (formData['num_required'] < numItemsMarkedRequired) {
+    $('#too-many-marked-required').show();
+    errors += 1;
+  }
   if (errors) {
     return false
   }
@@ -137,14 +142,7 @@ var deleteIconTd = function(type) {
 // add tr to item table
 var addItemRow = function(allRequired, itemCount, fieldValue) {
   var tdInput = "<td><input type='text' value='" + fieldValue + "' name='item' class='form-control'></td>";
-
-  var itemRequired;
-  if (allRequired) {
-    itemRequired = tdGlyphOkRequired();
-  }
-  else {
-    itemRequired = tdCheckbox(itemCount, allRequired);
-  }
+  var itemRequired = allRequired ? tdGlyphOkRequired() : tdCheckbox(allRequired);
   var row = "<tr>" + tdInput + itemRequired + deleteIconTd('item') + "</tr>";
   $('#items-table tbody').append(row);
 };
@@ -241,7 +239,7 @@ $(document).ready(function() {
     }
     else {
       $('#num-items-group').show('slow');
-      $('.td-with-span').replaceWith(tdCheckbox(true));
+      $('.td-with-span').replaceWith(tdCheckbox(false));
     }
   });
 
@@ -350,6 +348,13 @@ $(document).ready(function() {
 
   $('#hunts-table .btn-default').on('click', function() {
     $(this).parent('.btn-group').hide().siblings('.glyphicon-remove').show();
+  });
+
+  $('#items-table').on('change', 'input[name=item-required]', function() {
+      var numItemsMarkedAsRequired = $('input[name=item-required]:checked').length;
+      if ($('input[name=num_required]').val() < numItemsMarkedAsRequired) {
+        $('input[name=num_required]').val(numItemsMarkedAsRequired);
+      }
   });
 
   var huntNamePrompt = "What's your hunt's name?";

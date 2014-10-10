@@ -439,3 +439,7 @@ input.domain {
 .panel-default table {
   margin-top: 15px;
 }
+
+ul.errors {
+  list-style-type: initial;
+}
