@@ -293,15 +293,19 @@ def find_item(hunt_id, item_id):
                 state_response = xapi.get_state_response(
                     params, admin_settings)
                 state_report, updated_state = xapi.update_state(
-                    state_response, email, hunt, item, params, g.db)
+                    state_response, email, hunt, item, params, admin_settings,
+                    g.db)
                 xapi.send_statements(
-                    updated_state, state_report, admin_settings, email, hunt,
+                    state_report, admin_settings, email, hunt,
                     request.host_url, item=item)
 
                 if state_report.get('hunt_completed'):
                     return make_response(
                         render_template('congratulations.html'))
 
+                logger.info(
+                    'Participant, %s, found item, %s, from hunt, %s',
+                    email, item.name, hunt.name)
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
                     username=session['name'], hunt_name=hunt.name,
