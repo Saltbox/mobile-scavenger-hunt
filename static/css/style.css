@@ -300,7 +300,7 @@ div.panel-default > .panel-heading,
   background-color: #53A0EC;
 }
 
-.error {
+.error, .bad-domain {
   color: red;
 }
 
@@ -442,4 +442,13 @@ input.domain {
 
 ul.errors {
   list-style-type: initial;
+}
+
+.bg-warning {
+  margin: 0;
+}
+
+.by_domain span {
+  font-weight: bold;
+  color: green;
 }

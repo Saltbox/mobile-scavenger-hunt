@@ -16,9 +16,9 @@
         {% endif %}
         <h2>Learning Record Store</h2>
         <form role="form" action="/settings" method="POST">
-          <div>
+          <div class="credentials">
             <h3>LRS Basic Credentials</h3>
-            <a href="http://support.saltbox.com/support/solutions/articles/1000085089-creating-new">
+            <a href="http://support.saltbox.com/support/solutions/articles/1000085089-creating-new" target="_blank">
               About basic credentials
             </a>
 
@@ -32,6 +32,10 @@
               <label class="control-label">Login</label>
               <input class="form-control" type="text"
                      name="login" value="{{login or ''}}">
+              <div class="not-email-error error" style="display: none;">
+                Make sure you are entering a basic credential login
+                and not your administrator email login. This can be found on the settings page of your Wax account.
+              </div>
             </div>
             <div class="form-group">
               <label class="control-label">Password</label>

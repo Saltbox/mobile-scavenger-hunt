@@ -311,11 +311,15 @@ $(document).ready(function() {
     }
   });
 
-  $('#register-here').on('click', function(e) {
-    e.preventDefault();
+  var showAdminRegistration = function() {
     $('#login-form').hide();
     $('#registration-form').show();
     $('input[name=email]').focus();
+  };
+
+  $('#register-here').on('click', function(e) {
+    e.preventDefault();
+    showAdminRegistration();
   });
 
   $('#login-here').on('click', function(e) {
@@ -329,6 +333,14 @@ $(document).ready(function() {
     e.preventDefault();
     var formData = getFormData();
     submitForm(formData);
+  });
+
+  $('.credentials .form-group input[name=login]').on('keyup', function(e) {
+    $('.not-email-error').hide();
+    var input = $(this).val();
+    if (input.indexOf('@') != -1) {
+      $('.not-email-error').show();
+    }
   });
 
   $('#printqr').on('click', function(e) {
@@ -381,13 +393,13 @@ $(document).ready(function() {
   $('#domain').on({
     keyup: function() {
       var newValue = $(this).val();
-      $('.explanation .by_domain span').text(newValue);
+      $('.explanation .by_domain span span').text(newValue);
     },
     keydown: function(e) {
       // backspace or delete
       if (e.keyCode == 46 || e.keyCode == 8) {
         var newValue = $('#domain').val().slice(0, -1);
-        $('.explanation .domain span').text(newValue);
+        $('.explanation .by_domain span span').text(newValue);
       }
     }
   });
