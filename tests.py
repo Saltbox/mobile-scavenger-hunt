@@ -122,7 +122,8 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.get_admin')
     @patch('views.get_db')
     def test_create_settings(
-            self, get_db, get_admin, login_disabled, current_user, get_settings):
+            self, get_db, get_admin, login_disabled, current_user,
+            get_settings):
         get_admin.return_value = self.create_mock_admin(get_db)
         current_user.admin_id = 1
         with app.test_client() as c:
@@ -242,7 +243,7 @@ class HuntTestCase(unittest.TestCase):
         current_user.admin_id = 1
         login_disabled = True
         with app.test_client() as c:
-            response = self.app.get('/hunts/1', follow_redirects=True)
+            response = c.get('/hunts/1', follow_redirects=True)
             self.assertEqual(response.status_code, 404)
 
     @patch('views.xapi')
@@ -299,7 +300,7 @@ class HuntTestCase(unittest.TestCase):
 
             get_hunt.return_value = MagicMock(items=[item1, item2])
 
-            response = self.app.get('/hunts/1/qrcodes')
+            response = c.get('/hunts/1/qrcodes')
             self.assertEqual(response.status_code, 200)
 
             for item in [item1, item2]:
@@ -434,9 +435,8 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.xapi')
     def test_registered_participant_can_resume_hunt(
             self, xapi, get_participant, get_settings, get_item, get_hunt):
-        state_report = MagicMock()
-        state_report.get.return_value = False
-        xapi.update_state.return_value = state_report, MagicMock()
+        xapi.get_state_response.return_value = MagicMock(status_code=200)
+        xapi.update_state.return_value = MagicMock()
         with app.test_client() as c:
             participant_email = example_email()
             name = identifier()
@@ -450,15 +450,18 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn(name, response.data)
 
+    @patch('views.get_hunt')
     @patch('views.get_item')
     @patch('views.get_settings')
     @patch('views.get_participant')
     @patch('views.xapi')
     def test_registered_participant_congratulated_on_hunt_finish(
-            self, xapi, get_participant, get_settings, get_item):
-        state_report = MagicMock()
-        state_report.get.return_value = True
-        xapi.update_state.return_value = state_report, MagicMock()
+            self, xapi, get_participant, get_settings, get_item, get_hunt):
+        xapi.get_state_response.return_value = MagicMock(status_code=200)
+        xapi.update_state.return_value = {
+            'num_found': 1, 'found_ids': [1], 'required_ids': [1]
+        }
+        get_hunt.return_value = MagicMock(num_required=1)
         with app.test_client() as c:
             participant_email = example_email()
             with c.session_transaction() as sess:

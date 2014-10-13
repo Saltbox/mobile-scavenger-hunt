@@ -26,7 +26,7 @@ def hunt_activity(hunt, host_url):
     }
 
 
-def begin_hunt_statement(actor, hunt, host_url):
+def began_hunt_statement(actor, hunt, host_url):
     return {
         "actor": actor,
         "verb": {
@@ -120,15 +120,6 @@ def default_params(email, hunt_id, host_url):
     }
 
 
-def prepare_initial_state(item_id, required_ids, num_items):
-    return {
-        'found_ids': [item_id],
-        'num_found': 0,
-        'required_ids': required_ids,
-        'total_items': num_items
-    }
-
-
 def make_agent(email):
     return {"mbox": "mailto:{}".format(email)}
 
@@ -147,7 +138,25 @@ def get_state_response(params, settings):
     )
 
 
-def update_state(response, email, hunt, item, params, settings, db):
+def create_new_state(email, hunt, item_id, params, settings, items):
+    logger.info(
+        'No state exists for %s on this hunt, %s.'
+        ' Beginning new state document.', email, hunt.name)
+
+    required_ids = [
+        item.item_id for item in items if item.required]
+
+    state = {
+        'found_ids': [item_id],
+        'num_found': 1,
+        'required_ids': required_ids,
+        'total_items': num_items
+    }
+    put_state(json.dumps(state), params, settings)
+    return state
+
+
+def update_state(state, params, settings):
     def update(state, params, setting):
         item_id = int(item_id)
         if item_id not in state['found_ids']:
@@ -155,72 +164,45 @@ def update_state(response, email, hunt, item, params, settings, db):
             state['num_found'] += 1
         return state
 
-    report = {}
-    state = None
+    if item.item_id not in state['found_ids']:
+        logger.info(
+            'Updating state api for %s on hunt, %s.', email, hunt.name)
+        state = update(state, params, settings)
+        post_state(state, params, settings)
+    return state
+
+
+def send_began_hunt_statement(email, hunt, host_url, settings):
     actor = make_agent(email)
-    if response.status_code == 404:
-        logger.info(
-            'No state exists for %s on this hunt, %s.'
-            ' Beginning new state document.', email, hunt.name)
-
-        items = get_items(db, hunt.hunt_id)
-        required_ids = [
-            item.item_id for item in items if item.required]
-
-        state = prepare_initial_state(
-            int(item.item_id), required_ids, len(items))
-        put_state(json.dumps(state), params, settings)
-        report['state_created'] = True
-    elif response.status_code == 200:
-        state = response.json()
-        if item.item_id not in state['found_ids']:
-            logger.info(
-                'Updating state api for %s on hunt, %s.', email, hunt.name)
-            state = update(state, params, settings)
-            report['state_updated'] = True
-
-            post_state(state, params, settings)
-
-            required_found = set(state['found_ids']) == set(state['required_ids'])
-            complete = state['num_found'] >= hunt.num_required and required_found
-            report['hunt_completed'] = complete
-    else:
-        # todo: get worker to retry
-        logger.warning(
-            "An unexpected error occurred retrieving information from"
-            " the state api using params, %s, with status, %s, and"
-            " response: \n%s", params, response.status_code,
-            response.text)
-        raise Exception(
-            'An unexpected error occurred with the scavenger hunt')
-    return report, state
+    statement = begin_hunt_statement(actor, hunt, host_url)
+    send_statement(statement, settings)
+    logger.info(
+        '%s began hunt. sending statement to Wax', email)
 
 
-# send statements based off of found state
-def send_statements(
-        state_report, settings, email, hunt, host_url, item=None):
-    statements = []
+def send_found_item_statement(email, hunt, item, host_url, settings):
     actor = make_agent(email)
-    if state_report.get('state_created'):
-        statements.append(begin_hunt_statement(actor, hunt, host_url))
-        logger.info(
-            '%s began hunt. sending statement to Wax', email)
-    if state_report.get('state_updated'):
-        statements.append(found_item_statement(actor, hunt, item, host_url))
-        logger.info(
-            '%s found hunt item. sending statement to Wax', email)
-    if state_report.get('hunt_completed'):
-        statements.append(completed_hunt_statement(actor, hunt, host_url))
-        logger.info(
-            '%s completed hunt. sending statement to Wax', email)
+    statement = found_item_statement(actor, hunt, item, host_url)
+    send_statement(statement, settings)
+    logger.info(
+        '%s found hunt item. sending statement to Wax', email)
 
-    if statements:
-        return requests.post(
-            'https://{}.waxlrs.com/TCAPI/statements'.format(settings.wax_site),
-            headers={
-                "Content-Type": "application/json",
-                "x-experience-api-version": "1.0.0"
-            },
-            data=json.dumps(statements),
-            auth=(settings.login, settings.password)
-        )
+
+def send_completed_hunt_statement(email, hunt, item, host_url, settings):
+    actor = make_agent(email)
+    statement = completed_hunt_statement(actor, hunt, host_url)
+    send_statement(statement, settings)
+    logger.info(
+        '%s completed hunt. sending statement to Wax', email)
+
+
+def send_statement(statement, settings):
+    return requests.post(
+        'https://{}.waxlrs.com/TCAPI/statements'.format(settings.wax_site),
+        headers={
+            "Content-Type": "application/json",
+            "x-experience-api-version": "1.0.0"
+        },
+        data=json.dumps(statement),
+        auth=(settings.login, settings.password)
+    )

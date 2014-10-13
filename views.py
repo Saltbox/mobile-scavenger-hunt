@@ -292,14 +292,34 @@ def find_item(hunt_id, item_id):
 
                 state_response = xapi.get_state_response(
                     params, admin_settings)
-                state_report, updated_state = xapi.update_state(
-                    state_response, email, hunt, item, params, admin_settings,
-                    g.db)
-                xapi.send_statements(
-                    state_report, admin_settings, email, hunt,
-                    request.host_url, item=item)
 
-                if state_report.get('hunt_completed'):
+                if state_response.status_code == 404:
+                    items = get_items(db, hunt.hunt_id)
+                    state = xapi.create_new_state(
+                        email, hunt, item_id, params, admin_settings, items)
+                    xapi.send_began_hunt_statement(
+                        email, hunt, request.host_url, admin_settings)
+                elif state_response.status_code == 200:
+                    state = xapi.update_state(
+                        state_response.json(), params, admin_settings)
+                    xapi.send_found_item_statement(
+                        email, hunt, item, request.host_url, admin_settings)
+                else:
+                    # todo: get worker to retry
+                    logger.warning(
+                        "An unexpected error occurred retrieving information"
+                        " from the state api using params, %s, with status,"
+                        " %s, and response: \n%s", params,
+                        state_response.status_code, state_response.text)
+                    raise Exception(
+                        'An unexpected error occurred with the scavenger hunt')
+
+                required_found = set(state['found_ids']) == set(state['required_ids'])
+                hunt_completed = state['num_found'] == hunt.num_required and required_found
+
+                if hunt_completed:
+                    xapi.send_completed_hunt_statement(
+                        email, hunt, item, request.host_url, admin_settings)
                     return make_response(
                         render_template('congratulations.html'))
 
@@ -309,8 +329,8 @@ def find_item(hunt_id, item_id):
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
                     username=session['name'], hunt_name=hunt.name,
-                    num_found=updated_state['num_found'],
-                    total_items=updated_state['total_items'], hunt_id=hunt_id))
+                    num_found=state['num_found'],
+                    total_items=state['total_items'], hunt_id=hunt_id))
             else:
                 session['intended_url'] = '/hunts/{}/items/{}'.format(
                     hunt_id, item_id)
