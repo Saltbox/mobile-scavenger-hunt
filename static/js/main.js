@@ -276,6 +276,7 @@ $(document).ready(function() {
     itemCount = decrementCount('items', itemCount);
   });
 
+  $('#participant-rules .panel-rect.anyone button.btn-primary').focus();
   // various events for updating ui upon participant rule selection
   $('#participant-rules .panel-rect').on({
     click: function(e) {
@@ -346,7 +347,8 @@ $(document).ready(function() {
   $('#printqr').on('click', function(e) {
     // thanks! http://stackoverflow.com/questions/12997123/print-specific-part-of-webpage
     var codes = document.getElementById("qrcodes");
-    var sectionPrint = window.open('', '', 'letf=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+    var sectionPrint = window.open(
+      '', '', 'letf=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
     sectionPrint.document.write(codes.innerHTML);
     sectionPrint.document.close();
     sectionPrint.focus();

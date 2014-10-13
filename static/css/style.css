@@ -16,6 +16,10 @@ table th {
   color: white;
 }
 
+table thead tr {
+  background-color: ;
+}
+
 ul {
   list-style-type: none;
 }
@@ -37,6 +41,10 @@ textarea {
 
 tbody tr td a {
   color: blue;
+}
+
+#items-table tr td {
+  vertical-align: middle;
 }
 
 /*** BUTTONS ***/
@@ -198,8 +206,14 @@ div.panel-default > .panel-heading,
   margin: 20px 0 0 0;
 }
 
-.panel-rect, .panel-rect button.btn-info {
+.panel-rect, .panel-rect button.btn-primary{
   min-height: 125px;
+}
+
+#participant-rules .panel-rect button.btn-primary:focus,
+#participant-rules .panel-rect button.btn-primary.active {
+  background-color: #23547D;
+  color: lightgray;
 }
 
 .panel-rect button {
@@ -300,7 +314,7 @@ div.panel-default > .panel-heading,
   background-color: #53A0EC;
 }
 
-.error, .bad-domain {
+.error, .by_domain .error {
   color: red;
 }
 
@@ -451,4 +465,19 @@ ul.errors {
 .by_domain span {
   font-weight: bold;
   color: green;
+}
+
+textarea.form-control,
+.site-name  {
+  color: gray;
+  font-style: italic;
+}
+
+textarea.form-control:focus {
+  color: black;
+  font-style: initial;
+}
+
+.explanation div {
+  font-style: italic;
 }

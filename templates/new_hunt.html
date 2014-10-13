@@ -27,23 +27,27 @@
         </div>
         <div class="row participant-rules panel-rect">
           <div class="panel-header-container">
-            <div class="panel-header pentary"><h3>Who can participate?</h3></div>
+            <div class="panel-header pentary">
+              <h3>Who can participate?</h3>
+            </div>
           </div>
           <div class="panel-default btn-group" id="participant-rules">
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect by_domain">
-              <button type="button" class="btn btn-lg btn-info">Emails on a domain</button>
+              <button type="button" class="btn btn-lg btn-primary">
+                Emails on a domain
+              </button>
               <span style="display: none;">
                 {{ form.participant_rule(type="radio", value="by_domain") }}
               </span>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect anyone">
-              <button type="button" class="btn btn-lg btn-info active">Anyone who finds the qrcodes</button>
+              <button type="button" class="btn btn-lg btn-primary active">Anyone who finds the qrcodes</button>
               <span style="display: none;">
                 {{ form.participant_rule(type="radio", value="anyone", checked="on") }}
               </span>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect by_whitelist">
-              <button type="button" class="btn btn-lg btn-info">Specific emails</button>
+              <button type="button" class="btn btn-lg btn-primary">Specific emails</button>
               <span style="display: none;">
                 {{ form.participant_rule(type="radio", value="by_whitelist") }}
               </span>
@@ -55,7 +59,7 @@
         </div>
         <div class="explanation">
           <div class="by_domain" style="display: none;">
-            <span>carlos@<span>{{domain}}</span></span> would be able to participate. <span class="bad-domain">carlos@example.com</span> would not. Participants will have to provide their emails.
+            <span>carlos@<span>{{domain}}</span></span> would be able to participate but <span class="error">carlos@example.com</span> would not. Participants will have to provide their emails.
           </div>
           <div class="anyone">This scavenger hunt would be a public event.</div>
           <div class="by_whitelist" style="display: none;">
