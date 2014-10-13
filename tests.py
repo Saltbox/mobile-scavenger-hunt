@@ -30,18 +30,6 @@ class HuntTestCase(unittest.TestCase):
         self.app = app.test_client()
         self.admin = {'email': example_email(), 'password': identifier()}
 
-    def registered_statement(self, hunt, email=example_email()):
-        return {
-            "actor": xapi.make_agent(email),
-            "verb": {
-                "id": "http://adlnet.gov/expapi/verbs/registered",
-                "display": {
-                    "en-US": "registered"
-                }
-            },
-            "object": xapi.hunt_activity(hunt)
-        }
-
     def login(self, app, username, password):
         return app.post('/login', data=dict(
             username=username, password=password

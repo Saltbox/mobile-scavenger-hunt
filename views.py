@@ -110,21 +110,25 @@ def settings():
     form = SettingForm(request.form)
     if request.method == 'POST':
         if form.validate():
+            first_submission = not admin_settings
             form.populate_obj(admin_settings)
             admin_settings.admin_id = current_user.admin_id
 
             g.db.session.add(admin_settings)
             g.db.session.commit()
 
-            return make_response(redirect(url_for('new_hunt')))
+            if first_submission:
+                return make_response(redirect(url_for('new_hunt')))
+            else:
+                return make_response(redirect(url_for('hunts')))
         else:
             logger.info(
                 '%s attempted to submit settings information'
                 ' resulting in errors: %s', current_user.email, form.errors)
     return make_response(render_template(
         'settings.html', login=admin_settings.login,
-        password=admin_settings.password,
-        wax_site=admin_settings.wax_site, form=form
+        password=admin_settings.password, wax_site=admin_settings.wax_site,
+        form=form
     ))
 
 
@@ -301,7 +305,8 @@ def find_item(hunt_id, item_id):
                         email, hunt, request.host_url, admin_settings)
                 elif state_response.status_code == 200:
                     state = xapi.update_state(
-                        state_response.json(), params, admin_settings)
+                        state_response.json(), params, admin_settings,
+                        item, email, hunt)
                     xapi.send_found_item_statement(
                         email, hunt, item, request.host_url, admin_settings)
                 else:

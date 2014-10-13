@@ -150,15 +150,15 @@ def create_new_state(email, hunt, item_id, params, settings, items):
         'found_ids': [item_id],
         'num_found': 1,
         'required_ids': required_ids,
-        'total_items': num_items
+        'total_items': len(items)
     }
     put_state(json.dumps(state), params, settings)
     return state
 
 
-def update_state(state, params, settings):
+def update_state(state, params, settings, item, email, hunt):
     def update(state, params, setting):
-        item_id = int(item_id)
+        item_id = int(item.item_id)
         if item_id not in state['found_ids']:
             state['found_ids'].append(item_id)
             state['num_found'] += 1
@@ -174,7 +174,7 @@ def update_state(state, params, settings):
 
 def send_began_hunt_statement(email, hunt, host_url, settings):
     actor = make_agent(email)
-    statement = begin_hunt_statement(actor, hunt, host_url)
+    statement = began_hunt_statement(actor, hunt, host_url)
     send_statement(statement, settings)
     logger.info(
         '%s began hunt. sending statement to Wax', email)
