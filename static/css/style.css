@@ -93,6 +93,16 @@ button.btn-default {
   margin-bottom: 0;
 }
 
+.row.center h1 {
+  margin: 0;
+  padding: 25px;
+  color: white;
+}
+
+.row.center.secondary div {
+  background-color: white;
+}
+
 div.row {
   margin-right: 0;
   margin-left: 0;

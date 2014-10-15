@@ -273,9 +273,7 @@ def index_items(hunt_id):
 
             return make_response(render_template(
                 'items.html', items=items, hunt_id=hunt_id,
-                hunt_name=hunt.name, num_found=state.get('num_found', 0),
-                found_ids=state.get('found_ids', []),
-                total_items=state.get('total_items', 0)))
+                hunt_name=hunt.name, state=state))
 
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
         return make_response(
