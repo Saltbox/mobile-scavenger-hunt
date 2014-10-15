@@ -200,6 +200,8 @@ def hunt(hunt_id):
         return render_template(
             'show_hunt.html', hunt=hunt, registered_participants=registered,
             unregistered_participants=unregistered)
+    logger.info('Someone attempted to visit a hunt with id, %s, but it '
+                'does not exist', hunt_id)
     abort(404)
 
 
@@ -281,7 +283,8 @@ def index_items(hunt_id):
                             welcome=hunt.welcome_message,
                             action_url="/get_started/hunts/{}".format(
                                 hunt_id)))
-
+    logger.info('Someone attempted to visit the items list for hunt with id, '
+                '%s, but this hunt does not exist', hunt_id)
     abort(404)
 
 
@@ -383,6 +386,9 @@ def register_participant():
 
                 participant = get_participant(g.db, email, hunt_id)
                 if not participant:
+                    logger.info(
+                        'preparing to save new participant with email, %s,'
+                        ' to hunt, %s', email, hunt.name)
                     participant = initialize_registered_participant(
                         form, Participant(), hunt_id)
 
@@ -397,6 +403,10 @@ def register_participant():
                 redirect_url = get_intended_url(session, hunt_id)
                 return make_response(redirect(redirect_url))
             else:
+                logger.info('participant attempted to register for'
+                            ' hunt with invalid form information.\n'
+                            'Error message: %s\n.  Form data: %s',
+                            err_msg, request.form)
                 return err_msg
     else:
         # i don't think this can happen ever in the app
