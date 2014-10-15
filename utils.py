@@ -78,15 +78,6 @@ def validate_participant(db, email, hunt_id, participant_rule):
     return True, ''
 
 
-def mark_items_found(state, items):
-    for item in items:
-        if state.get('found_ids'):
-            item.found = item.item_id in state['found_ids']
-        else:
-            item.found = None
-    return items
-
-
 def initialize_hunt(form, hunt, admin_id, request):
     def new_participant(email):
         p = Participant()

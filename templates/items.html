@@ -1,9 +1,11 @@
 {% extends "user_layout.html" %}
 {% block userbody %}
   {% if total_items and num_found %}
-    {{username}}! you found {{item.name}}<br>
-    {% if total_items - num_found > 0 %}
-      you still have {{total_items - num_found}} items left to find out of {{total_items}}
+    {% if item %}
+      {{username}}! you found {{item.name}}<br>
+      {% if total_items - num_found > 0 %}
+        you still have {{total_items - num_found}} items left to find out of {{total_items}}
+      {% endif %}
     {% endif %}
   {% endif %}
   <table class="table">

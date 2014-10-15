@@ -15,7 +15,7 @@ from hunt import app, logger, login_manager, db, bcrypt
 from utils import get_admin, get_settings, get_hunt, get_item, \
     get_participant, item_path, validate_participant, get_intended_url, \
     get_hunts, get_items, initialize_hunt, initialize_registered_participant, \
-    mark_items_found, valid_login, finished_setting
+    valid_login, finished_setting
 
 import xapi
 
@@ -263,14 +263,16 @@ def index_items(hunt_id):
                 session['email'], hunt_id, request.host_url)
             admin_settings = get_settings(g.db, hunt_id=hunt_id)
 
+            state = {}
             response = xapi.get_state_response(params, admin_settings)
             if response.status_code == 200:
                 state = response.json()
-                items = mark_items_found(state, items)
 
             return make_response(render_template(
                 'items.html', items=items, hunt_id=hunt_id,
-                hunt_name=hunt.name))
+                hunt_name=hunt.name, num_found=state.get('num_found', 0),
+                found_ids=state.get('found_ids', []),
+                total_items=state.get('total_items', 0)))
 
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
         return make_response(
