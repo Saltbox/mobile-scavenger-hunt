@@ -119,8 +119,8 @@ class HuntTestCase(unittest.TestCase):
                 c, identifier(), 1, identifier(), identifier())
 
             self.assertEqual(response.status_code, 200)
-            # successfully saving settings redirects to new hunt page
-            self.assertIn("Let's create a hunt!", response.data)
+            # successfully saving settings redirects to hunts page
+            self.assertIn("Your Scavenger Hunts", response.data)
 
     @patch('views.get_settings')
     @patch('views.current_user')
@@ -315,7 +315,6 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn(item1.name, response.data)
 
-
     @patch('views.get_admin')
     @patch('views.get_hunt')
     @patch('views.current_user')
@@ -424,7 +423,10 @@ class HuntTestCase(unittest.TestCase):
     def test_registered_participant_can_resume_hunt(
             self, xapi, get_participant, get_settings, get_item, get_hunt):
         xapi.get_state_response.return_value = MagicMock(status_code=200)
-        xapi.update_state.return_value = MagicMock()
+        xapi.update_state.return_value = {
+            'num_found': 1, 'found_ids': [1],
+            'required_ids': [1, 2], 'total_items': 2
+        }
         with app.test_client() as c:
             participant_email = example_email()
             name = identifier()
@@ -456,7 +458,7 @@ class HuntTestCase(unittest.TestCase):
                 sess['email'] = participant_email
             response = c.get('/hunts/1/items/1')
             self.assertEqual(response.status_code, 200)
-            self.assertIn('congratulations!', response.data)
+            self.assertIn('congrats-message', response.data)
 
     def test_show_item_on_nonexistent_hunt_404s(self):
         with app.test_client() as c:
