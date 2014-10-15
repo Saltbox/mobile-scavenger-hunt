@@ -405,4 +405,35 @@ $(document).ready(function() {
       }
     }
   });
+
+  $('.userinfo input').on('keypress', function(e) {
+    // disable submitting form with enter
+    if (e.keyCode == 13) {
+      return false;
+    }
+  });
+
+  $('#confirm-email').on('click', function(e) {
+    var email = $('#email').val();
+    if (email) {
+      $(this).hide();
+      $('.form-group').hide();
+      $('.userinfo div:first-child').hide();
+      $('#confirm-email-msg span').text(email);
+      $('#confirm-email-msg').show();
+      $('button[type=submit]').show();
+      $('button#wrong-email').show();
+      $('button#confirm-email').hide();
+    }
+  });
+
+  $('#wrong-email').on('click', function(e) {
+    $(this).hide();
+    $('.form-group').show();
+    $('.userinfo div:first-child').show();
+    $('#confirm-email-msg').hide();
+    $('button[type=submit]').hide();
+    $('button#wrong-email').hide();
+    $('button#confirm-email').show();
+  });
 });

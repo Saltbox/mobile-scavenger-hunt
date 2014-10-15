@@ -76,7 +76,7 @@ button.btn-default {
   line-height: 0;
 }
 
-button[type=submit] {
+.userinfo button, button[type=submit] {
   margin-top: 30px;
 }
 

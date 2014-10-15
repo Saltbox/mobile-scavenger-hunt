@@ -13,7 +13,12 @@
     <div class="form-group">
       {{form.email(placeholder="email@example.org", class="form-control")}}
     </div>
-    <button type="submit" class="btn btn-primary form-control">Submit</button>
+    <div id="confirm-email-msg" style="display: none;">
+      Is this your email? <strong><span></span></strong>
+    </div>
+    <button type="submit" class="btn btn-primary form-control" style="display: none;">Yes. Please submit my information.</button>
   </form>
+  <button id="confirm-email" class="btn btn-primary form-control">Submit</button>
+  <button id="wrong-email" style="display: none;" class="btn btn-default form-control">No</button>
 </div>
 {% endblock %}
