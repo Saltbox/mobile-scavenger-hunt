@@ -275,6 +275,7 @@ def index_items(hunt_id):
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
         return make_response(
             render_template('welcome.html', hunt_name=hunt.name,
+                            welcome=hunt.welcome_message,
                             action_url="/get_started/hunts/{}".format(
                                 hunt_id)))
 
@@ -290,9 +291,9 @@ def find_item(hunt_id, item_id):
         item = get_item(g.db, item_id, hunt_id)
         if item:
             email = session.get('email')
+            hunt = get_hunt(g.db, hunt_id)
             if email and get_participant(g.db, email, hunt_id):
                 params = xapi.default_params(email, hunt_id, request.host_url)
-                hunt = get_hunt(g.db, hunt_id)
                 name = session.get('name')
 
                 state_response = xapi.get_state_response(
@@ -328,13 +329,14 @@ def find_item(hunt_id, item_id):
                         'An unexpected error occurred with the scavenger hunt')
 
                 required_found = set(state['found_ids']) == set(state['required_ids'])
-                hunt_completed = state['num_found'] == hunt.num_required and required_found
+                hunt_completed = state['num_found'] >= hunt.num_required and required_found
 
                 if hunt_completed:
                     xapi.send_completed_hunt_statement(
                         name, email, hunt, item, request.host_url, admin_settings)
                     return make_response(
-                        render_template('congratulations.html'))
+                        render_template('congratulations.html', hunt_name=hunt.name,
+                                        congratulations=hunt.congratulations_message))
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
                     username=name, hunt_name=hunt.name,
@@ -344,7 +346,8 @@ def find_item(hunt_id, item_id):
                 session['intended_url'] = '/hunts/{}/items/{}'.format(
                     hunt_id, item_id)
                 return make_response(render_template(
-                    'welcome.html',
+                    'welcome.html', welcome=hunt.welcome_message,
+                    hunt_name=hunt.name,
                     action_url="/get_started/hunts/{}".format(hunt_id)))
     abort(404)
 

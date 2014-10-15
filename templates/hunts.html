@@ -29,6 +29,7 @@
     <div class="row">
       <div class="panel-default">
         <div class="panel-body">
+          {% if hunts %}
           <table class="table table-condensed" id="hunts-table">
             <thead class="secondary">
               <tr>
@@ -58,11 +59,12 @@
                   </div>
                 </td>
               </tr>
-            {% else %}
-              <em>No scavenger hunts have been created yet</em>
             {% endfor %}
             </tbody>
           </table>
+          {% else %}
+            <em>No scavenger hunts have been created yet</em>
+          {% endif %}
         </div>
       </div>
     </div>

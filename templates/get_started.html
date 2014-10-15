@@ -1,7 +1,10 @@
 {% extends "user_layout.html" %}
 {% block userbody %}
 <div class="userinfo">
-  Enter your name and email (your information will be recorded)
+  <div>
+    Enter your name and email<br>
+    (your information will be recorded)
+  </div>
   <form action="/register_participant?hunt_id={{hunt_id}}"
         method="POST" id="userinfo-form">
     <div class="form-group">

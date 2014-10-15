@@ -112,6 +112,10 @@ table td a.btn:hover {
 
 /***************************************/
 
+.userinfo div:first-child {
+  margin-bottom: 25px;
+}
+
 input[name=endpoint] {
   min-width: 50%;
 }
@@ -254,6 +258,11 @@ div.panel-default > .panel-heading,
 .titlerow .panel-rect:first-child {
   margin-left: 0;
 }
+
+.titlerow div.panel-rect {
+  min-height: 125px;
+}
+
 .row.participant-rules.quarternary.panel-rect {
   min-height: 50px;
 }

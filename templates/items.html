@@ -2,24 +2,26 @@
 {% block userbody %}
   {% if total_items and num_found %}
     {{username}}! you found {{item.name}}<br>
-    you still have {{total_items - num_found}} items left to find out of {{total_items}}
+    {% if total_items - num_found > 0 %}
+      you still have {{total_items - num_found}} items left to find out of {{total_items}}
+    {% endif %}
   {% endif %}
   <table class="table">
-    <thead>
+    <thead class="secondary">
       <th>Item</th>
       <th>Required</th>
       <th>Found</th>
     </thead>
     <tbody>
-    {% for item in items %}
+    {% for current in items %}
       <tr>
-        <td>{{item.name}}</td>
+        <td>{{current.name}}</td>
         <td>
-          <span style="display: {{visible if item.required else none}};"
+          <span style="display: {{visible if current.required else none}};"
                 class="glyphicon glyphicon-ok"></span>
         </td>
         <td>
-          <span style="display: {{visible if item.found else none}};"
+          <span style="display: {{visible if current.item_id in found_ids else none}};"
                 class="glyphicon glyphicon-ok"></span>
         </td>
       </tr>
