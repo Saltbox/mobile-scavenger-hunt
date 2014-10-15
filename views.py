@@ -252,15 +252,16 @@ def delete_hunt(hunt_id):
 # list of items for scavengers to scavenge
 @app.route('/hunts/<hunt_id>/items', methods=['GET'])
 def index_items(hunt_id):
-    logger.info(
-        'preparing to render items for hunt_id, {}'.format(hunt_id))
-
     hunt = get_hunt(g.db, hunt_id)
     if hunt:
-        if session.get('email'):
+        email = session.get('email')
+        if email:
+            logger.info(
+                'preparing to render items from hunt_id, %s, for user, %s',
+                hunt_id, email)
             items = get_items(g.db, hunt_id)
             params = xapi.default_params(
-                session['email'], hunt_id, request.host_url)
+                email, hunt_id, request.host_url)
             admin_settings = get_settings(g.db, hunt_id=hunt_id)
 
             state = {}
@@ -380,8 +381,10 @@ def register_participant():
             if participant_valid:
                 session.update({'email': email, 'name': form.name.data})
 
-                participant = initialize_registered_participant(
-                    form, Participant(), hunt_id)
+                participant = get_participant(g.db, email, hunt_id)
+                if not participant:
+                    participant = initialize_registered_participant(
+                        form, Participant(), hunt_id)
 
                 g.db.session.add(participant)
                 g.db.session.commit()
