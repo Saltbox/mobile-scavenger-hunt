@@ -62,9 +62,9 @@ class Hunt(db.Model):
         'Participant', backref='hunts', cascade='all')
     participant_rule = db.Column(db.String(20))
     items = db.relationship('Item', backref='hunts', cascade='all')
-    # do i care about timezone aware?
-    date_created = db.Column(db.TIMESTAMP, server_default=db.func.now())
-    last_modified = db.Column(db.TIMESTAMP, server_default=db.func.now(),
+
+    date_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    last_modified = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),
                               onupdate=db.func.now())
     # refers to items required
     all_required = db.Column(db.Boolean)
