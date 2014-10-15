@@ -52,11 +52,11 @@ var missingRequiredFields = function(formData) {
 var getFormData = function() {
   var participationRule = $('input[name=participant_rule][checked=checked]');
   participationRule.prop('checked', 'on');
-  var allRequired = $('input[name=all_required]');
+  var allRequired = $('input[name=all_required]').prop('checked');
 
   var formData = {
     'name': $('input#name').val(),
-    'all_required': allRequired.prop('checked'),
+    'all_required': allRequired,
     'num_required': $('input[name=num_required]').val(),
     'num_items': $('input[name=item]').length,
     'participant_rule': participationRule.val(),
@@ -66,7 +66,7 @@ var getFormData = function() {
   };
   // num_items isn't actually used on backend, this is just for validating
 
-  formData = addItemsToFormData(allRequired.val(), formData);
+  formData = addItemsToFormData(allRequired, formData);
   formData = addParticipantsToFormData(formData);
 
   return formData;
