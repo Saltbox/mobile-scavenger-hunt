@@ -345,9 +345,9 @@ def find_item(hunt_id, item_id):
                                         congratulations=hunt.congratulations_message))
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
-                    username=name, hunt_name=hunt.name,
-                    num_found=state['num_found'], found_ids=state['found_ids'],
-                    total_items=state['total_items'], hunt_id=hunt_id))
+                    username=name, hunt_name=hunt.name, state=state,
+                    num_remaining=state['total_items'] - state['num_found'],
+                    hunt_id=hunt_id))
             else:
                 session['intended_url'] = '/hunts/{}/items/{}'.format(
                     hunt_id, item_id)

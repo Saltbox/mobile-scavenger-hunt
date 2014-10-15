@@ -1,10 +1,16 @@
 {% extends "user_layout.html" %}
 {% block userbody %}
-  {% if total_items and num_found %}
+  {% if state['total_items'] and state['num_found'] %}
     {% if item %}
       {{username}}! you found {{item.name}}<br>
-      {% if total_items - num_found > 0 %}
-        you still have {{total_items - num_found}} items left to find out of {{total_items}}
+      {% if num_remaining > 0 %}
+        you still have {{num_remaining}}
+        {% if num_remaining > 1 %}
+          items
+        {% else %}
+          item
+        {% endif %}
+        left to find out of {{state['total_items']}}
       {% endif %}
     {% endif %}
   {% endif %}
@@ -23,7 +29,7 @@
                 class="glyphicon glyphicon-ok"></span>
         </td>
         <td>
-          <span style="display: {{visible if current.item_id in found_ids else none}};"
+          <span style="display: {{visible if current.item_id in state['found_ids'] else none}};"
                 class="glyphicon glyphicon-ok"></span>
         </td>
       </tr>
