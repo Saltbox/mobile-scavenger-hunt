@@ -287,12 +287,13 @@ def find_item(hunt_id, item_id):
     admin_settings = get_settings(g.db, hunt_id=hunt_id)
     # admin_settings found through hunt_id means hunt exists
     if finished_setting(admin_settings):
-        item = get_item(g.db, item_id)
+        item = get_item(g.db, item_id, hunt_id)
         if item:
             email = session.get('email')
             if email and get_participant(g.db, email, hunt_id):
                 params = xapi.default_params(email, hunt_id, request.host_url)
                 hunt = get_hunt(g.db, hunt_id)
+                name = session.get('name')
 
                 state_response = xapi.get_state_response(
                     params, admin_settings)
@@ -302,13 +303,20 @@ def find_item(hunt_id, item_id):
                     state = xapi.create_new_state(
                         email, hunt, item_id, params, admin_settings, items)
                     xapi.send_began_hunt_statement(
-                        email, hunt, request.host_url, admin_settings)
-                elif state_response.status_code == 200:
-                    state = xapi.update_state(
-                        state_response.json(), params, admin_settings,
-                        item, email, hunt)
+                        name, email, hunt, request.host_url, admin_settings)
                     xapi.send_found_item_statement(
-                        email, hunt, item, request.host_url, admin_settings)
+                        name, email, hunt, item, request.host_url,
+                        admin_settings)
+
+                elif state_response.status_code == 200:
+                    state = state_response.json()
+                    if int(item.item_id) not in state['found_ids']:
+                        xapi.send_found_item_statement(
+                            name, email, hunt, item, request.host_url,
+                            admin_settings)
+                        state = xapi.update_state(
+                            state, params, admin_settings, item, email, hunt)
+
                 else:
                     # todo: get worker to retry
                     logger.warning(
@@ -324,17 +332,13 @@ def find_item(hunt_id, item_id):
 
                 if hunt_completed:
                     xapi.send_completed_hunt_statement(
-                        email, hunt, item, request.host_url, admin_settings)
+                        name, email, hunt, item, request.host_url, admin_settings)
                     return make_response(
                         render_template('congratulations.html'))
-
-                logger.info(
-                    'Participant, %s, found item, %s, from hunt, %s',
-                    email, item.name, hunt.name)
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
-                    username=session['name'], hunt_name=hunt.name,
-                    num_found=state['num_found'],
+                    username=name, hunt_name=hunt.name,
+                    num_found=state['num_found'], found_ids=state['found_ids'],
                     total_items=state['total_items'], hunt_id=hunt_id))
             else:
                 session['intended_url'] = '/hunts/{}/items/{}'.format(

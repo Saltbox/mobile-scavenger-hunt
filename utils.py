@@ -34,8 +34,9 @@ def get_items(db, hunt_id):
     return db.session.query(Item).filter(Item.hunt_id == hunt_id).all()
 
 
-def get_item(db, item_id):
-    return db.session.query(Item).filter(Item.item_id == item_id).first()
+def get_item(db, item_id, hunt_id):
+    return db.session.query(Item).filter(
+        Item.hunt_id == hunt_id, Item.item_id == item_id).first()
 
 
 def get_participant(db, email, hunt_id):

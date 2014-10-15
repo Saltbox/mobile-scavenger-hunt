@@ -92,7 +92,8 @@ def put_state(data, params, settings):
         params=params,
         data=data,
         headers={
-            "x-experience-api-version": "1.0.0"
+            "x-experience-api-version": "1.0.0",
+            "content-type": "application/json"
         },
         auth=(settings.login, settings.password)
     )
@@ -114,14 +115,17 @@ def post_state(data, params, settings):
 
 def default_params(email, hunt_id, host_url):
     return {
-        'agent': json.dumps(make_agent(email)),
+        'agent': json.dumps(make_agent(email, None)),
         'activityId': hunt_activity_id(hunt_id, host_url),
         'stateId': 'hunt_progress'
     }
 
 
-def make_agent(email):
-    return {"mbox": "mailto:{}".format(email)}
+def make_agent(email, name):
+    agent = {"mbox": "mailto:{}".format(email)}
+    if name:
+        agent['name'] = name
+    return agent
 
 
 def get_state_response(params, settings):
@@ -147,7 +151,7 @@ def create_new_state(email, hunt, item_id, params, settings, items):
         item.item_id for item in items if item.required]
 
     state = {
-        'found_ids': [item_id],
+        'found_ids': [int(item_id)],
         'num_found': 1,
         'required_ids': required_ids,
         'total_items': len(items)
@@ -157,43 +161,39 @@ def create_new_state(email, hunt, item_id, params, settings, items):
 
 
 def update_state(state, params, settings, item, email, hunt):
-    def update(state, params, setting):
-        item_id = int(item.item_id)
-        if item_id not in state['found_ids']:
-            state['found_ids'].append(item_id)
-            state['num_found'] += 1
-        return state
+    logger.info(
+        'Updating state document for %s on hunt, "%s".', email, hunt.name)
+    item_id = int(item.item_id)
+    state['found_ids'].append(item_id)
+    state['num_found'] += 1
 
-    if item.item_id not in state['found_ids']:
-        logger.info(
-            'Updating state api for %s on hunt, %s.', email, hunt.name)
-        state = update(state, params, settings)
-        post_state(state, params, settings)
+    post_state(json.dumps(state), params, settings)
     return state
 
 
-def send_began_hunt_statement(email, hunt, host_url, settings):
-    actor = make_agent(email)
+def send_began_hunt_statement(name, email, hunt, host_url, settings):
+    actor = make_agent(email, name)
     statement = began_hunt_statement(actor, hunt, host_url)
     send_statement(statement, settings)
     logger.info(
-        '%s began hunt. sending statement to Wax', email)
+        '%s began hunt, %s. sending statement to Wax', email, hunt.name)
 
 
-def send_found_item_statement(email, hunt, item, host_url, settings):
-    actor = make_agent(email)
+def send_found_item_statement(name, email, hunt, item, host_url, settings):
+    actor = make_agent(email, name)
     statement = found_item_statement(actor, hunt, item, host_url)
     send_statement(statement, settings)
     logger.info(
-        '%s found hunt item. sending statement to Wax', email)
+        '%s found item, %s, from hunt, %s. sending statement to Wax',
+        email, item.name, hunt.name)
 
 
-def send_completed_hunt_statement(email, hunt, item, host_url, settings):
-    actor = make_agent(email)
+def send_completed_hunt_statement(name, email, hunt, item, host_url, settings):
+    actor = make_agent(email, name)
     statement = completed_hunt_statement(actor, hunt, host_url)
     send_statement(statement, settings)
     logger.info(
-        '%s completed hunt. sending statement to Wax', email)
+        '%s completed hunt, %s. sending statement to Wax', email, hunt.name)
 
 
 def send_statement(statement, settings):
