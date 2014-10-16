@@ -303,6 +303,7 @@ def find_item(hunt_id, item_id):
                 state_response = xapi.get_state_response(
                     params, admin_settings)
 
+                # no state document exists, so create one
                 if state_response.status_code == 404:
                     items = get_items(db, hunt.hunt_id)
                     state = xapi.create_new_state(
@@ -313,6 +314,7 @@ def find_item(hunt_id, item_id):
                         name, email, hunt, item, request.host_url,
                         admin_settings)
 
+                # a state document exists, so we update it
                 elif state_response.status_code == 200:
                     state = state_response.json()
                     if int(item.item_id) not in state['found_ids']:
@@ -332,8 +334,13 @@ def find_item(hunt_id, item_id):
                     raise Exception(
                         'An unexpected error occurred with the scavenger hunt')
 
-                required_found = set(state['found_ids']) == set(state['required_ids'])
-                hunt_completed = state['num_found'] >= hunt.num_required and required_found
+                required_ids = set(state['required_ids'])
+                num_found = state['num_found']
+                if required_ids:
+                    required_found = set(state['found_ids']) == required_ids
+                    hunt_completed = num_found >= hunt.num_required and required_found
+                else:
+                    hunt_completed = num_found >= hunt.num_required
 
                 if hunt_completed:
                     xapi.send_completed_hunt_statement(
@@ -344,7 +351,7 @@ def find_item(hunt_id, item_id):
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
                     username=name, hunt_name=hunt.name, state=state,
-                    num_remaining=state['total_items'] - state['num_found'],
+                    num_remaining=state['total_items'] - num_found,
                     hunt_id=hunt_id))
             else:
                 session['intended_url'] = '/hunts/{}/items/{}'.format(
