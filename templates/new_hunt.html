@@ -22,7 +22,7 @@
               <div class="panel-header primary"><h3>What's your hunt's name?</h3></div>
             </div>
             <p>(minimum 4 characters)</p>
-            {{form.name(class="form-control hunt-name", required=true)}}
+            {{form.name(class="form-control hunt-name", required=true, minlength=4, maxlength=50)}}
           </div>
         </div>
         <div class="row participant-rules panel-rect">

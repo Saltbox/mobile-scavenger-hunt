@@ -50,14 +50,14 @@ var missingRequiredFields = function(formData) {
 };
 
 var getFormData = function() {
-  var participationRule = $('input[name=participant_rule][checked=checked]');
+  var participationRule = $('input[name=participant_rule][checked=on]');
   participationRule.prop('checked', 'on');
   var allRequired = $('input[name=all_required]').prop('checked');
 
   var formData = {
     'name': $('input#name').val(),
     'all_required': allRequired,
-    'num_required': $('input[name=num_required]').val(),
+    'num_required': parseInt($('input[name=num_required]').val()),
     'num_items': $('input[name=item]').length,
     'participant_rule': participationRule.val(),
     'domain': $('input[name=domain]').val(),
@@ -92,7 +92,7 @@ var validateFormData = function(formData) {
     errors += 1;
   }
   if (errors) {
-    return false
+    return null;
   }
   return formData;
 }

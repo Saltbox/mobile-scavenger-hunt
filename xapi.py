@@ -130,7 +130,8 @@ def make_agent(email, name):
 
 def get_state_response(params, settings):
     logger.info(
-        'requesting state from the state api for site, %s', settings.wax_site)
+        'requesting state from the state api for site, %s,'
+        ' with params, %s', settings.wax_site, params)
     return requests.get(
         'https://{}.waxlrs.com/TCAPI/activities/state'.format(
             settings.wax_site),
