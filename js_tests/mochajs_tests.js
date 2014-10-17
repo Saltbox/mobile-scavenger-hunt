@@ -112,6 +112,7 @@ var addItemsTable = function() {
         var allRequired = false;
         addItemRow(allRequired, 1, 'item2');
 
+        $($('input[value=item2]').parent()).siblings().find('input[type=checkbox]').click();
         var formData = addItemsToFormData(allRequired, {});
         expect(formData['items-0-required']).to.be.undefined;
         assert.equal(formData['items-1-required'], true);
@@ -186,7 +187,7 @@ var addItemsTable = function() {
           "<input id=name value='" + name + "'></input>",
           "<input name=all_required type=checkbox checked=" + checked + "></input>",
           "<input name=num_required value=" + num_required + "></input>",
-          "<input name=participant_rule type='radio' checked='checked' value=" + participant_rule + "></input>",
+          "<input name=participant_rule type='radio' checked='on' value=" + participant_rule + "></input>",
           "<textarea name=welcome_message>" + welcome_message + "</textarea>",
           "<textarea name=congratulations_message>" + congratulations_message + "</textarea>"
         ];
@@ -232,7 +233,11 @@ var addItemsTable = function() {
         });
 
         it('returns false with a missing required field', function() {
-          var formData = {};
+          var formData = {
+            'name': undefined,
+            'num_required': undefined,
+            'items-0-name': undefined
+          };
           assert.isFalse(validateFormData(formData));
         });
       });

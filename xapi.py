@@ -67,7 +67,7 @@ def found_item_statement(actor, hunt, item, host_url):
             "definition": {
                 "type": "{}activities/type/scavengerhunt".format(host_url),
                 "name": {
-                    "und": "find item {} from {}".format(item.name, hunt.name)
+                    "und": "{} from {}".format(item.name, hunt.name)
                 }
             },
             "objectType": "Activity"

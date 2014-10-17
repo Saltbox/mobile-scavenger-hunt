@@ -25,7 +25,8 @@ var addItemsToFormData = function(allRequired, formData) {
       formData['items-' + i + '-required'] = true;
     }
     else {
-      var input = $($($(e)).parent().siblings().find('input'));
+      var tableTd = $($(e)).parent();
+      var input = $(tableTd.siblings().find('input[type=checkbox]'));
       var checked = input.prop('checked');
       formData['items-' + i + '-required'] = checked;
     }
@@ -78,7 +79,7 @@ var validateFormData = function(formData) {
     $('#missing-fields').show();
     errors += 1;
   }
-  if (formData['name'].length < 4) {
+  if (!formData.name || formData.name.length < 4) {
     $('#short_hunt_name').show();
     errors += 1;
   }
@@ -92,7 +93,7 @@ var validateFormData = function(formData) {
     errors += 1;
   }
   if (errors) {
-    return null;
+    return false;
   }
   return formData;
 }
