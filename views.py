@@ -301,7 +301,7 @@ def update_hunt_state(email, hunt_name, item, params, admin_settings, state):
     logger.info(
         'Updating state document for %s on hunt, "%s".',
         email, hunt_name)
-
+    logger.debug('updated state: %s', state)
     xapi.post_state(
         json.dumps(state), params, admin_settings)
 
@@ -343,7 +343,7 @@ def find_item(hunt_id, item_id):
 
                 update_hunt_state(
                     email, hunt.name, item, params, admin_settings, state)
-                logger.debug('state: %s', state)
+
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
                     username=name, state=state, hunt_name=hunt.name,

@@ -183,7 +183,7 @@ def hunt_requirements_completed(state):
     num_required = state['num_required']
 
     if required_ids:
-        required_found = found_ids == required_ids
+        required_found = required_ids.issubset(found_ids)
         return num_found >= num_required and required_found
     else:
         return num_found >= num_required
