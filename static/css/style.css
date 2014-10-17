@@ -512,7 +512,8 @@ ul.errors {
     margin: auto 25%;
   }
 
-  #confirm-email, #wrong-email {
+  #confirm-email, #wrong-email,
+  #getstarted, a.btn-default {
     width: 50%;
   }
 }
