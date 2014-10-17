@@ -162,7 +162,7 @@ def get_state(params, settings):
     )
 
 
-def initialize_state_doc(email, hunt, params, items):
+def initialize_state_doc(num_required, items):
     required_ids = [
         item.item_id for item in items if item.required]
 
@@ -171,7 +171,7 @@ def initialize_state_doc(email, hunt, params, items):
         'num_found': 0,
         'required_ids': required_ids,
         'total_items': len(items),
-        'num_required': hunt.num_required,
+        'num_required': num_required,
         'hunt_completed': False
     }
 
