@@ -14,11 +14,20 @@
       {{form.email(placeholder="email@example.org", class="form-control")}}
     </div>
     <div id="confirm-email-msg" style="display: none;">
-      Is this your email? <strong><span></span></strong>
+      You entered <strong><span></span></strong>.<br>
+      Go ahead and double check.
     </div>
-    <button type="submit" class="btn btn-primary form-control" style="display: none;">Yes. Please submit my information.</button>
+    <button type="submit" class="btn btn-primary form-control"
+            style="display: none;">
+      Yes, that's my email.
+    </button>
   </form>
-  <button id="confirm-email" class="btn btn-primary form-control">Submit</button>
-  <button id="wrong-email" style="display: none;" class="btn btn-default form-control">No</button>
+  <button id="confirm-email" class="btn btn-primary form-control">
+    Submit
+  </button>
+  <button id="wrong-email" style="display: none;"
+          class="btn btn-default form-control">
+    No, that's not my email.
+  </button>
 </div>
 {% endblock %}

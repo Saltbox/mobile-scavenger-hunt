@@ -486,17 +486,33 @@ ul.errors {
   color: green;
 }
 
-textarea.form-control,
-.site-name  {
-  color: gray;
-  font-style: italic;
-}
-
-textarea.form-control:focus {
-  color: black;
-  font-style: initial;
-}
-
 .explanation div {
   font-style: italic;
+}
+
+.congrats-message {
+  margin: 25px 0 25px 0;
+}
+
+.participant .btn, .participant a {
+  height: 50px;
+  margin-top: 25px;
+}
+
+.participant input.form-control {
+  height: 50px;
+}
+
+.state-messages {
+  margin: 25px;
+}
+
+@media(min-width: 480px) {
+  .userinfo form {
+    margin: auto 25%;
+  }
+
+  #confirm-email, #wrong-email {
+    width: 50%;
+  }
 }
