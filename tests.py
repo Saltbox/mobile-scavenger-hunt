@@ -331,7 +331,6 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('/hunts/1/delete', follow_redirects=True)
             self.assertEqual(response.status_code, 200)
 
-            # make get_hunt return None
             get_hunt.return_value = None
             response = c.get('/hunts/1', follow_redirects=True)
             self.assertEqual(response.status_code, 404)
@@ -398,12 +397,24 @@ class HuntTestCase(unittest.TestCase):
     # Flask-Login calls load_user which uses Admin, around the
     # time response is returned
     @patch('views.Admin')
-    @patch('views.xapi')
+    @patch('views.xapi.put_state')
     @patch('views.get_settings')
     @patch('views.get_hunt')
     @patch('views.get_db')
+    @patch('views.get_items')
+    @patch('views.xapi.send_began_hunt_statement')
+    @patch('views.xapi.initialize_state_doc')
+    @patch('views.xapi.get_state')
     def test_valid_participant_can_register_for_hunt(
-            self, get_db, get_hunt, get_settings, xapi, Admin):
+            self, get_state, init_doc, began_statement, get_items, get_db, get_hunt,
+            get_settings, put_state, Admin):
+        init_doc.return_value = {
+            'found_ids': [],
+            'num_found': 1,
+            'required_ids': [1],
+            'total_items': 1
+        }
+
         with app.test_client() as c:
             response = c.post(
                 '/register_participant?hunt_id=1',
@@ -422,10 +433,11 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.xapi')
     def test_registered_participant_can_resume_hunt(
             self, xapi, get_participant, get_settings, get_item, get_hunt):
-        xapi.get_state_response.return_value = MagicMock(status_code=200)
-        xapi.update_state.return_value = {
+        xapi.get_state.return_value = MagicMock()
+        xapi.update_state_item_information.return_value = {
             'num_found': 1, 'found_ids': [1],
-            'required_ids': [1, 2], 'total_items': 2
+            'required_ids': [1, 2], 'total_items': 2,
+            'hunt_completed': False
         }
         with app.test_client() as c:
             participant_email = example_email()
@@ -447,9 +459,11 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.xapi')
     def test_registered_participant_congratulated_on_hunt_finish(
             self, xapi, get_participant, get_settings, get_item, get_hunt):
-        xapi.get_state_response.return_value = MagicMock(status_code=200)
-        xapi.update_state.return_value = {
-            'num_found': 1, 'found_ids': [1], 'required_ids': [1]
+        xapi.get_state.return_value = MagicMock()
+        xapi.update_state_item_information.return_value = {
+            'num_found': 1, 'found_ids': [1],
+            'required_ids': [1], 'total_items': 1,
+            'hunt_completed': False
         }
         get_hunt.return_value = MagicMock(num_required=1)
         with app.test_client() as c:

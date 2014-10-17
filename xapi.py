@@ -30,7 +30,7 @@ def began_hunt_statement(actor, hunt, host_url):
     return {
         "actor": actor,
         "verb": {
-            "id": "http://adlnet.gov/expapi/verbs/registered",
+            "id": "http://saltbox.com/xapi/verbs/registered",
             "display": {
                 "en-US": "registered for"
             }
@@ -39,11 +39,20 @@ def began_hunt_statement(actor, hunt, host_url):
     }
 
 
-def verb_completed():
+def verb_found():
     return {
-        "id": "http://adlnet.gov/expapi/verbs/completed",
+        "id": "http://saltbox.com/xapi/verbs/found",
         "display": {
-            "en-US": "completed"
+            "en-US": "found"
+        }
+    }
+
+
+def verb_refound():
+    return {
+        "id": "http://saltbox.com/xapi/verbs/refound",
+        "display": {
+            "en-US": "refound"
         }
     }
 
@@ -51,13 +60,12 @@ def verb_completed():
 def found_item_statement(actor, hunt, item, host_url):
     return {
         "actor": actor,
-        "verb": verb_completed(),
+        "verb": verb_found(),
         "object": {
             "id": "{}hunts/{}/items/{}".format(
                 request.host_url, hunt.hunt_id, item.item_id),
             "definition": {
-                "type": "{}activities/type/scavengerhunt".format(
-                    request.host_url),
+                "type": "{}activities/type/scavengerhunt".format(host_url),
                 "name": {
                     "und": "find item {} from {}".format(item.name, hunt.name)
                 }
@@ -72,11 +80,22 @@ def found_item_statement(actor, hunt, item, host_url):
     }
 
 
-# participant found every item
+def refound_item_statement(actor, hunt, item, host_url):
+    found_statement = found_item_statement(actor, hunt, item, host_url)
+    found_statement['verb'] = verb_refound()
+    return found_statement
+
+
+# participant met requirements for completion
 def completed_hunt_statement(actor, hunt, host_url):
     return {
         'actor': actor,
-        'verb': verb_completed(),
+        'verb': {
+            'id': 'http://adlnet.gov/expapi/verbs/completed/',
+            'display': {
+                'en-US': 'completed'
+            }
+        },
         "object": hunt_activity(hunt, host_url),
         "result": {
             "success": True,
@@ -128,7 +147,7 @@ def make_agent(email, name):
     return agent
 
 
-def get_state_response(params, settings):
+def get_state(params, settings):
     logger.info(
         'requesting state from the state api for site, %s,'
         ' with params, %s', settings.wax_site, params)
@@ -143,32 +162,38 @@ def get_state_response(params, settings):
     )
 
 
-def create_new_state(email, hunt, item_id, params, settings, items):
-    logger.info(
-        'No state exists for %s on this hunt, %s.'
-        ' Beginning new state document.', email, hunt.name)
-
+def initialize_state_doc(email, hunt, params, items):
     required_ids = [
         item.item_id for item in items if item.required]
 
-    state = {
-        'found_ids': [int(item_id)],
-        'num_found': 1,
+    return {
+        'found_ids': [],
+        'num_found': 0,
         'required_ids': required_ids,
-        'total_items': len(items)
+        'total_items': len(items),
+        'num_required': hunt.num_required,
+        'hunt_completed': False
     }
-    put_state(json.dumps(state), params, settings)
-    return state
 
 
-def update_state(state, params, settings, item, email, hunt):
-    logger.info(
-        'Updating state document for %s on hunt, "%s".', email, hunt.name)
+def hunt_requirements_completed(state):
+    required_ids = set(state['required_ids'])
+    found_ids = set(state['found_ids'])
+    num_found = state['num_found']
+    num_required = state['num_required']
+
+    if required_ids:
+        required_found = found_ids == required_ids
+        return num_found >= num_required and required_found
+    else:
+        return num_found >= num_required
+
+
+def update_state_item_information(state, item):
     item_id = int(item.item_id)
     state['found_ids'].append(item_id)
     state['num_found'] += 1
 
-    post_state(json.dumps(state), params, settings)
     return state
 
 
@@ -186,6 +211,15 @@ def send_found_item_statement(name, email, hunt, item, host_url, settings):
     send_statement(statement, settings)
     logger.info(
         '%s found item, %s, from hunt, %s. sending statement to Wax',
+        email, item.name, hunt.name)
+
+
+def send_refound_item_statement(name, email, hunt, item, host_url, settings):
+    actor = make_agent(email, name)
+    statement = refound_item_statement(actor, hunt, item, host_url)
+    send_statement(statement, settings)
+    logger.info(
+        '%s refound item, %s, from hunt, %s. sending statement to Wax',
         email, item.name, hunt.name)
 
 
