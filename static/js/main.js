@@ -407,10 +407,11 @@ $(document).ready(function() {
     }
   });
 
-  $('.userinfo input').on('keypress', function(e) {
+  $('.userinfo-form input').on('keypress', function(e) {
     // disable submitting form with enter
     if (e.keyCode == 13) {
-      return false;
+      e.preventDefault();
+      $('#confirm-email').click();
     }
   });
 
