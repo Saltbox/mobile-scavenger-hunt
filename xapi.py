@@ -191,9 +191,9 @@ def hunt_requirements_completed(state):
 
 def update_state_item_information(state, item):
     item_id = int(item.item_id)
+    if item_id not in state['found_ids']:
+        state['num_found'] += 1
     state['found_ids'].append(item_id)
-    state['num_found'] += 1
-
     return state
 
 
