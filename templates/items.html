@@ -1,21 +1,21 @@
 {% extends "user_layout.html" %}
 {% block userbody %}
   <div class="state-messages">
-  {% if state['hunt_completed'] %}
-    <div class="congrats-message">{{congratulations}}</div>
-  {% endif %}
   {% if state['num_found'] %}
     {% if item %}
-      {{username}}! you
-      {% if state['hunt_completed'] %}
-        have completed the hunt but also
-      {% endif %}
-      found {{item.name}}<br>
+      {{username}}! You found {{item.name}}{% if found_again %} again{% endif %}.<br>
       {% if num_remaining > 0 %}
-        you still have {{num_remaining}}
+        You still have {{num_remaining}}
         {% if num_remaining > 1 %} items {% else %} item {% endif %}
-        left to find out of {{state['total_items']}}
+        left to find out of {{state['total_items']}}.
       {% endif %}
+    {% endif %}
+  {% endif %}
+  {% if state['hunt_completed'] %}
+    {% if previously_completed %}
+      <div class="congrats-message">You have already completed the hunt.</div>
+    {% else %}
+      <div class="congrats-message">{{congratulations}}</div>
     {% endif %}
   {% endif %}
   </div>

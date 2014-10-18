@@ -332,9 +332,10 @@ def find_item(hunt_id, item_id):
                         name, email, hunt, item, request.host_url,
                         admin_settings)
 
+                found_again = item.item_id in state['found_ids']
                 xapi.update_state_item_information(state, item)
+                hunt_previously_completed = state['hunt_completed']
                 if xapi.hunt_requirements_completed(state):
-                    hunt_previously_completed = state['hunt_completed']
                     if not hunt_previously_completed:
                         xapi.send_completed_hunt_statement(
                             name, email, hunt, item, request.host_url,
@@ -348,6 +349,8 @@ def find_item(hunt_id, item_id):
                     'items.html', item=item, items=get_items(g.db, hunt_id),
                     username=name, state=state, hunt_name=hunt.name,
                     num_remaining=num_items_remaining(state),
+                    found_again=found_again,
+                    previously_completed=hunt_previously_completed,
                     congratulations=hunt.congratulations_message))
             else:
                 session['intended_url'] = '/hunts/{}/items/{}'.format(
