@@ -117,10 +117,8 @@ def settings():
             g.db.session.add(admin_settings)
             g.db.session.commit()
 
-            if first_submission:
-                return make_response(redirect(url_for('new_hunt')))
-            else:
-                return make_response(redirect(url_for('hunts')))
+            url = 'new_hunt' if first_submission else 'hunts'
+            return make_response(redirect(url_for(url)))
         else:
             logger.info(
                 '%s attempted to submit settings information'
@@ -323,14 +321,16 @@ def find_item(hunt_id, item_id):
                 # what happens if xapi.get_state does not return state?
                 name = session.get('name')
 
+                statement_params = {
+                    'agent': xapi.make_agent(email, name), 'hunt': hunt,
+                    'item': item, 'host_url': request.host_url,
+                    'settings': admin_settings
+                }
+
                 if item_already_found(item.item_id, state):
-                    xapi.send_refound_item_statement(
-                        name, email, hunt, item, request.host_url,
-                        admin_settings)
+                    xapi.send_refound_item_statement(statement_params)
                 else:
-                    xapi.send_found_item_statement(
-                        name, email, hunt, item, request.host_url,
-                        admin_settings)
+                    xapi.send_found_item_statement(statement_params)
 
                 found_again = item.item_id in state['found_ids']
                 xapi.update_state_item_information(state, item)
@@ -338,8 +338,7 @@ def find_item(hunt_id, item_id):
                 if xapi.hunt_requirements_completed(state):
                     if not hunt_previously_completed:
                         xapi.send_completed_hunt_statement(
-                            name, email, hunt, item, request.host_url,
-                            admin_settings)
+                            statement_params)
                         state['hunt_completed'] = True
 
                 update_hunt_state(
@@ -372,7 +371,9 @@ def get_started(hunt_id):
                            hunt_id=hunt_id, hunt_name=hunt.name)
 
 
-def create_state_doc(email, hunt, params, items, admin_settings):
+def create_state_doc(email, hunt, admin_settings):
+    items = get_items(g.db, hunt.hunt_id)
+    params = xapi.default_params(email, hunt.hunt_id, request.host_url)
     logger.info(
         'No state exists for %s on this hunt, %s.'
         ' Beginning new state document.', email, hunt.name)
@@ -390,37 +391,36 @@ def register_participant():
         form = ParticipantForm(request.form)
         if form.validate():
             email = form.email.data
-
             participant_valid, err_msg = validate_participant(
                 g.db, email, hunt_id, hunt.participant_rule)
             if participant_valid:
-                name = form.name.data
-                session.update({'email': email, 'name': name})
-
                 participant = get_participant(g.db, email, hunt_id)
                 if not participant:
+                    assert False
                     logger.info(
                         'preparing to save new participant with email, %s,'
                         ' to hunt, %s', email, hunt.name)
                     participant = initialize_registered_participant(
                         form, Participant(), hunt_id)
 
-                g.db.session.add(participant)
-                g.db.session.commit()
+                    g.db.session.add(participant)
+                    g.db.session.commit()
 
+                name = form.name.data
+                session.update({'email': email, 'name': name})
                 logger.info(
                     "name and email set to %s, and %s\n"
                     "preparing requested item information.",
                     session['name'], email)
 
                 admin_settings = get_settings(g.db, hunt_id=hunt_id)
-                xapi.send_began_hunt_statement(
-                    name, email, hunt, request.host_url, admin_settings)
 
-                items = get_items(db, hunt.hunt_id)
-                params = xapi.default_params(email, hunt_id, request.host_url)
+                xapi.send_began_hunt_statement({
+                    'agent': xapi.make_agent(email, name), 'hunt': hunt,
+                    'host_url': request.host_url, 'settings': admin_settings
+                })
 
-                create_state_doc(email, hunt, params, items, admin_settings)
+                create_state_doc(email, hunt, admin_settings)
 
                 redirect_url = get_intended_url(session, hunt_id)
                 return make_response(redirect(redirect_url))

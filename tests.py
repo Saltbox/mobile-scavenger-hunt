@@ -489,6 +489,24 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('/hunts/1/items/1')
             self.assertEqual(response.status_code, 404)
 
+    @patch('views.xapi')
+    @patch('views.validate_participant')
+    @patch('views.create_state_doc')
+    @patch('views.get_items')
+    @patch('views.get_hunt')
+    @patch('views.get_participant')
+    @patch('views.get_db')
+    def test_register_participant_sends_xapi_statement(
+            self, get_db, get_participant, get_hunt,
+            get_items, create_state, valid_participant, xapi):
+        with app.test_client() as c:
+            data = {'email': example_email(), 'name': identifier()}
+            valid_participant.return_value = MagicMock(), 'Error message'
+            response = c.post('/register_participant?hunt_id=1', data=data)
+
+            assert any(call[0] is 'send_began_hunt_statement'
+                       for call in xapi.method_calls)
+
 
 if __name__ == '__main__':
     unittest.main()

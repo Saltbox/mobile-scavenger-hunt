@@ -197,38 +197,40 @@ def update_state_item_information(state, item):
     return state
 
 
-def send_began_hunt_statement(name, email, hunt, host_url, settings):
-    actor = make_agent(email, name)
-    statement = began_hunt_statement(actor, hunt, host_url)
-    send_statement(statement, settings)
+def send_began_hunt_statement(params):
+    statement = began_hunt_statement(
+        params['agent'], params['hunt'], params['host_url'])
+    send_statement(statement, params['settings'])
     logger.info(
-        '%s began hunt, %s. sending statement to Wax', email, hunt.name)
+        '%s began hunt, %s. sending statement to Wax', params['agent']['mbox'],
+        params['hunt'].name)
 
 
-def send_found_item_statement(name, email, hunt, item, host_url, settings):
-    actor = make_agent(email, name)
-    statement = found_item_statement(actor, hunt, item, host_url)
-    send_statement(statement, settings)
+def send_found_item_statement(params):
+    statement = found_item_statement(
+        params['agent'], params['hunt'], params['item'], params['host_url'])
+    send_statement(statement, params['settings'])
     logger.info(
         '%s found item, %s, from hunt, %s. sending statement to Wax',
-        email, item.name, hunt.name)
+        params['agent']['mbox'], params['item'].name, params['hunt'].name)
 
 
-def send_refound_item_statement(name, email, hunt, item, host_url, settings):
-    actor = make_agent(email, name)
-    statement = refound_item_statement(actor, hunt, item, host_url)
-    send_statement(statement, settings)
+def send_refound_item_statement(params):
+    statement = refound_item_statement(
+        params['agent'], params['hunt'], params['item'], params['host_url'])
+    send_statement(statement, params['settings'])
     logger.info(
         '%s refound item, %s, from hunt, %s. sending statement to Wax',
-        email, item.name, hunt.name)
+        params['agent']['mbox'], params['item'].name, params['hunt'].name)
 
 
-def send_completed_hunt_statement(name, email, hunt, item, host_url, settings):
-    actor = make_agent(email, name)
-    statement = completed_hunt_statement(actor, hunt, host_url)
-    send_statement(statement, settings)
+def send_completed_hunt_statement(params):
+    statement = completed_hunt_statement(
+        params['agent'], params['hunt'], params['host_url'])
+    send_statement(statement, params['settings'])
     logger.info(
-        '%s completed hunt, %s. sending statement to Wax', email, hunt.name)
+        '%s completed hunt, %s. sending statement to Wax',
+        params['agent']['mbox'], params['hunt'].name)
 
 
 def send_statement(statement, settings):
