@@ -332,18 +332,17 @@ def find_item(hunt_id, item_id):
                 else:
                     xapi.send_found_item_statement(statement_params)
 
-                found_again = item.item_id in state['found_ids']
                 xapi.update_state_item_information(state, item)
                 hunt_previously_completed = state['hunt_completed']
                 if xapi.hunt_requirements_completed(state):
                     if not hunt_previously_completed:
-                        xapi.send_completed_hunt_statement(
-                            statement_params)
+                        xapi.send_completed_hunt_statement(statement_params)
                         state['hunt_completed'] = True
 
                 update_hunt_state(
                     email, hunt.name, item, params, admin_settings, state)
 
+                found_again = item.item_id in state['found_ids']
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
                     username=name, state=state, hunt_name=hunt.name,
