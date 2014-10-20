@@ -69,8 +69,8 @@ def root():
 # create or list admins who can create hunts
 @app.route('/admins', methods=['POST'])
 def admins():
-    form = AdminForm(request.form)
     if request.method == 'POST':
+        form = AdminForm(request.form)
         if form.validate():
             admin = Admin()
             form.populate_obj(admin)
@@ -79,8 +79,7 @@ def admins():
             g.db.session.add(admin)
             g.db.session.commit()
 
-            saved_admin = get_admin(g.db, admin.email)
-            login_user(saved_admin)
+            login_user(get_admin(g.db, admin.email))
 
             flash('Welcome to xAPI Scavenger Hunt', 'success')
             logger.info(
@@ -259,9 +258,8 @@ def index_items(hunt_id):
             logger.info(
                 'preparing to render items from hunt_id, %s, for user, %s',
                 hunt_id, email)
-            items = get_items(g.db, hunt_id)
-            params = xapi.default_params(
-                email, hunt_id, request.host_url)
+
+            params = xapi.default_params(email, hunt_id, request.host_url)
             admin_settings = get_settings(g.db, hunt_id=hunt_id)
 
             state = xapi.get_state(params, admin_settings).json()
@@ -295,13 +293,10 @@ def num_items_remaining(state):
     return state['total_items'] - state['num_found']
 
 
-def update_hunt_state(email, hunt_name, item, params, admin_settings, state):
+def update_hunt_state(email, hunt_name, params, admin_settings, state):
     logger.info(
-        'Updating state document for %s on hunt, "%s".',
-        email, hunt_name)
-    logger.debug('updated state: %s', state)
-    xapi.post_state(
-        json.dumps(state), params, admin_settings)
+        'Updating state document for %s on hunt, "%s".', email, hunt_name)
+    xapi.post_state(json.dumps(state), params, admin_settings)
 
 
 # information about one item for scavenger to read
@@ -332,7 +327,7 @@ def find_item(hunt_id, item_id):
                 else:
                     xapi.send_found_item_statement(statement_params)
 
-                xapi.update_state_item_information(state, item)
+                xapi.update_state_item_information(state, item_id)
                 hunt_previously_completed = state['hunt_completed']
                 if xapi.hunt_requirements_completed(state):
                     if not hunt_previously_completed:
@@ -340,14 +335,13 @@ def find_item(hunt_id, item_id):
                         state['hunt_completed'] = True
 
                 update_hunt_state(
-                    email, hunt.name, item, params, admin_settings, state)
+                    email, hunt.name, params, admin_settings, state)
 
-                found_again = item.item_id in state['found_ids']
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
                     username=name, state=state, hunt_name=hunt.name,
                     num_remaining=num_items_remaining(state),
-                    found_again=found_again,
+                    found_again=item.item_id in state['found_ids'],
                     previously_completed=hunt_previously_completed,
                     congratulations=hunt.congratulations_message))
             else:
@@ -370,13 +364,13 @@ def get_started(hunt_id):
                            hunt_id=hunt_id, hunt_name=hunt.name)
 
 
-def create_state_doc(email, hunt, admin_settings):
-    items = get_items(g.db, hunt.hunt_id)
-    params = xapi.default_params(email, hunt.hunt_id, request.host_url)
+def create_state_doc(db, email, hunt, admin_settings):
+    items = get_items(db, hunt.hunt_id)
+    state = xapi.initialize_state_doc(hunt.num_required, items)
     logger.info(
         'No state exists for %s on this hunt, %s.'
         ' Beginning new state document.', email, hunt.name)
-    state = xapi.initialize_state_doc(hunt.num_required, items)
+    params = xapi.default_params(email, hunt.hunt_id, request.host_url)
     xapi.put_state(json.dumps(state), params, admin_settings)
 
 
@@ -395,7 +389,6 @@ def register_participant():
             if participant_valid:
                 participant = get_participant(g.db, email, hunt_id)
                 if not participant:
-                    assert False
                     logger.info(
                         'preparing to save new participant with email, %s,'
                         ' to hunt, %s', email, hunt.name)
@@ -419,7 +412,7 @@ def register_participant():
                     'host_url': request.host_url, 'settings': admin_settings
                 })
 
-                create_state_doc(email, hunt, admin_settings)
+                create_state_doc(g.db, email, hunt, admin_settings)
 
                 redirect_url = get_intended_url(session, hunt_id)
                 return make_response(redirect(redirect_url))

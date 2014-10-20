@@ -460,12 +460,12 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.xapi')
     @patch('views.update_hunt_state')
     def test_registered_participant_congratulated_on_hunt_finish(
-            self, update_hunt, xapi, get_participant, get_settings, get_item, get_hunt):
+            self, update_hunt, xapi, get_participant, get_settings, get_item,
+            get_hunt):
         xapi.get_state.return_value = MagicMock()
         xapi.update_state_item_information.return_value = {
             'num_found': 1, 'found_ids': [1],
-            'required_ids': [1], 'total_items': 1,
-            'hunt_completed': False
+            'required_ids': [1], 'total_items': 1, 'hunt_completed': False
         }
         get_hunt.return_value = MagicMock(num_required=1)
         with app.test_client() as c:
@@ -489,78 +489,6 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('/hunts/1/items/1')
             self.assertEqual(response.status_code, 404)
 
-    @patch('views.xapi')
-    @patch('views.validate_participant')
-    @patch('views.create_state_doc')
-    @patch('views.get_items')
-    @patch('views.get_hunt')
-    @patch('views.get_participant')
-    @patch('views.get_db')
-    def test_register_participant_sends_xapi_statement(
-            self, get_db, get_participant, get_hunt,
-            get_items, create_state, valid_participant, xapi):
-        with app.test_client() as c:
-            data = {'email': example_email(), 'name': identifier()}
-            valid_participant.return_value = MagicMock(), 'Error message'
-            response = c.post('/register_participant?hunt_id=1', data=data)
-
-            assert any(call[0] is 'send_began_hunt_statement'
-                       for call in xapi.method_calls)
-
-    @patch('views.update_hunt_state')
-    @patch('views.get_settings')
-    @patch('views.xapi')
-    @patch('views.participant_registered')
-    @patch('views.get_hunt')
-    @patch('views.get_item')
-    def test_finding_item_sends_found_item_statement(
-            self, get_item, get_hunt, part_registered,
-            xapi, get_settings, update_hunt_state):
-        with app.test_client() as c:
-            mock_hunt = MagicMock()
-            mock_hunt.name = 'name'
-            get_hunt.return_value = mock_hunt
-            response = c.get('/hunts/1/items/1')
-            assert xapi.send_found_item_statement.called
-
-    @patch('views.update_hunt_state')
-    @patch('views.get_settings')
-    @patch('views.xapi')
-    @patch('views.participant_registered')
-    @patch('views.get_hunt')
-    @patch('views.get_item')
-    @patch('views.item_already_found')
-    def test_refinding_item_sends_found_item_statement(
-            self, already_found, get_item, get_hunt, part_registered,
-            xapi, get_settings, update_hunt_state):
-        with app.test_client() as c:
-            mock_hunt = MagicMock()
-            mock_hunt.name = 'name'
-            get_hunt.return_value = mock_hunt
-            response = c.get('/hunts/1/items/1')
-            assert xapi.send_refound_item_statement.called
-
-    @patch('views.update_hunt_state')
-    @patch('views.get_settings')
-    @patch('views.xapi')
-    @patch('views.participant_registered')
-    @patch('views.get_hunt')
-    @patch('views.get_item')
-    @patch('views.item_already_found')
-    def test_completing_hunt_sends_completed_hunt_statement(
-            self, already_found, get_item, get_hunt, part_registered,
-            xapi, get_settings, update_hunt_state):
-        with app.test_client() as c:
-            get_hunt.return_value = MagicMock(name='name')
-            state = {
-                'hunt_completed': False, 'found_ids': [1],
-                'total_items': 1, 'num_found': 1
-            }
-            state_response = MagicMock()
-            state_response.json.return_value = state
-            xapi.get_state.return_value = state_response
-            response = c.get('/hunts/1/items/1')
-            assert xapi.send_completed_hunt_statement.called
 
 if __name__ == '__main__':
     unittest.main()

@@ -16,8 +16,7 @@ def hunt_activity(hunt, host_url):
     return {
         "id": hunt_activity_id(hunt.hunt_id, host_url),
         "definition": {
-            "type": "{}activities/type/scavengerhunt".format(
-                request.host_url),
+            "type": "{}activities/type/scavengerhunt".format(request.host_url),
             "name": {
                 "und": hunt.name
             }
@@ -189,8 +188,8 @@ def hunt_requirements_completed(state):
         return num_found >= num_required
 
 
-def update_state_item_information(state, item):
-    item_id = int(item.item_id)
+def update_state_item_information(state, item_id):
+    item_id = int(item_id)
     if item_id not in state['found_ids']:
         state['num_found'] += 1
     state['found_ids'].append(item_id)
