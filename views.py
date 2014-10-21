@@ -19,6 +19,7 @@ from utils import get_admin, get_settings, get_hunt, get_item, \
     num_items_remaining
 
 import xapi
+from xapi import WaxCommunicator
 
 
 login_manager.login_view = "login"
@@ -262,8 +263,7 @@ def index_items(hunt_id):
 
             params = xapi.default_params(email, hunt_id, request.host_url)
             admin_settings = get_settings(g.db, hunt_id=hunt_id)
-
-            state = xapi.get_state(params, admin_settings).json()
+            state = WaxCommunicator(admin_settings).get_state(params).json()
 
             return make_response(render_template(
                 'items.html', items=get_items(g.db, hunt_id),
@@ -285,7 +285,7 @@ def index_items(hunt_id):
 def update_state_api_doc(email, hunt_name, params, admin_settings, state):
     logger.info(
         'Updating state document for %s on hunt, "%s".', email, hunt_name)
-    xapi.post_state(json.dumps(state), params, admin_settings)
+    WaxCommunicator(admin_settings).post_state(json.dumps(state), params)
 
 
 # information about one item for scavenger to read
@@ -294,15 +294,18 @@ def find_item(hunt_id, item_id):
     admin_settings = get_settings(g.db, hunt_id=hunt_id)
     # admin_settings found through hunt_id means hunt exists
     if finished_setting(admin_settings):
+        lrs = WaxCommunicator(admin_settings)
+
         item = get_item(g.db, item_id, hunt_id)
         if item:
             email = session.get('email')
             hunt = get_hunt(g.db, hunt_id)
 
             if participant_registered(g.db, email, hunt_id):
-                params = xapi.default_params(email, hunt_id, request.host_url)
-                state = xapi.get_state(params, admin_settings).json()
-                # what happens if xapi.get_state does not return state?
+                state_params = xapi.default_params(
+                    email, hunt_id, request.host_url)
+                state = lrs.get_state(state_params).json()
+                # what happens if get_state does not return state?
                 name = session.get('name')
 
                 statement_params = {
@@ -325,7 +328,7 @@ def find_item(hunt_id, item_id):
                         state['hunt_completed'] = True
 
                 update_state_api_doc(
-                    email, hunt.name, params, admin_settings, state)
+                    email, hunt.name, state_params, admin_settings, state)
 
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
@@ -361,7 +364,7 @@ def create_state_doc(db, email, hunt, admin_settings):
         'No state exists for %s on this hunt, %s.'
         ' Beginning new state document.', email, hunt.name)
     params = xapi.default_params(email, hunt.hunt_id, request.host_url)
-    xapi.put_state(json.dumps(state), params, admin_settings)
+    WaxCommunicator(admin_settings).put_state(json.dumps(state), params)
 
 
 # validate and register participant before redirecting back to hunt

@@ -5,7 +5,56 @@ import json
 import requests
 import uuid
 
-from utils import get_items
+
+class WaxCommunicator:
+    def __init__(self, settings):
+        self.login = settings.login
+        self.password = settings.password
+        self.site = settings.wax_site
+        self.state_api_endpoint = 'https://{}.waxlrs.com/TCAPI/activities/state'.format(
+            settings.wax_site)
+
+    submission_headers = {
+        "x-experience-api-version": "1.0.0",
+        "content-type": "application/json"
+    }
+
+    def get_state(self, params):
+        logger.info(
+            'requesting state from the state api for site, %s,'
+            ' with params, %s', self.site, params)
+        return requests.get(
+            self.state_api_endpoint,
+            params=params,
+            headers={"x-experience-api-version": "1.0.0"},
+            auth=(self.login, self.password)
+        )
+
+    def put_state(self, data, params):
+        return requests.put(
+            self.state_api_endpoint,
+            params=params,
+            data=data,
+            headers=self.submission_headers,
+            auth=(settings.login, settings.password)
+        )
+
+    def post_state(self, data, params):
+        return requests.post(
+            self.state_api_endpoint,
+            params=params,
+            data=data,
+            headers=self.submission_headers,
+            auth=(self.login, self.password)
+        )
+
+    def send_statement(self, statement):
+        return requests.post(
+            'https://{}.waxlrs.com/TCAPI/statements'.format(self.site),
+            headers=self.submission_headers,
+            data=json.dumps(statement),
+            auth=(settings.login, settings.password)
+        )
 
 
 def hunt_activity_id(hunt_id, host_url):
@@ -103,34 +152,6 @@ def completed_hunt_statement(actor, hunt, host_url):
     }
 
 
-def put_state(data, params, settings):
-    return requests.put(
-        'https://{}.waxlrs.com/TCAPI/activities/state'.format(
-            settings.wax_site),
-        params=params,
-        data=data,
-        headers={
-            "x-experience-api-version": "1.0.0",
-            "content-type": "application/json"
-        },
-        auth=(settings.login, settings.password)
-    )
-
-
-def post_state(data, params, settings):
-    return requests.post(
-        'https://{}.waxlrs.com/TCAPI/activities/state'.format(
-            settings.wax_site),
-        params=params,
-        data=data,
-        headers={
-            "x-experience-api-version": "1.0.0",
-            "content-type": "application/json"
-        },
-        auth=(settings.login, settings.password)
-    )
-
-
 def default_params(email, hunt_id, host_url):
     return {
         'agent': json.dumps(make_agent(email, None)),
@@ -144,21 +165,6 @@ def make_agent(email, name):
     if name:
         agent['name'] = name
     return agent
-
-
-def get_state(params, settings):
-    logger.info(
-        'requesting state from the state api for site, %s,'
-        ' with params, %s', settings.wax_site, params)
-    return requests.get(
-        'https://{}.waxlrs.com/TCAPI/activities/state'.format(
-            settings.wax_site),
-        params=params,
-        headers={
-            "x-experience-api-version": "1.0.0"
-        },
-        auth=(settings.login, settings.password)
-    )
 
 
 def initialize_state_doc(num_required, items):
@@ -199,7 +205,7 @@ def update_state_item_information(state, item_id):
 def send_began_hunt_statement(params):
     statement = began_hunt_statement(
         params['agent'], params['hunt'], params['host_url'])
-    send_statement(statement, params['settings'])
+    WaxCommunicator(params['settings']).send_statement(statement)
     logger.info(
         '%s began hunt, %s. sending statement to Wax', params['agent']['mbox'],
         params['hunt'].name)
@@ -208,7 +214,7 @@ def send_began_hunt_statement(params):
 def send_found_item_statement(params):
     statement = found_item_statement(
         params['agent'], params['hunt'], params['item'], params['host_url'])
-    send_statement(statement, params['settings'])
+    WaxCommunicator(params['settings']).send_statement(statement)
     logger.info(
         '%s found item, %s, from hunt, %s. sending statement to Wax',
         params['agent']['mbox'], params['item'].name, params['hunt'].name)
@@ -217,7 +223,7 @@ def send_found_item_statement(params):
 def send_refound_item_statement(params):
     statement = refound_item_statement(
         params['agent'], params['hunt'], params['item'], params['host_url'])
-    send_statement(statement, params['settings'])
+    WaxCommunicator(params['settings']).send_statement(statement)
     logger.info(
         '%s refound item, %s, from hunt, %s. sending statement to Wax',
         params['agent']['mbox'], params['item'].name, params['hunt'].name)
@@ -226,19 +232,7 @@ def send_refound_item_statement(params):
 def send_completed_hunt_statement(params):
     statement = completed_hunt_statement(
         params['agent'], params['hunt'], params['host_url'])
-    send_statement(statement, params['settings'])
+    WaxCommunicator(params['settings']).send_statement(statement)
     logger.info(
         '%s completed hunt, %s. sending statement to Wax',
         params['agent']['mbox'], params['hunt'].name)
-
-
-def send_statement(statement, settings):
-    return requests.post(
-        'https://{}.waxlrs.com/TCAPI/statements'.format(settings.wax_site),
-        headers={
-            "Content-Type": "application/json",
-            "x-experience-api-version": "1.0.0"
-        },
-        data=json.dumps(statement),
-        auth=(settings.login, settings.password)
-    )

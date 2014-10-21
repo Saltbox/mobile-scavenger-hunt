@@ -33,7 +33,7 @@ class xAPITestCase(unittest.TestCase):
     @patch('views.get_items')
     @patch('views.xapi.initialize_state_doc')
     @patch('views.xapi.default_params')
-    @patch('views.xapi.put_state')
+    @patch('views.WaxCommunicator.put_state')
     @patch('views.get_db')
     def test_create_state_doc_puts_state(
             self, get_db, put_state, default_params, initialize_state_doc,
@@ -46,7 +46,7 @@ class xAPITestCase(unittest.TestCase):
             initialize_state_doc.return_value = state
             views.create_state_doc(
                 get_db(), MagicMock(), MagicMock(), MagicMock())
-            put_state.assert_called_with(json.dumps(state), ANY, ANY)
+            put_state.assert_called_with(json.dumps(state), ANY)
 
     @patch('views.xapi')
     @patch('views.validate_participant')
@@ -73,26 +73,25 @@ class xAPITestCase(unittest.TestCase):
         assert item_id in state['found_ids']
         assert state['num_found'] == 1
 
-    @patch('views.update_state_api_doc')
     @patch('views.get_settings')
     @patch('views.xapi')
     @patch('views.participant_registered')
     @patch('views.get_hunt')
     @patch('views.get_item')
+    @patch('views.WaxCommunicator')
     def test_finding_item_updates_state(
-            self, get_item, get_hunt, part_registered,
-            xapi, get_settings, update_state_api_doc):
+            self, LRS, get_item, get_hunt, part_registered,
+            xapi, get_settings):
         with app.test_client() as c:
             get_hunt.return_value = MagicMock(name='some name')
-            state_response = MagicMock()
-            state_response.json.return_value = {
+            state = {
                 'hunt_completed': False, 'found_ids': [1],
                 'total_items': 1, 'num_found': 1
             }
-            xapi.get_state.return_value = state_response
+            LRS().get_state().json.return_value = state
             response = c.get('/hunts/1/items/1')
 
-            assert update_state_api_doc.called
+            assert LRS().post_state.called
 
     @patch('views.xapi')
     @patch('views.validate_participant')
@@ -118,8 +117,9 @@ class xAPITestCase(unittest.TestCase):
     @patch('views.participant_registered')
     @patch('views.get_hunt')
     @patch('views.get_item')
+    @patch('views.WaxCommunicator')
     def test_finding_item_sends_found_item_statement(
-            self, get_item, get_hunt, part_registered,
+            self, LRS, get_item, get_hunt, part_registered,
             xapi, get_settings, update_state_api_doc):
         with app.test_client() as c:
             get_hunt.return_value = MagicMock(name='name')
@@ -134,8 +134,9 @@ class xAPITestCase(unittest.TestCase):
     @patch('views.get_hunt')
     @patch('views.get_item')
     @patch('views.item_already_found')
+    @patch('views.WaxCommunicator')
     def test_refinding_item_sends_found_item_statement(
-            self, already_found, get_item, get_hunt, part_registered,
+            self, LRS, already_found, get_item, get_hunt, part_registered,
             xapi, get_settings, update_state_api_doc):
         with app.test_client() as c:
             get_hunt.return_value = MagicMock(name='some name')
@@ -149,8 +150,9 @@ class xAPITestCase(unittest.TestCase):
     @patch('views.get_hunt')
     @patch('views.get_item')
     @patch('views.item_already_found')
+    @patch('views.WaxCommunicator')
     def test_completing_hunt_sends_completed_hunt_statement(
-            self, already_found, get_item, get_hunt, part_registered,
+            self, LRS, already_found, get_item, get_hunt, part_registered,
             xapi, get_settings, update_state_api_doc):
         with app.test_client() as c:
             get_hunt.return_value = MagicMock(name='name')
@@ -158,9 +160,7 @@ class xAPITestCase(unittest.TestCase):
                 'hunt_completed': False, 'found_ids': [1],
                 'total_items': 1, 'num_found': 1
             }
-            state_response = MagicMock()
-            state_response.json.return_value = state
-            xapi.get_state.return_value = state_response
+            LRS().get_state().json.return_value = state
             response = c.get('/hunts/1/items/1')
 
             assert xapi.send_completed_hunt_statement.called

@@ -179,7 +179,8 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.get_db')
     @patch('views.login_manager._login_disabled')
     @patch('views.current_user')
-    def test_visiting_new_hunt_works(self, current_user, login_disabled, get_db):
+    def test_visiting_new_hunt_works(
+            self, current_user, login_disabled, get_db):
         login_disabled = True
         current_user.admin_id = 1
         with app.test_client() as c:
@@ -239,8 +240,9 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.get_settings')
     @patch('views.get_db')
     @patch('views.get_items')
+    @patch('views.WaxCommunicator')
     def test_index_items_displays_all_items(
-            self, get_items, _get_db, _get_settings, _get_hunt, _xapi):
+            self, LRS, get_items, _get_db, _get_settings, _get_hunt, _xapi):
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
@@ -397,17 +399,17 @@ class HuntTestCase(unittest.TestCase):
     # Flask-Login calls load_user which uses Admin, around the
     # time response is returned
     @patch('views.Admin')
-    @patch('views.xapi.put_state')
+    @patch('views.WaxCommunicator.put_state')
     @patch('views.get_settings')
     @patch('views.get_hunt')
     @patch('views.get_db')
     @patch('views.get_items')
     @patch('views.xapi.send_began_hunt_statement')
     @patch('views.xapi.initialize_state_doc')
-    @patch('views.xapi.get_state')
+    @patch('views.WaxCommunicator.get_state')
     def test_valid_participant_can_register_for_hunt(
-            self, get_state, init_doc, began_statement, get_items, get_db, get_hunt,
-            get_settings, put_state, Admin):
+            self, get_state, init_doc, began_statement, get_items, get_db,
+            get_hunt, get_settings, put_state, Admin):
         init_doc.return_value = {
             'found_ids': [],
             'num_found': 1,
@@ -432,10 +434,11 @@ class HuntTestCase(unittest.TestCase):
     @patch('utils.get_participant')
     @patch('views.xapi')
     @patch('views.update_state_api_doc')
+    @patch('views.WaxCommunicator.get_state')
     def test_registered_participant_can_resume_hunt(
-            self, update_hunt, xapi, get_participant, get_settings, get_item,
+            self, get_state, update_hunt, xapi, get_participant, get_settings, get_item,
             get_hunt):
-        xapi.get_state.return_value = MagicMock()
+        get_state.return_value = MagicMock()
         xapi.update_state_item_information.return_value = {
             'num_found': 1, 'found_ids': [1],
             'required_ids': [1, 2], 'total_items': 2,
@@ -460,10 +463,11 @@ class HuntTestCase(unittest.TestCase):
     @patch('utils.get_participant')
     @patch('views.xapi')
     @patch('views.update_state_api_doc')
+    @patch('views.WaxCommunicator.get_state')
     def test_registered_participant_congratulated_on_hunt_finish(
-            self, update_hunt, xapi, get_participant, get_settings, get_item,
+            self, get_state, update_hunt, xapi, get_participant, get_settings, get_item,
             get_hunt):
-        xapi.get_state.return_value = MagicMock()
+        get_state.return_value = MagicMock()
         xapi.update_state_item_information.return_value = {
             'num_found': 1, 'found_ids': [1],
             'required_ids': [1], 'total_items': 1, 'hunt_completed': False
