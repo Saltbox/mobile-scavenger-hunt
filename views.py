@@ -10,12 +10,13 @@ import json
 from models import Hunt, Participant, Item, Admin, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     ItemForm, SettingForm
-import hunt
+
 from hunt import app, logger, login_manager, db, bcrypt
 from utils import get_admin, get_settings, get_hunt, get_item, \
     get_participant, item_path, validate_participant, get_intended_url, \
     get_hunts, get_items, initialize_hunt, initialize_registered_participant, \
-    valid_login, finished_setting
+    valid_login, finished_setting, item_already_found, participant_registered,\
+    num_items_remaining
 
 import xapi
 
@@ -279,18 +280,6 @@ def index_items(hunt_id):
     logger.info('Someone attempted to visit the items list for hunt with id, '
                 '%s, but this hunt does not exist', hunt_id)
     abort(404)
-
-
-def item_already_found(item_id, state):
-    return int(item_id) in state['found_ids']
-
-
-def participant_registered(db, email, hunt_id):
-    return email and get_participant(db, email, hunt_id)
-
-
-def num_items_remaining(state):
-    return state['total_items'] - state['num_found']
 
 
 def update_state_api_doc(email, hunt_name, params, admin_settings, state):

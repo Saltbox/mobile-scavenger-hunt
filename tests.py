@@ -429,7 +429,7 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.get_hunt')
     @patch('views.get_item')
     @patch('views.get_settings')
-    @patch('views.get_participant')
+    @patch('utils.get_participant')
     @patch('views.xapi')
     @patch('views.update_state_api_doc')
     def test_registered_participant_can_resume_hunt(
@@ -457,7 +457,7 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.get_hunt')
     @patch('views.get_item')
     @patch('views.get_settings')
-    @patch('views.get_participant')
+    @patch('utils.get_participant')
     @patch('views.xapi')
     @patch('views.update_state_api_doc')
     def test_registered_participant_congratulated_on_hunt_finish(

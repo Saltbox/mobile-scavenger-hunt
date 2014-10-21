@@ -102,3 +102,15 @@ def initialize_registered_participant(form, participant, hunt_id):
     participant.registered = True
     participant.hunt_id = hunt_id
     return participant
+
+
+def item_already_found(item_id, state):
+    return int(item_id) in state['found_ids']
+
+
+def participant_registered(db, email, hunt_id):
+    return email and get_participant(db, email, hunt_id)
+
+
+def num_items_remaining(state):
+    return state['total_items'] - state['num_found']
