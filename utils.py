@@ -114,3 +114,16 @@ def participant_registered(db, email, hunt_id):
 
 def num_items_remaining(state):
     return state['total_items'] - state['num_found']
+
+
+def hunt_requirements_completed(state):
+    required_ids = set(state['required_ids'])
+    found_ids = set(state['found_ids'])
+    num_found = state['num_found']
+    num_required = state['num_required']
+
+    if required_ids:
+        required_found = required_ids.issubset(found_ids)
+        return num_found >= num_required and required_found
+    else:
+        return num_found >= num_required

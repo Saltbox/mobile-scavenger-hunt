@@ -16,7 +16,7 @@ from utils import get_admin, get_settings, get_hunt, get_item, \
     get_participant, item_path, validate_participant, get_intended_url, \
     get_hunts, get_items, initialize_hunt, initialize_registered_participant, \
     valid_login, finished_setting, item_already_found, participant_registered,\
-    num_items_remaining
+    num_items_remaining, hunt_requirements_completed
 
 import xapi
 from xapi import WaxCommunicator
@@ -250,103 +250,6 @@ def delete_hunt(hunt_id):
 ################ SCAVENGER HUNT PARTICIPANT ROUTES ####################
 
 
-# list of items for scavengers to scavenge
-@app.route('/hunts/<hunt_id>/items', methods=['GET'])
-def index_items(hunt_id):
-    hunt = get_hunt(g.db, hunt_id)
-    if hunt:
-        email = session.get('email')
-        if email:
-            logger.info(
-                'preparing to render items from hunt_id, %s, for user, %s',
-                hunt_id, email)
-
-            params = xapi.default_params(email, hunt_id, request.host_url)
-            admin_settings = get_settings(g.db, hunt_id=hunt_id)
-            state = WaxCommunicator(admin_settings).get_state(params).json()
-
-            return make_response(render_template(
-                'items.html', items=get_items(g.db, hunt_id),
-                state=state, hunt_name=hunt.name,
-                num_remaining=num_items_remaining(state),
-                congratulations=hunt.congratulations_message))
-
-        session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
-        return make_response(
-            render_template('welcome.html', hunt_name=hunt.name,
-                            welcome=hunt.welcome_message,
-                            action_url="/get_started/hunts/{}".format(
-                                hunt_id)))
-    logger.info('Someone attempted to visit the items list for hunt with id, '
-                '%s, but this hunt does not exist', hunt_id)
-    abort(404)
-
-
-def update_state_api_doc(email, hunt_name, params, admin_settings, state):
-    logger.info(
-        'Updating state document for %s on hunt, "%s".', email, hunt_name)
-    WaxCommunicator(admin_settings).post_state(json.dumps(state), params)
-
-
-# information about one item for scavenger to read
-@app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
-def find_item(hunt_id, item_id):
-    admin_settings = get_settings(g.db, hunt_id=hunt_id)
-    # admin_settings found through hunt_id means hunt exists
-    if finished_setting(admin_settings):
-        lrs = WaxCommunicator(admin_settings)
-
-        item = get_item(g.db, item_id, hunt_id)
-        if item:
-            email = session.get('email')
-            hunt = get_hunt(g.db, hunt_id)
-
-            if participant_registered(g.db, email, hunt_id):
-                state_params = xapi.default_params(
-                    email, hunt_id, request.host_url)
-                state = lrs.get_state(state_params).json()
-                # what happens if get_state does not return state?
-                name = session.get('name')
-
-                statement_params = {
-                    'agent': xapi.make_agent(email, name), 'hunt': hunt,
-                    'item': item, 'host_url': request.host_url,
-                    'settings': admin_settings
-                }
-
-                found_again = item_already_found(item.item_id, state)
-                if found_again:
-                    xapi.send_refound_item_statement(statement_params)
-                else:
-                    xapi.send_found_item_statement(statement_params)
-
-                xapi.update_state_item_information(state, item_id)
-                hunt_previously_completed = state['hunt_completed']
-                if xapi.hunt_requirements_completed(state):
-                    if not hunt_previously_completed:
-                        xapi.send_completed_hunt_statement(statement_params)
-                        state['hunt_completed'] = True
-
-                update_state_api_doc(
-                    email, hunt.name, state_params, admin_settings, state)
-
-                return make_response(render_template(
-                    'items.html', item=item, items=get_items(g.db, hunt_id),
-                    username=name, state=state, hunt_name=hunt.name,
-                    num_remaining=num_items_remaining(state),
-                    found_again=found_again,
-                    previously_completed=hunt_previously_completed,
-                    congratulations=hunt.congratulations_message))
-            else:
-                session['intended_url'] = '/hunts/{}/items/{}'.format(
-                    hunt_id, item_id)
-                return make_response(render_template(
-                    'welcome.html', welcome=hunt.welcome_message,
-                    hunt_name=hunt.name,
-                    action_url="/get_started/hunts/{}".format(hunt_id)))
-    abort(404)
-
-
 # maybe just get rid of this
 # form for scavenger hunt participant to enter email and name
 @app.route('/get_started/hunts/<hunt_id>', methods=['GET'])
@@ -355,16 +258,6 @@ def get_started(hunt_id):
     hunt = get_hunt(g.db, hunt_id)
     return render_template('get_started.html', form=ParticipantForm(),
                            hunt_id=hunt_id, hunt_name=hunt.name)
-
-
-def create_state_doc(db, email, hunt, admin_settings):
-    items = get_items(db, hunt.hunt_id)
-    state = xapi.initialize_state_doc(hunt.num_required, items)
-    logger.info(
-        'No state exists for %s on this hunt, %s.'
-        ' Beginning new state document.', email, hunt.name)
-    params = xapi.default_params(email, hunt.hunt_id, request.host_url)
-    WaxCommunicator(admin_settings).put_state(json.dumps(state), params)
 
 
 # validate and register participant before redirecting back to hunt
@@ -391,22 +284,20 @@ def register_participant():
                     g.db.session.add(participant)
                     g.db.session.commit()
 
-                name = form.name.data
-                session.update({'email': email, 'name': name})
+                scavenger_info = {'email': email, 'name': form.name.data}
+                session.update(scavenger_info)
+
+                admin_settings = get_settings(g.db, hunt_id=hunt_id)
+                lrs = WaxCommunicator(
+                    admin_settings, request.host_url, hunt, None,
+                    scavenger_info=scavenger_info)
+                lrs.send_began_hunt_statement()
+                lrs.create_state_doc(get_items(g.db, hunt.hunt_id))
+
                 logger.info(
                     "name and email set to %s, and %s\n"
                     "preparing requested item information.",
                     session['name'], email)
-
-                admin_settings = get_settings(g.db, hunt_id=hunt_id)
-
-                xapi.send_began_hunt_statement({
-                    'agent': xapi.make_agent(email, name), 'hunt': hunt,
-                    'host_url': request.host_url, 'settings': admin_settings
-                })
-
-                create_state_doc(g.db, email, hunt, admin_settings)
-
                 redirect_url = get_intended_url(session, hunt_id)
                 return make_response(redirect(redirect_url))
             else:
@@ -421,6 +312,90 @@ def register_participant():
                        ' but the hunt could not be found. Form data: %s',
                        hunt_id, request.form)
         abort(400)
+
+
+# list of items for scavengers to scavenge
+@app.route('/hunts/<hunt_id>/items', methods=['GET'])
+def index_items(hunt_id):
+    hunt = get_hunt(g.db, hunt_id)
+    if hunt:
+        email = session.get('email')
+        if email:
+            logger.info(
+                'preparing to render items from hunt_id, %s, for user, %s',
+                hunt_id, email)
+
+            admin_settings = get_settings(g.db, hunt_id=hunt_id)
+            lrs = WaxCommunicator(
+                admin_settings, request.host_url, hunt, None,
+                {'email': email, 'name': session.get('name')})
+
+            state = lrs.get_state().json()
+
+            return make_response(render_template(
+                'items.html', items=get_items(g.db, hunt_id),
+                state=state, hunt_name=hunt.name,
+                num_remaining=num_items_remaining(state),
+                congratulations=hunt.congratulations_message))
+
+        session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
+        return make_response(
+            render_template('welcome.html', hunt_name=hunt.name,
+                            welcome=hunt.welcome_message,
+                            action_url="/get_started/hunts/{}".format(
+                                hunt_id)))
+    logger.info('Someone attempted to visit the items list for hunt with id, '
+                '%s, but this hunt does not exist', hunt_id)
+    abort(404)
+
+
+# information about one item for scavenger to read
+@app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
+def find_item(hunt_id, item_id):
+    admin_settings = get_settings(g.db, hunt_id=hunt_id)
+    # admin_settings found through hunt_id means hunt exists
+    if finished_setting(admin_settings):
+        item = get_item(g.db, item_id, hunt_id)
+        if item:
+            hunt = get_hunt(g.db, hunt_id)
+            if participant_registered(g.db, session.get('email'), hunt_id):
+                lrs = WaxCommunicator(
+                    admin_settings, request.host_url, hunt, item,
+                    scavenger_info={
+                        'email': session.get('email'),
+                        'name': session.get('name')
+                    })
+
+                state = lrs.get_state().json()
+                # what happens if get_state does not return state?
+
+                found_again = item_already_found(item.item_id, state)
+                lrs.send_found_item_statement(found_again=found_again)
+                state = lrs.update_state_item_information(state, item_id)
+
+                hunt_previously_completed = state['hunt_completed']
+                if hunt_requirements_completed(state):
+                    if not hunt_previously_completed:
+                        lrs.send_completed_hunt_statement()
+                        state['hunt_completed'] = True
+
+                lrs.update_state_api_doc(state)
+
+                return make_response(render_template(
+                    'items.html', item=item, items=get_items(g.db, hunt_id),
+                    username=session.get('name'), state=state,
+                    num_remaining=num_items_remaining(state),
+                    found_again=found_again, hunt_name=hunt.name,
+                    previously_completed=hunt_previously_completed,
+                    congratulations=hunt.congratulations_message))
+            else:
+                session['intended_url'] = '/hunts/{}/items/{}'.format(
+                    hunt_id, item_id)
+                return make_response(render_template(
+                    'welcome.html', welcome=hunt.welcome_message,
+                    hunt_name=hunt.name,
+                    action_url="/get_started/hunts/{}".format(hunt_id)))
+    abort(404)
 
 
 @app.route('/oops')

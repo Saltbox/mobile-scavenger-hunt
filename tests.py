@@ -104,14 +104,12 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn('Welcome to xAPI Scavenger Hunt', response.data)
 
-    @patch('views.get_settings')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     @patch('views.get_admin')
     @patch('views.get_db')
     def test_create_settings(
-            self, get_db, get_admin, login_disabled, current_user,
-            get_settings):
+            self, get_db, get_admin, login_disabled, current_user):
         get_admin.return_value = self.create_mock_admin(get_db)
         current_user.admin_id = 1
         with app.test_client() as c:
@@ -235,14 +233,11 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('/hunts/1', follow_redirects=True)
             self.assertEqual(response.status_code, 404)
 
-    @patch('views.xapi')
-    @patch('views.get_hunt')
-    @patch('views.get_settings')
     @patch('views.get_db')
     @patch('views.get_items')
     @patch('views.WaxCommunicator')
     def test_index_items_displays_all_items(
-            self, LRS, get_items, _get_db, _get_settings, _get_hunt, _xapi):
+            self, LRS, get_items, _get_db):
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
@@ -398,19 +393,10 @@ class HuntTestCase(unittest.TestCase):
 
     # Flask-Login calls load_user which uses Admin, around the
     # time response is returned
-    @patch('views.Admin')
-    @patch('views.WaxCommunicator.put_state')
-    @patch('views.get_settings')
-    @patch('views.get_hunt')
     @patch('views.get_db')
-    @patch('views.get_items')
-    @patch('views.xapi.send_began_hunt_statement')
-    @patch('views.xapi.initialize_state_doc')
-    @patch('views.WaxCommunicator.get_state')
-    def test_valid_participant_can_register_for_hunt(
-            self, get_state, init_doc, began_statement, get_items, get_db,
-            get_hunt, get_settings, put_state, Admin):
-        init_doc.return_value = {
+    @patch('views.WaxCommunicator')
+    def test_valid_participant_can_register_for_hunt(self, LRS, get_db):
+        LRS().initialize_state_doc.return_value = {
             'found_ids': [],
             'num_found': 1,
             'required_ids': [1],
@@ -428,55 +414,44 @@ class HuntTestCase(unittest.TestCase):
             )
             self.assertEqual(response.status_code, 200)
 
-    @patch('views.get_hunt')
-    @patch('views.get_item')
-    @patch('views.get_settings')
-    @patch('utils.get_participant')
-    @patch('views.xapi')
-    @patch('views.update_state_api_doc')
+    @patch('views.WaxCommunicator.update_state_api_doc')
     @patch('views.WaxCommunicator.get_state')
+    @patch('views.WaxCommunicator.send_found_item_statement')
+    @patch('views.WaxCommunicator.update_state_item_information')
+    @patch('views.get_db')
     def test_registered_participant_can_resume_hunt(
-            self, get_state, update_hunt, xapi, get_participant, get_settings, get_item,
-            get_hunt):
-        get_state.return_value = MagicMock()
-        xapi.update_state_item_information.return_value = {
-            'num_found': 1, 'found_ids': [1],
-            'required_ids': [1, 2], 'total_items': 2,
-            'hunt_completed': False
+            self, get_db, update_item_info, send_found, get_state, update_hunt):
+        update_item_info.return_value = {
+            'num_found': 1, 'found_ids': [1], 'required_ids': [1, 2],
+            'total_items': 2, 'hunt_completed': False, 'num_required': 2
         }
         with app.test_client() as c:
-            participant_email = example_email()
             name = identifier()
-
             # necessary to access item routes
             with c.session_transaction() as sess:
-                sess['email'] = participant_email
+                sess['email'] = example_email()
                 sess['name'] = name
 
             response = c.get('/hunts/1/items/1', follow_redirects=True)
             self.assertEqual(response.status_code, 200)
             self.assertIn(name, response.data)
 
-    @patch('views.get_hunt')
-    @patch('views.get_item')
-    @patch('views.get_settings')
-    @patch('utils.get_participant')
-    @patch('views.xapi')
-    @patch('views.update_state_api_doc')
+    @patch('views.WaxCommunicator.update_state_api_doc')
     @patch('views.WaxCommunicator.get_state')
+    @patch('views.WaxCommunicator.update_state_item_information')
+    @patch('views.WaxCommunicator.send_found_item_statement')
+    @patch('views.WaxCommunicator.send_completed_hunt_statement')
+    @patch('views.get_db')
     def test_registered_participant_congratulated_on_hunt_finish(
-            self, get_state, update_hunt, xapi, get_participant, get_settings, get_item,
-            get_hunt):
-        get_state.return_value = MagicMock()
-        xapi.update_state_item_information.return_value = {
-            'num_found': 1, 'found_ids': [1],
+            self, get_db, send_compelte, send_found,
+            update_state_item_information, get_state, update_hunt):
+        update_state_item_information.return_value = {
+            'num_found': 1, 'found_ids': [1], 'num_required': 1,
             'required_ids': [1], 'total_items': 1, 'hunt_completed': False
         }
-        get_hunt.return_value = MagicMock(num_required=1)
         with app.test_client() as c:
-            participant_email = example_email()
             with c.session_transaction() as sess:
-                sess['email'] = participant_email
+                sess['email'] = example_email()
             response = c.get('/hunts/1/items/1')
             self.assertEqual(response.status_code, 200)
             self.assertIn('congrats-message', response.data)
