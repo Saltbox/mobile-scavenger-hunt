@@ -293,7 +293,7 @@ def num_items_remaining(state):
     return state['total_items'] - state['num_found']
 
 
-def update_hunt_state(email, hunt_name, params, admin_settings, state):
+def update_state_api_doc(email, hunt_name, params, admin_settings, state):
     logger.info(
         'Updating state document for %s on hunt, "%s".', email, hunt_name)
     xapi.post_state(json.dumps(state), params, admin_settings)
@@ -322,7 +322,8 @@ def find_item(hunt_id, item_id):
                     'settings': admin_settings
                 }
 
-                if item_already_found(item.item_id, state):
+                found_again = item_already_found(item.item_id, state)
+                if found_again:
                     xapi.send_refound_item_statement(statement_params)
                 else:
                     xapi.send_found_item_statement(statement_params)
@@ -334,14 +335,14 @@ def find_item(hunt_id, item_id):
                         xapi.send_completed_hunt_statement(statement_params)
                         state['hunt_completed'] = True
 
-                update_hunt_state(
+                update_state_api_doc(
                     email, hunt.name, params, admin_settings, state)
 
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
                     username=name, state=state, hunt_name=hunt.name,
                     num_remaining=num_items_remaining(state),
-                    found_again=item.item_id in state['found_ids'],
+                    found_again=found_again,
                     previously_completed=hunt_previously_completed,
                     congratulations=hunt.congratulations_message))
             else:
