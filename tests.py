@@ -431,9 +431,10 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.get_settings')
     @patch('views.get_participant')
     @patch('views.xapi')
-    @patch('views.update_hunt_state')
+    @patch('views.update_state_api_doc')
     def test_registered_participant_can_resume_hunt(
-            self, update_hunt, xapi, get_participant, get_settings, get_item, get_hunt):
+            self, update_hunt, xapi, get_participant, get_settings, get_item,
+            get_hunt):
         xapi.get_state.return_value = MagicMock()
         xapi.update_state_item_information.return_value = {
             'num_found': 1, 'found_ids': [1],
@@ -458,7 +459,7 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.get_settings')
     @patch('views.get_participant')
     @patch('views.xapi')
-    @patch('views.update_hunt_state')
+    @patch('views.update_state_api_doc')
     def test_registered_participant_congratulated_on_hunt_finish(
             self, update_hunt, xapi, get_participant, get_settings, get_item,
             get_hunt):
