@@ -1,4 +1,3 @@
-# import mock
 import unittest
 import uuid
 import json
@@ -12,7 +11,7 @@ import utils
 import views
 
 
-from mock import patch, MagicMock, ANY
+from mock import patch, MagicMock
 
 app.config['DEBUG'] = True
 
@@ -30,17 +29,14 @@ class xAPITestCase(unittest.TestCase):
         self.request = MagicMock()
         self.admin = {'email': example_email(), 'password': identifier()}
 
-    @patch('views.get_items')
-    @patch('views.get_settings')
     @patch('views.WaxCommunicator.put_state')
     @patch('views.WaxCommunicator.send_began_hunt_statement')
     @patch('views.validate_participant')
-    @patch('views.get_participant')
     @patch('views.get_db')
     @patch('views.get_hunt')
     def test_register_participant_puts_state(
-            self, get_hunt, get_db, get_participant, validate_participant,
-            send_began, put_state, get_settings, get_items):
+            self, get_hunt, get_db, validate_participant,
+            send_began, put_state):
         with app.test_client() as c:
             get_hunt.return_value = MagicMock(num_required=2)
 
@@ -49,16 +45,11 @@ class xAPITestCase(unittest.TestCase):
             response = c.post('/register_participant?hunt_id=1', data=data)
             put_state.called
 
-    @patch('views.xapi')
     @patch('views.validate_participant')
     @patch('views.create_state_doc')
-    @patch('views.get_items')
-    @patch('views.get_hunt')
-    @patch('views.get_participant')
     @patch('views.get_db')
     def test_register_participant_sends_xapi_statement(
-            self, get_db, get_participant, get_hunt,
-            get_items, create_state, valid_participant, xapi):
+            self, get_db, create_state, valid_participant):
         with app.test_client() as c:
             data = {'email': example_email(), 'name': identifier()}
             valid_participant.return_value = MagicMock(), 'Error message'
@@ -75,15 +66,14 @@ class xAPITestCase(unittest.TestCase):
         assert item_id in state['found_ids']
         assert state['num_found'] == 1
 
-    @patch('views.get_settings')
-    @patch('views.participant_registered')
     @patch('views.get_hunt')
-    @patch('views.get_item')
     @patch('views.WaxCommunicator')
+    @patch('views.get_db')
     def test_finding_item_updates_state(
-            self, LRS, get_item, get_hunt, part_registered,
-            get_settings):
+            self, get_db, LRS, get_hunt):
         with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess['email'] = example_email()
             get_hunt.return_value = MagicMock(name='some name')
             state = {
                 'hunt_completed': False, 'found_ids': [1],
@@ -96,62 +86,53 @@ class xAPITestCase(unittest.TestCase):
 
     @patch('views.validate_participant')
     @patch('views.WaxCommunicator')
-    @patch('views.get_items')
-    @patch('views.get_hunt')
-    @patch('views.get_participant')
     @patch('views.get_db')
     def test_register_participant_sends_xapi_statement(
-            self, get_db, get_participant, get_hunt,
-            get_items, LRS, valid_participant):
+            self, get_db, LRS, valid_participant):
         with app.test_client() as c:
             data = {'email': example_email(), 'name': identifier()}
             valid_participant.return_value = MagicMock(), 'Error message'
             response = c.post('/register_participant?hunt_id=1', data=data)
 
-            # assert any(call[0] is 'send_began_hunt_statement'
-            #            for call in LRS.method_calls)
             assert LRS().send_began_hunt_statement.called
 
-    @patch('views.get_settings')
-    @patch('views.participant_registered')
     @patch('views.get_hunt')
-    @patch('views.get_item')
     @patch('views.WaxCommunicator')
+    @patch('views.get_db')
     def test_finding_item_sends_found_item_statement(
-            self, LRS, get_item, get_hunt, part_registered,
-            get_settings):
+            self, get_db, LRS, get_hunt):
         with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess['email'] = example_email()
             get_hunt.return_value = MagicMock(name='name')
             response = c.get('/hunts/1/items/1')
 
             assert LRS().send_found_item_statement.called
 
-    @patch('views.get_settings')
-    @patch('views.participant_registered')
     @patch('views.get_hunt')
-    @patch('views.get_item')
     @patch('views.item_already_found')
     @patch('views.WaxCommunicator')
+    @patch('views.get_db')
     def test_refinding_item_sends_found_item_statement(
-            self, LRS, already_found, get_item, get_hunt, part_registered,
-            get_settings):
+            self, get_db, LRS, already_found, get_hunt):
         with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess['email'] = example_email()
             get_hunt.return_value = MagicMock(name='some name')
             already_found.return_value = True
             response = c.get('/hunts/1/items/1')
 
             LRS().send_found_item_statement.assert_called_with(found_again=True)
 
-    @patch('views.get_settings')
-    @patch('views.participant_registered')
     @patch('views.get_hunt')
-    @patch('views.get_item')
     @patch('views.item_already_found')
     @patch('views.WaxCommunicator')
+    @patch('views.get_db')
     def test_completing_hunt_sends_completed_hunt_statement(
-            self, LRS, already_found, get_item, get_hunt, part_registered,
-            get_settings):
+            self, get_db, LRS, already_found, get_hunt):
         with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess['email'] = example_email()
             get_hunt.return_value = MagicMock(name='name')
             state = {
                 'hunt_completed': False, 'found_ids': [1], 'num_required': 1,

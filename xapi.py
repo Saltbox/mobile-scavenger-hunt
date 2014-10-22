@@ -87,38 +87,6 @@ class WaxCommunicator:
             "objectType": "Activity"
         }
 
-    def began_hunt_statement(self):
-        return {
-            "actor": self.make_agent(),
-            "verb": {
-                "id": "http://saltbox.com/xapi/verbs/registered",
-                "display": {
-                    "en-US": "registered for"
-                }
-            },
-            "object": self.hunt_activity()
-        }
-
-    def send_began_hunt_statement(self):
-        self.send_statement(self.began_hunt_statement())
-        logger.info(
-            '%s began hunt, %s. sending statement to Wax',
-            self.scavenger['email'], self.hunt.name)
-
-    def send_found_item_statement(self, found_again=False):
-        if found_again:
-            self.send_statement(self.refound_item_statement())
-            logger.info(
-                '%s refound item, %s, from hunt, %s. sending statement to Wax',
-                self.scavenger['email'], self.current_item.name,
-                self.hunt.name)
-        else:
-            self.send_statement(self.found_item_statement())
-            logger.info(
-                '%s found item, %s, from hunt, %s. sending statement to Wax',
-                self.scavenger['email'], self.current_item.name,
-                self.hunt.name)
-
     def verb_found(self):
         return {
             "id": "http://saltbox.com/xapi/verbs/found",
@@ -134,6 +102,38 @@ class WaxCommunicator:
                 "en-US": "refound"
             }
         }
+
+    def send_began_hunt_statement(self):
+        self.send_statement(self.began_hunt_statement())
+        logger.info(
+            '%s began hunt, %s. sending statement to Wax',
+            self.scavenger['email'], self.hunt.name)
+
+    def began_hunt_statement(self):
+        return {
+            "actor": self.make_agent(),
+            "verb": {
+                "id": "http://saltbox.com/xapi/verbs/registered",
+                "display": {
+                    "en-US": "registered for"
+                }
+            },
+            "object": self.hunt_activity()
+        }
+
+    def send_found_item_statement(self, found_again=False):
+        if found_again:
+            self.send_statement(self.refound_item_statement())
+            logger.info(
+                '%s refound item, %s, from hunt, %s. sending statement to Wax',
+                self.scavenger['email'], self.current_item.name,
+                self.hunt.name)
+        else:
+            self.send_statement(self.found_item_statement())
+            logger.info(
+                '%s found item, %s, from hunt, %s. sending statement to Wax',
+                self.scavenger['email'], self.current_item.name,
+                self.hunt.name)
 
     def found_item_statement(self):
         return {
@@ -164,23 +164,6 @@ class WaxCommunicator:
         found_statement = self.found_item_statement()
         found_statement['verb'] = self.verb_refound()
         return found_statement
-
-    # participant met requirements for completion
-    def completed_hunt_statement(self):
-        return {
-            'actor': self.make_agent(),
-            'verb': {
-                'id': 'http://adlnet.gov/expapi/verbs/completed/',
-                'display': {
-                    'en-US': 'completed'
-                }
-            },
-            "object": self.hunt_activity(),
-            "result": {
-                "success": True,
-                "completion": True,
-            }
-        }
 
     def make_agent(self):
         agent = {"mbox": "mailto:{}".format(self.scavenger['email'])}
@@ -227,3 +210,19 @@ class WaxCommunicator:
             '%s completed hunt, %s. sending statement to Wax',
             self.scavenger['email'], self.hunt.name)
         self.send_statement(self.completed_hunt_statement())
+
+    def completed_hunt_statement(self):
+        return {
+            'actor': self.make_agent(),
+            'verb': {
+                'id': 'http://adlnet.gov/expapi/verbs/completed/',
+                'display': {
+                    'en-US': 'completed'
+                }
+            },
+            "object": self.hunt_activity(),
+            "result": {
+                "success": True,
+                "completion": True,
+            }
+        }
