@@ -63,6 +63,46 @@ class WaxCommunicator:
             auth=(self.login, self.password)
         )
 
+    def make_agent(self):
+        agent = {"mbox": "mailto:{}".format(self.scavenger['email'])}
+        if self.scavenger['name']:
+            agent['name'] = self.scavenger['name']
+        return agent
+
+    def create_state_doc(self, items):
+        state = self.initialize_state_doc(self.hunt.num_required, items)
+        logger.info(
+            'No state exists for %s on this hunt, %s.'
+            ' Beginning new state document.',
+            self.scavenger['email'], self.hunt.name)
+        self.put_state(json.dumps(state))
+
+    def initialize_state_doc(self, num_required, items):
+        required_ids = [
+            item.item_id for item in items if item.required]
+
+        return {
+            'found_ids': [],
+            'num_found': 0,
+            'required_ids': required_ids,
+            'total_items': len(items),
+            'num_required': num_required,
+            'hunt_completed': False
+        }
+
+    def update_state_item_information(self, state, item_id):
+        item_id = int(item_id)
+        if item_id not in state['found_ids']:
+            state['num_found'] += 1
+        state['found_ids'].append(item_id)
+        return state
+
+    def update_state_api_doc(self, state):
+        logger.info(
+            'Updating state document for %s on hunt, "%s".',
+            self.scavenger['email'], self.hunt.name)
+        self.post_state(json.dumps(state))
+
     def send_statement(self, statement):
         return requests.post(
             'https://{}.waxlrs.com/TCAPI/statements'.format(self.site),
@@ -164,46 +204,6 @@ class WaxCommunicator:
         found_statement = self.found_item_statement()
         found_statement['verb'] = self.verb_refound()
         return found_statement
-
-    def make_agent(self):
-        agent = {"mbox": "mailto:{}".format(self.scavenger['email'])}
-        if self.scavenger['name']:
-            agent['name'] = self.scavenger['name']
-        return agent
-
-    def create_state_doc(self, items):
-        state = self.initialize_state_doc(self.hunt.num_required, items)
-        logger.info(
-            'No state exists for %s on this hunt, %s.'
-            ' Beginning new state document.',
-            self.scavenger['email'], self.hunt.name)
-        self.put_state(json.dumps(state))
-
-    def initialize_state_doc(self, num_required, items):
-        required_ids = [
-            item.item_id for item in items if item.required]
-
-        return {
-            'found_ids': [],
-            'num_found': 0,
-            'required_ids': required_ids,
-            'total_items': len(items),
-            'num_required': num_required,
-            'hunt_completed': False
-        }
-
-    def update_state_item_information(self, state, item_id):
-        item_id = int(item_id)
-        if item_id not in state['found_ids']:
-            state['num_found'] += 1
-        state['found_ids'].append(item_id)
-        return state
-
-    def update_state_api_doc(self, state):
-        logger.info(
-            'Updating state document for %s on hunt, "%s".',
-            self.scavenger['email'], self.hunt.name)
-        self.post_state(json.dumps(state))
 
     def send_completed_hunt_statement(self):
         logger.info(
