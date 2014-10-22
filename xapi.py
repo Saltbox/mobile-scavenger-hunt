@@ -43,7 +43,7 @@ class WaxCommunicator:
             headers={"x-experience-api-version": "1.0.0"},
             auth=(self.login, self.password)
         )
-        return response
+        return response.json()
 
     def put_state(self, data):
         return requests.put(
@@ -51,7 +51,7 @@ class WaxCommunicator:
             params=self.default_params(),
             data=data,
             headers=self.submission_headers,
-            auth=(settings.login, settings.password)
+            auth=(self.login, self.password)
         )
 
     def post_state(self, data):
@@ -68,7 +68,7 @@ class WaxCommunicator:
             'https://{}.waxlrs.com/TCAPI/statements'.format(self.site),
             headers=self.submission_headers,
             data=json.dumps(statement),
-            auth=(settings.login, settings.password)
+            auth=(self.login, self.password)
         )
 
     def hunt_activity_id(self):
@@ -78,7 +78,8 @@ class WaxCommunicator:
         return {
             "id": self.hunt_activity_id(),
             "definition": {
-                "type": "{}activities/type/scavengerhunt".format(self.host_url),
+                "type": "{}activities/type/scavengerhunt".format(
+                    self.host_url),
                 "name": {
                     "und": self.hunt.name
                 }
@@ -109,12 +110,14 @@ class WaxCommunicator:
             self.send_statement(self.refound_item_statement())
             logger.info(
                 '%s refound item, %s, from hunt, %s. sending statement to Wax',
-                self.email, self.current_item.name, self.hunt.name)
+                self.scavenger['email'], self.current_item.name,
+                self.hunt.name)
         else:
             self.send_statement(self.found_item_statement())
             logger.info(
                 '%s found item, %s, from hunt, %s. sending statement to Wax',
-                self.email, self.current_item.name, self.hunt.name)
+                self.scavenger['email'], self.current_item.name,
+                self.hunt.name)
 
     def verb_found(self):
         return {
@@ -138,9 +141,11 @@ class WaxCommunicator:
             "verb": self.verb_found(),
             "object": {
                 "id": "{}hunts/{}/items/{}".format(
-                    self.host_url, self.hunt.hunt_id, self.current_item.item_id),
+                    self.host_url, self.hunt.hunt_id,
+                    self.current_item.item_id),
                 "definition": {
-                    "type": "{}activities/type/scavengerhunt".format(self.host_url),
+                    "type": "{}activities/type/scavengerhunt".format(
+                        self.host_url),
                     "name": {
                         "und": "{} from {}".format(
                             self.current_item.name, self.hunt.name)
@@ -155,9 +160,9 @@ class WaxCommunicator:
             }
         }
 
-    def refound_item_statement(actor, hunt, item, host_url):
-        found_statement = found_item_statement(actor, hunt, item, host_url)
-        found_statement['verb'] = verb_refound()
+    def refound_item_statement(self):
+        found_statement = self.found_item_statement()
+        found_statement['verb'] = self.verb_refound()
         return found_statement
 
     # participant met requirements for completion
@@ -180,7 +185,7 @@ class WaxCommunicator:
     def make_agent(self):
         agent = {"mbox": "mailto:{}".format(self.scavenger['email'])}
         if self.scavenger['name']:
-            agent['name'] = self.scavenger['email']
+            agent['name'] = self.scavenger['name']
         return agent
 
     def create_state_doc(self, items):
@@ -215,7 +220,7 @@ class WaxCommunicator:
         logger.info(
             'Updating state document for %s on hunt, "%s".',
             self.scavenger['email'], self.hunt.name)
-        self.post_state(state)
+        self.post_state(json.dumps(state))
 
     def send_completed_hunt_statement(self):
         logger.info(

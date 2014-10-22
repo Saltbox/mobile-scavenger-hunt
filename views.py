@@ -366,7 +366,7 @@ def find_item(hunt_id, item_id):
                         'name': session.get('name')
                     })
 
-                state = lrs.get_state().json()
+                state = lrs.get_state()
                 # what happens if get_state does not return state?
 
                 found_again = item_already_found(item.item_id, state)
@@ -380,7 +380,6 @@ def find_item(hunt_id, item_id):
                         state['hunt_completed'] = True
 
                 lrs.update_state_api_doc(state)
-
                 return make_response(render_template(
                     'items.html', item=item, items=get_items(g.db, hunt_id),
                     username=session.get('name'), state=state,
