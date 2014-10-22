@@ -14,7 +14,7 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
 from hunt import app, logger, login_manager, db, bcrypt
 from utils import get_admin, get_settings, get_hunt, get_item, \
     get_participant, item_path, validate_participant, get_intended_url, \
-    get_hunts, get_items, initialize_hunt, initialize_registered_participant, \
+    get_hunts, get_items, initialize_hunt, create_new_participant, \
     valid_login, finished_setting, item_already_found, participant_registered,\
     num_items_remaining, hunt_requirements_completed
 
@@ -255,9 +255,9 @@ def delete_hunt(hunt_id):
 @app.route('/get_started/hunts/<hunt_id>', methods=['GET'])
 def get_started(hunt_id):
     # todo: track duration
-    hunt = get_hunt(g.db, hunt_id)
     return render_template('get_started.html', form=ParticipantForm(),
-                           hunt_id=hunt_id, hunt_name=hunt.name)
+                           hunt_id=hunt_id,
+                           hunt_name=get_hunt(g.db, hunt_id).name)
 
 
 # validate and register participant before redirecting back to hunt
@@ -273,16 +273,11 @@ def register_participant():
             participant_valid, err_msg = validate_participant(
                 g.db, email, hunt_id, hunt.participant_rule)
             if participant_valid:
-                participant = get_participant(g.db, email, hunt_id)
-                if not participant:
+                if not get_participant(g.db, email, hunt_id):
                     logger.info(
                         'preparing to save new participant with email, %s,'
                         ' to hunt, %s', email, hunt.name)
-                    participant = initialize_registered_participant(
-                        form, Participant(), hunt_id)
-
-                    g.db.session.add(participant)
-                    g.db.session.commit()
+                    create_new_participant(g.db, form, hunt_id)
 
                 scavenger_info = {'email': email, 'name': form.name.data}
                 session.update(scavenger_info)
@@ -321,10 +316,6 @@ def index_items(hunt_id):
     if hunt:
         email = session.get('email')
         if email:
-            logger.info(
-                'preparing to render items from hunt_id, %s, for user, %s',
-                hunt_id, email)
-
             admin_settings = get_settings(g.db, hunt_id=hunt_id)
             lrs = WaxCommunicator(
                 admin_settings, request.host_url, hunt, None,
@@ -332,6 +323,9 @@ def index_items(hunt_id):
 
             state = lrs.get_state().json()
 
+            logger.info(
+                'preparing to render items from hunt_id, %s, for user, %s',
+                hunt_id, email)
             return make_response(render_template(
                 'items.html', items=get_items(g.db, hunt_id),
                 state=state, hunt_name=hunt.name,

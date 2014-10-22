@@ -97,11 +97,14 @@ def initialize_hunt(form, hunt, admin_id, request):
     return hunt
 
 
-def initialize_registered_participant(form, participant, hunt_id):
+def create_new_participant(db, form, hunt_id):
+    participant = Participant()
     form.populate_obj(participant)
     participant.registered = True
     participant.hunt_id = hunt_id
-    return participant
+
+    db.session.add(participant)
+    db.session.commit()
 
 
 def item_already_found(item_id, state):

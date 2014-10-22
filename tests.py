@@ -24,11 +24,22 @@ def example_email():
     return '{}@example.com'.format(identifier())
 
 
+def fake_state():
+    return {
+        'num_found': 1, 'found_ids': [1], 'num_required': 1,
+        'required_ids': [1], 'total_items': 1, 'hunt_completed': False
+    }
+
+
 class HuntTestCase(unittest.TestCase):
     def setUp(self):
         self.request = MagicMock()
         self.app = app.test_client()
         self.admin = {'email': example_email(), 'password': identifier()}
+        self.registration_data = {
+            'email': example_email(),
+            'name': identifier()
+        }
 
     def login(self, app, username, password):
         return app.post('/login', data=dict(
@@ -150,7 +161,8 @@ class HuntTestCase(unittest.TestCase):
         with app.test_client() as c:
             self.create_admin(c, self.admin['email'], self.admin['password'])
             self.logout(c)
-            response = self.login(c, self.admin['email'], self.admin['password'])
+            response = self.login(
+                c, self.admin['email'], self.admin['password'])
             self.assertEqual(response.status_code, 200)
 
     @patch('views.get_admin')
@@ -276,12 +288,10 @@ class HuntTestCase(unittest.TestCase):
         login_disabled = True
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            item1 = MagicMock()
+            item1 = MagicMock(item_id=1)
             item1.name = identifier()
-            item1.item_id = 1
-            item2 = MagicMock()
+            item2 = MagicMock(item_id=2)
             item2.name = identifier()
-            item2.item_id = 2
 
             get_hunt.return_value = MagicMock(items=[item1, item2])
 
@@ -302,11 +312,10 @@ class HuntTestCase(unittest.TestCase):
         login_disabled = True
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            item1 = MagicMock()
+            item1 = MagicMock(item_id=1)
             item1.name = identifier()
-            item1.item_id = 1
-            hunt = MagicMock(items=[item1])
-            get_hunt.return_value = hunt
+
+            get_hunt.return_value = MagicMock(items=[item1])
 
             response = c.get('/hunts/1/items/1/qrcode')
             self.assertEqual(response.status_code, 200)
@@ -323,8 +332,7 @@ class HuntTestCase(unittest.TestCase):
         login_disabled = True
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            hunt = MagicMock(admin_id=1)
-            get_hunt.return_value = hunt
+            get_hunt.return_value = MagicMock(admin_id=1)
             response = c.get('/hunts/1/delete', follow_redirects=True)
             self.assertEqual(response.status_code, 200)
 
@@ -391,40 +399,43 @@ class HuntTestCase(unittest.TestCase):
             get_db(), example_email(), 1, 'anyone')
         self.assertTrue(valid)
 
+    @patch('views.create_new_participant')
+    @patch('views.WaxCommunicator')
+    @patch('views.get_participant')
+    @patch('views.get_db')
+    def test_valid_unsaved_participant_saved_on_registration(
+            self, get_db, get_participant, LRS, create_new_participant):
+        with app.test_client() as c:
+            get_participant.return_value = False
+            c.post(
+                '/register_participant?hunt_id=1', data=self.registration_data)
+        assert create_new_participant.called, "Expected a valid but unsaved" \
+            " participant to be saved to the database after registering for" \
+            " the hunt, but this did not happen."
+
     # Flask-Login calls load_user which uses Admin, around the
     # time response is returned
     @patch('views.get_db')
     @patch('views.WaxCommunicator')
     def test_valid_participant_can_register_for_hunt(self, LRS, get_db):
-        LRS().initialize_state_doc.return_value = {
-            'found_ids': [],
-            'num_found': 1,
-            'required_ids': [1],
-            'total_items': 1
-        }
+        LRS().initialize_state_doc.return_value = fake_state()
 
         with app.test_client() as c:
             response = c.post(
                 '/register_participant?hunt_id=1',
-                data={
-                    'email': example_email(),
-                    'name': identifier()
-                },
+                data=self.registration_data,
                 follow_redirects=True
             )
             self.assertEqual(response.status_code, 200)
 
-    @patch('views.WaxCommunicator.update_state_api_doc')
-    @patch('views.WaxCommunicator.get_state')
-    @patch('views.WaxCommunicator.send_found_item_statement')
-    @patch('views.WaxCommunicator.update_state_item_information')
+    @patch('views.WaxCommunicator')
     @patch('views.get_db')
     def test_registered_participant_can_resume_hunt(
-            self, get_db, update_item_info, send_found, get_state, update_hunt):
-        update_item_info.return_value = {
-            'num_found': 1, 'found_ids': [1], 'required_ids': [1, 2],
-            'total_items': 2, 'hunt_completed': False, 'num_required': 2
-        }
+            self, get_db, LRS):
+        state = fake_state()
+        state['total_items'] = state['num_required'] = 2
+        LRS().update_item_info.return_value = state
+
         with app.test_client() as c:
             name = identifier()
             # necessary to access item routes
@@ -436,19 +447,11 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn(name, response.data)
 
-    @patch('views.WaxCommunicator.update_state_api_doc')
-    @patch('views.WaxCommunicator.get_state')
-    @patch('views.WaxCommunicator.update_state_item_information')
-    @patch('views.WaxCommunicator.send_found_item_statement')
-    @patch('views.WaxCommunicator.send_completed_hunt_statement')
+    @patch('views.WaxCommunicator')
     @patch('views.get_db')
     def test_registered_participant_congratulated_on_hunt_finish(
-            self, get_db, send_compelte, send_found,
-            update_state_item_information, get_state, update_hunt):
-        update_state_item_information.return_value = {
-            'num_found': 1, 'found_ids': [1], 'num_required': 1,
-            'required_ids': [1], 'total_items': 1, 'hunt_completed': False
-        }
+            self, get_db, LRS):
+        LRS().update_state_item_information.return_value = fake_state()
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()

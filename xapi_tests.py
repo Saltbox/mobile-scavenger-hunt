@@ -43,7 +43,7 @@ class xAPITestCase(unittest.TestCase):
             get_hunt.return_value = MagicMock(num_required=2)
 
             validate_participant.return_value = MagicMock(), 'Error message'
-            response = c.post(
+            c.post(
                 '/register_participant?hunt_id=1', data=self.registration_data)
 
             assert put_state.called, "Expected a state document to be" \
@@ -57,7 +57,7 @@ class xAPITestCase(unittest.TestCase):
             self, send_statement, get_db, create_state, valid_participant):
         with app.test_client() as c:
             valid_participant.return_value = MagicMock(), 'Error message'
-            response = c.post(
+            c.post(
                 '/register_participant?hunt_id=1', data=self.registration_data)
 
             lrs = xapi.WaxCommunicator(
@@ -93,7 +93,7 @@ class xAPITestCase(unittest.TestCase):
                 'hunt_completed': False, 'found_ids': [1], 'num_required': 0,
                 'total_items': 1, 'num_found': 1, 'required_ids': [1]
             }
-            response = c.get('/hunts/1/items/1')
+            c.get('/hunts/1/items/1')
 
             assert post_state.called, "Expected a state document to be" \
                 " updated by a call to post_state, but post_state was not" \
@@ -108,7 +108,7 @@ class xAPITestCase(unittest.TestCase):
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
             get_hunt.return_value = MagicMock(name='name')
-            response = c.get('/hunts/1/items/1')
+            c.get('/hunts/1/items/1')
 
             assert LRS().send_found_item_statement.called, "Expected" \
                 " finding an item to send a statement but a statement was" \
@@ -125,7 +125,7 @@ class xAPITestCase(unittest.TestCase):
                 sess['email'] = example_email()
             get_hunt.return_value = MagicMock(name='some name')
             already_found.return_value = True
-            response = c.get('/hunts/1/items/1')
+            c.get('/hunts/1/items/1')
 
             LRS().send_found_item_statement.assert_called_with(
                 found_again=True)
@@ -140,12 +140,12 @@ class xAPITestCase(unittest.TestCase):
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
             get_hunt.return_value = MagicMock(name='name')
-            state = {
+
+            LRS().update_state_item_information.return_value = {
                 'hunt_completed': False, 'found_ids': [1], 'num_required': 1,
                 'total_items': 1, 'num_found': 1, 'required_ids': [1]
             }
-            LRS().update_state_item_information.return_value = state
-            response = c.get('/hunts/1/items/1')
+            c.get('/hunts/1/items/1')
 
             assert LRS().send_completed_hunt_statement.called, "Expected " \
                 " scavenger meeting all of the hunt requirements to send a" \
