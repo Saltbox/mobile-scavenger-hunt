@@ -78,6 +78,14 @@ class Hunt(db.Model):
     def __repr__(self):
         return '<Hunt %r>' % self.name
 
+    @classmethod
+    def list_for_admin_id(cls, db, admin_id):
+        return db.session.query(Hunt).filter(Hunt.admin_id == admin_id).all()
+
+    @classmethod
+    def find_by_id(cls, db, hunt_id):
+        return db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
+
 
 class Participant(db.Model):
     __tablename__ = 'participants'

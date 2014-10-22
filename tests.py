@@ -209,15 +209,15 @@ class HuntTestCase(unittest.TestCase):
 
             self.assertEqual(create_hunt_response.status_code, 200)
 
-    @patch('views.get_hunt')
-    def test_show_hunt_works(self, get_hunt):
+    @patch('views.Hunt')
+    def test_show_hunt_works(self, Hunt):
         name = identifier()
         participants = [
             MagicMock(email=example_email(), registered=True)
             for _ in xrange(2)
         ]
         items = [{'name': identifier()} for _ in xrange(2)]
-        get_hunt.return_value = MagicMock(
+        Hunt.find_by_id.return_value = MagicMock(
             name=name, participants=participants, items=items,
             participant_rule='by_whitelist'
         )
@@ -270,20 +270,20 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('hunts/1/items')
             self.assertEqual(response.status_code, 404)
 
-    @patch('views.get_hunt')
-    def test_get_started(self, get_hunt):
+    @patch('views.Hunt')
+    def test_get_started(self, Hunt):
         response = self.app.get(
             '/get_started/hunts/1', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn('Enter your name and email', response.data)
 
     @patch('views.get_admin')
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     @patch('views.get_db')
     def test_show_all_hunt_item_codes_works(
-            self, get_db, login_disabled, current_user, get_hunt, get_admin):
+            self, get_db, login_disabled, current_user, Hunt, get_admin):
         current_user.admin_id = 1
         login_disabled = True
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
@@ -293,7 +293,7 @@ class HuntTestCase(unittest.TestCase):
             item2 = MagicMock(item_id=2)
             item2.name = identifier()
 
-            get_hunt.return_value = MagicMock(items=[item1, item2])
+            Hunt.find_by_id.return_value = MagicMock(items=[item1, item2])
 
             response = c.get('/hunts/1/qrcodes')
             self.assertEqual(response.status_code, 200)
@@ -302,12 +302,12 @@ class HuntTestCase(unittest.TestCase):
                 self.assertIn(item.name, response.data)
 
     @patch('views.get_admin')
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     @patch('views.get_db')
     def test_show_one_hunt_item_code_works(
-            self, get_db, login_disabled, current_user, get_hunt, get_admin):
+            self, get_db, login_disabled, current_user, Hunt, get_admin):
         current_user.admin_id = 1
         login_disabled = True
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
@@ -315,28 +315,28 @@ class HuntTestCase(unittest.TestCase):
             item1 = MagicMock(item_id=1)
             item1.name = identifier()
 
-            get_hunt.return_value = MagicMock(items=[item1])
+            Hunt.find_by_id.return_value = MagicMock(items=[item1])
 
             response = c.get('/hunts/1/items/1/qrcode')
             self.assertEqual(response.status_code, 200)
             self.assertIn(item1.name, response.data)
 
     @patch('views.get_admin')
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     @patch('views.get_db')
     def test_delete_hunt_works(
-            self, get_db, login_disabled, current_user, get_hunt, get_admin):
+            self, get_db, login_disabled, current_user, Hunt, get_admin):
         current_user.admin_id = 1
         login_disabled = True
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            get_hunt.return_value = MagicMock(admin_id=1)
+            Hunt.find_by_id.return_value = MagicMock(admin_id=1)
             response = c.get('/hunts/1/delete', follow_redirects=True)
             self.assertEqual(response.status_code, 200)
 
-            get_hunt.return_value = None
+            Hunt.find_by_id.return_value = None
             response = c.get('/hunts/1', follow_redirects=True)
             self.assertEqual(response.status_code, 404)
 
@@ -349,12 +349,12 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('hunts/1/delete')
             self.assertEqual(response.status_code, 404)
 
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     def test_delete_other_admin_hunt_404s(
-            self, login_disabled, current_user, get_hunt):
-        get_hunt().admin_id = 1
+            self, login_disabled, current_user, Hunt):
+        Hunt.find_by_id().admin_id = 1
         current_user.admin_id = 2
         login_disabled = True
         with app.test_client() as c:

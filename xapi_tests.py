@@ -35,12 +35,12 @@ class xAPITestCase(unittest.TestCase):
     @patch('views.WaxCommunicator.send_began_hunt_statement')
     @patch('views.validate_participant')
     @patch('views.get_db')
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     def test_register_participant_puts_state(
-            self, get_hunt, get_db, validate_participant, send_began,
+            self, Hunt, get_db, validate_participant, send_began,
             put_state):
         with app.test_client() as c:
-            get_hunt.return_value = MagicMock(num_required=2)
+            Hunt.find_by_id.return_value = MagicMock(num_required=2)
 
             validate_participant.return_value = MagicMock(), 'Error message'
             c.post(
@@ -78,17 +78,17 @@ class xAPITestCase(unittest.TestCase):
         assert state['num_found'] == 1, "Expected the number of found items" \
             " to be 1, but it was {} instead".format(state['num_found'])
 
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.WaxCommunicator.post_state')
     @patch('views.WaxCommunicator.get_state')
     @patch('views.WaxCommunicator.send_statement')
     @patch('views.get_db')
     def test_finding_item_updates_state(
-            self, get_db, send_statement, get_state, post_state, get_hunt):
+            self, get_db, send_statement, get_state, post_state, Hunt):
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
-            get_hunt.return_value = MagicMock(name='some name')
+            Hunt.find_by_id.return_value = MagicMock(name='some name')
             get_state.return_value = {
                 'hunt_completed': False, 'found_ids': [1], 'num_required': 0,
                 'total_items': 1, 'num_found': 1, 'required_ids': [1]
@@ -99,47 +99,47 @@ class xAPITestCase(unittest.TestCase):
                 " updated by a call to post_state, but post_state was not" \
                 " called"
 
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.WaxCommunicator')
     @patch('views.get_db')
     def test_finding_item_sends_found_item_statement(
-            self, get_db, LRS, get_hunt):
+            self, get_db, LRS, Hunt):
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
-            get_hunt.return_value = MagicMock(name='name')
+            Hunt.find_by_id.return_value = MagicMock(name='name')
             c.get('/hunts/1/items/1')
 
             assert LRS().send_found_item_statement.called, "Expected" \
                 " finding an item to send a statement but a statement was" \
                 " not sent"
 
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.item_already_found')
     @patch('views.WaxCommunicator')
     @patch('views.get_db')
     def test_refinding_item_sends_refound_item_statement(
-            self, get_db, LRS, already_found, get_hunt):
+            self, get_db, LRS, already_found, Hunt):
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
-            get_hunt.return_value = MagicMock(name='some name')
+            Hunt.find_by_id.return_value = MagicMock(name='some name')
             already_found.return_value = True
             c.get('/hunts/1/items/1')
 
             LRS().send_found_item_statement.assert_called_with(
                 found_again=True)
 
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.item_already_found')
     @patch('views.WaxCommunicator')
     @patch('views.get_db')
     def test_completing_hunt_sends_completed_hunt_statement(
-            self, get_db, LRS, already_found, get_hunt):
+            self, get_db, LRS, already_found, Hunt):
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
-            get_hunt.return_value = MagicMock(name='name')
+            Hunt.find_by_id.return_value = MagicMock(name='name')
 
             LRS().update_state_item_information.return_value = {
                 'hunt_completed': False, 'found_ids': [1], 'num_required': 1,

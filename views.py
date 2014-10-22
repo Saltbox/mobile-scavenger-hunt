@@ -12,9 +12,9 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     ItemForm, SettingForm
 
 from hunt import app, logger, login_manager, db, bcrypt
-from utils import get_admin, get_settings, get_hunt, get_item, \
+from utils import get_admin, get_settings, get_item, \
     get_participant, item_path, validate_participant, get_intended_url, \
-    get_hunts, get_items, initialize_hunt, create_new_participant, \
+    get_items, initialize_hunt, create_new_participant, \
     valid_login, finished_setting, item_already_found, participant_registered,\
     num_items_remaining, hunt_requirements_completed
 
@@ -135,7 +135,7 @@ def settings():
 @app.route('/hunts', methods=['GET'])
 @login_required
 def hunts():
-    hunts = get_hunts(g.db, current_user.admin_id)
+    hunts = Hunt.list_for_admin_id(g.db, current_user.admin_id)
     return render_template('hunts.html', hunts=hunts)
 
 
@@ -187,7 +187,7 @@ def new_hunt():
 @app.route('/hunts/<hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
     if hunt:
         registered = []
         unregistered = []
@@ -207,7 +207,7 @@ def hunt(hunt_id):
 # check googlecharts infographics api in April 2015 when they may or may
 # not change the qrcode api
 def get_qr_codes_response(hunt_id, item_id, condition):
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
     if hunt:
         item_paths = [
             {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
@@ -234,7 +234,7 @@ def show_item_code(hunt_id, item_id):
 @app.route('/hunts/<int:hunt_id>/delete')
 @login_required
 def delete_hunt(hunt_id):
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
     if hunt and hunt.admin_id == current_user.admin_id:
         logger.info(
             'preparing to delete hunt with hunt_id, {}'.format(hunt_id))
@@ -243,7 +243,7 @@ def delete_hunt(hunt_id):
 
         flash('Successfully deleted hunt: {}'.format(hunt.name), 'success')
 
-        hunts = get_hunts(g.db, current_user.admin_id)
+        hunts = Hunt.list_for_admin_id(g.db, current_user.admin_id)
         return make_response(render_template('hunts.html', hunts=hunts))
     abort(404)
 
@@ -257,14 +257,14 @@ def get_started(hunt_id):
     # todo: track duration
     return render_template('get_started.html', form=ParticipantForm(),
                            hunt_id=hunt_id,
-                           hunt_name=get_hunt(g.db, hunt_id).name)
+                           hunt_name=Hunt.find_by_id(g.db, hunt_id).name)
 
 
 # validate and register participant before redirecting back to hunt
 @app.route('/register_participant', methods=['POST'])
 def register_participant():
     hunt_id = request.args['hunt_id']
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
 
     if hunt:
         form = ParticipantForm(request.form)
@@ -312,7 +312,7 @@ def register_participant():
 # list of items for scavengers to scavenge
 @app.route('/hunts/<hunt_id>/items', methods=['GET'])
 def index_items(hunt_id):
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
     if hunt:
         email = session.get('email')
         if email:
@@ -321,7 +321,7 @@ def index_items(hunt_id):
                 admin_settings, request.host_url, hunt, None,
                 {'email': email, 'name': session.get('name')})
 
-            state = lrs.get_state().json()
+            state = lrs.get_state()
 
             logger.info(
                 'preparing to render items from hunt_id, %s, for user, %s',
@@ -351,7 +351,7 @@ def find_item(hunt_id, item_id):
     if finished_setting(admin_settings):
         item = get_item(g.db, item_id, hunt_id)
         if item:
-            hunt = get_hunt(g.db, hunt_id)
+            hunt = Hunt.find_by_id(g.db, hunt_id)
             if participant_registered(g.db, session.get('email'), hunt_id):
                 lrs = WaxCommunicator(
                     admin_settings, request.host_url, hunt, item,

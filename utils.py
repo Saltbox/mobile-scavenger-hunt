@@ -22,14 +22,6 @@ def get_settings(db, admin_id=None, hunt_id=None):
     return None
 
 
-def get_hunts(db, admin_id):
-    return db.session.query(Hunt).filter(Hunt.admin_id == admin_id).all()
-
-
-def get_hunt(db, hunt_id):
-    return db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
-
-
 def get_items(db, hunt_id):
     return db.session.query(Item).filter(Item.hunt_id == hunt_id).all()
 
