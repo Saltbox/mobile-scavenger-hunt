@@ -108,10 +108,7 @@ class xAPITestCase(unittest.TestCase):
                 sess['email'] = example_email()
             Hunt.find_by_id.return_value = MagicMock(name='name')
 
-            LRS().get_state.return_value = {
-                '1': True,
-                'hunt_completed': False  # never set to false in app, only for testing
-            }
+            LRS().get_state.return_value = {'1': True}
             c.get('/hunts/1/items/1')
 
             assert LRS().send_completed_hunt_statement.called, "Expected" \
