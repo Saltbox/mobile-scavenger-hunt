@@ -111,23 +111,22 @@ def settings():
     form = SettingForm(request.form)
     if request.method == 'POST':
         if form.validate():
-            first_submission = not admin_settings
+            already_completed = finished_setting(admin_settings)
             form.populate_obj(admin_settings)
             admin_settings.admin_id = current_user.admin_id
 
             g.db.session.add(admin_settings)
             g.db.session.commit()
 
-            url = 'new_hunt' if first_submission else 'hunts'
+            url = 'hunts' if already_completed else 'new_hunt'
             return make_response(redirect(url_for(url)))
         else:
             logger.info(
                 '%s attempted to submit settings information'
                 ' resulting in errors: %s', current_user.email, form.errors)
     return make_response(render_template(
-        'settings.html', login=admin_settings.login,
-        password=admin_settings.password, wax_site=admin_settings.wax_site,
-        form=form
+        'settings.html', login=admin_settings.login, form=form,
+        password=admin_settings.password, wax_site=admin_settings.wax_site
     ))
 
 

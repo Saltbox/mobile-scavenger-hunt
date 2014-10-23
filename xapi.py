@@ -13,6 +13,24 @@ def make_mailto(email):
     return "mailto:{}@{}".format(ident, domain)
 
 
+def verb_found():
+    return {
+        "id": "http://saltbox.com/xapi/verbs/found",
+        "display": {
+            "en-US": "found"
+        }
+    }
+
+
+def verb_refound():
+    return {
+        "id": "http://saltbox.com/xapi/verbs/refound",
+        "display": {
+            "en-US": "refound"
+        }
+    }
+
+
 class WaxCommunicator:
     def __init__(
             self, settings, host_url, hunt, current_item, scavenger_info={}):
@@ -95,22 +113,6 @@ class WaxCommunicator:
                 }
             },
             "objectType": "Activity"
-        }
-
-    def verb_found(self):
-        return {
-            "id": "http://saltbox.com/xapi/verbs/found",
-            "display": {
-                "en-US": "found"
-            }
-        }
-
-    def verb_refound(self):
-        return {
-            "id": "http://saltbox.com/xapi/verbs/refound",
-            "display": {
-                "en-US": "refound"
-            }
         }
 
     def send_began_hunt_statement(self):
