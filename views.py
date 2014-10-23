@@ -287,7 +287,6 @@ def register_participant():
                     admin_settings, request.host_url, hunt, None,
                     scavenger_info=scavenger_info)
                 lrs.send_began_hunt_statement()
-                lrs.create_state_doc(get_items(g.db, hunt.hunt_id))
 
                 logger.info(
                     "name and email set to %s, and %s\n"
@@ -322,14 +321,14 @@ def index_items(hunt_id):
                 {'email': email, 'name': session.get('name')})
 
             state = lrs.get_state()
+            items = get_items(g.db, hunt_id)
 
             logger.info(
                 'preparing to render items from hunt_id, %s, for user, %s',
                 hunt_id, email)
             return make_response(render_template(
-                'items.html', items=get_items(g.db, hunt_id),
-                state=state, hunt_name=hunt.name,
-                num_remaining=num_items_remaining(state),
+                'items.html', items=items, state=state, hunt_name=hunt.name,
+                num_remaining=num_items_remaining(state, items),
                 congratulations=hunt.congratulations_message))
 
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
@@ -361,23 +360,26 @@ def find_item(hunt_id, item_id):
                     })
 
                 state = lrs.get_state()
+                logger.debug('state: %s', state)
                 # what happens if get_state does not return state?
 
                 found_again = item_already_found(item.item_id, state)
                 lrs.send_found_item_statement(found_again=found_again)
-                state = lrs.update_state_item_information(state, item_id)
+                updated_state = {str(item.item_id): True}
 
-                hunt_previously_completed = state['hunt_completed']
-                if hunt_requirements_completed(state):
+                hunt_previously_completed = state.get('hunt_completed')
+                if hunt_requirements_completed(state, hunt):
                     if not hunt_previously_completed:
                         lrs.send_completed_hunt_statement()
-                        state['hunt_completed'] = True
+                        updated_state['hunt_completed'] = True
 
-                lrs.update_state_api_doc(state)
+                lrs.update_state_api_doc(updated_state)
+
+                items = get_items(g.db, hunt_id)
                 return make_response(render_template(
-                    'items.html', item=item, items=get_items(g.db, hunt_id),
+                    'items.html', item=item, items=items,
                     username=session.get('name'), state=state,
-                    num_remaining=num_items_remaining(state),
+                    num_remaining=num_items_remaining(state, items),
                     found_again=found_again, hunt_name=hunt.name,
                     previously_completed=hunt_previously_completed,
                     congratulations=hunt.congratulations_message))

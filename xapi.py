@@ -4,6 +4,13 @@ from flask import request, make_response, render_template
 import json
 import requests
 import uuid
+import urllib
+
+
+def make_mailto(email):
+    ident, domain = email.rsplit('@', 1)
+    ident = urllib.quote_plus(ident)
+    return "mailto:{}@{}".format(ident, domain)
 
 
 class WaxCommunicator:
@@ -45,15 +52,6 @@ class WaxCommunicator:
         )
         return response.json()
 
-    def put_state(self, data):
-        return requests.put(
-            self.state_api_endpoint,
-            params=self.default_params(),
-            data=data,
-            headers=self.submission_headers,
-            auth=(self.login, self.password)
-        )
-
     def post_state(self, data):
         return requests.post(
             self.state_api_endpoint,
@@ -64,38 +62,10 @@ class WaxCommunicator:
         )
 
     def make_agent(self):
-        agent = {"mbox": "mailto:{}".format(self.scavenger['email'])}
-        if self.scavenger['name']:
+        agent = {"mbox": make_mailto(self.scavenger['email'])}
+        if self.scavenger.get('name'):
             agent['name'] = self.scavenger['name']
         return agent
-
-    def create_state_doc(self, items):
-        state = self.initialize_state_doc(self.hunt.num_required, items)
-        logger.info(
-            'No state exists for %s on this hunt, %s.'
-            ' Beginning new state document.',
-            self.scavenger['email'], self.hunt.name)
-        self.put_state(json.dumps(state))
-
-    def initialize_state_doc(self, num_required, items):
-        required_ids = [
-            item.item_id for item in items if item.required]
-
-        return {
-            'found_ids': [],
-            'num_found': 0,
-            'required_ids': required_ids,
-            'total_items': len(items),
-            'num_required': num_required,
-            'hunt_completed': False
-        }
-
-    def update_state_item_information(self, state, item_id):
-        item_id = int(item_id)
-        if item_id not in state['found_ids']:
-            state['num_found'] += 1
-        state['found_ids'].append(item_id)
-        return state
 
     def update_state_api_doc(self, state):
         logger.info(

@@ -3,6 +3,8 @@ from flask import request, flash, redirect, url_for
 from models import Hunt, Participant, Item, Admin, db, Setting
 from hunt import bcrypt
 
+import copy
+
 
 def valid_login(admin, email, password):
     return admin and bcrypt.check_password_hash(
@@ -100,25 +102,26 @@ def create_new_participant(db, form, hunt_id):
 
 
 def item_already_found(item_id, state):
-    return int(item_id) in state['found_ids']
+    return state and state.get(item_id)
 
 
 def participant_registered(db, email, hunt_id):
     return email and get_participant(db, email, hunt_id)
 
 
-def num_items_remaining(state):
-    return state['total_items'] - state['num_found']
+def num_items_remaining(state, items):
+    return len(items) - len(state.keys()) - 1
 
 
-def hunt_requirements_completed(state):
-    required_ids = set(state['required_ids'])
-    found_ids = set(state['found_ids'])
-    num_found = state['num_found']
-    num_required = state['num_required']
+def hunt_requirements_completed(state, hunt):
+    required_ids = [item.item_id for item in hunt.items if item.required]
+    copied_state = copy.deepcopy(state)
+    if copied_state.get('hunt_completed'):
+        copied_state.pop('hunt_completed')
+    found_ids = copied_state.keys()
 
     if required_ids:
         required_found = required_ids.issubset(found_ids)
-        return num_found >= num_required and required_found
+        return len(found_ids) >= hunt.num_required and required_found
     else:
-        return num_found >= num_required
+        return len(found_ids) >= hunt.num_required
