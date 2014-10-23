@@ -68,7 +68,10 @@ class WaxCommunicator:
             headers={"x-experience-api-version": "1.0.0"},
             auth=(self.login, self.password)
         )
-        return response.json()
+        if response:
+            return response.json()
+        else:
+            return {}
 
     def post_state(self, data):
         return requests.post(
@@ -137,20 +140,20 @@ class WaxCommunicator:
         if found_again:
             self.send_statement(self.refound_item_statement())
             logger.info(
-                '%s refound item, %s, from hunt, %s. sending statement to Wax',
+                '%s refound item, "%s", from hunt, "%s". sending statement to Wax',
                 self.scavenger['email'], self.current_item.name,
                 self.hunt.name)
         else:
             self.send_statement(self.found_item_statement())
             logger.info(
-                '%s found item, %s, from hunt, %s. sending statement to Wax',
+                '%s found item, "%s", from hunt, "%s". sending statement to Wax',
                 self.scavenger['email'], self.current_item.name,
                 self.hunt.name)
 
     def found_item_statement(self):
         return {
             "actor": self.make_agent(),
-            "verb": self.verb_found(),
+            "verb": verb_found(),
             "object": {
                 "id": "{}hunts/{}/items/{}".format(
                     self.host_url, self.hunt.hunt_id,
@@ -174,7 +177,7 @@ class WaxCommunicator:
 
     def refound_item_statement(self):
         found_statement = self.found_item_statement()
-        found_statement['verb'] = self.verb_refound()
+        found_statement['verb'] = verb_refound()
         return found_statement
 
     def send_completed_hunt_statement(self):

@@ -16,9 +16,8 @@ from utils import get_admin, get_settings, get_item, \
     get_participant, item_path, validate_participant, get_intended_url, \
     get_items, initialize_hunt, create_new_participant, \
     valid_login, finished_setting, item_already_found, participant_registered,\
-    num_items_remaining, hunt_requirements_completed
+    num_items_remaining, hunt_requirements_completed, found_ids_list
 
-import xapi
 from xapi import WaxCommunicator
 
 
@@ -119,6 +118,7 @@ def settings():
             g.db.session.commit()
 
             url = 'hunts' if already_completed else 'new_hunt'
+            flash('Settings have been updated successfully', 'success')
             return make_response(redirect(url_for(url)))
         else:
             logger.info(
@@ -256,7 +256,7 @@ def get_started(hunt_id):
     # todo: track duration
     return render_template('get_started.html', form=ParticipantForm(),
                            hunt_id=hunt_id,
-                           hunt_name=Hunt.find_by_id(g.db, hunt_id).name)
+                           hunt=Hunt.find_by_id(g.db, hunt_id))
 
 
 # validate and register participant before redirecting back to hunt
@@ -320,19 +320,18 @@ def index_items(hunt_id):
                 {'email': email, 'name': session.get('name')})
 
             state = lrs.get_state()
-            items = get_items(g.db, hunt_id)
 
             logger.info(
                 'preparing to render items from hunt_id, %s, for user, %s',
                 hunt_id, email)
+
             return make_response(render_template(
-                'items.html', items=items, state=state, hunt_name=hunt.name,
-                num_remaining=num_items_remaining(state, items),
-                congratulations=hunt.congratulations_message))
+                'items.html', state=state, hunt=hunt,
+                num_remaining=num_items_remaining(state, hunt.items)))
 
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
         return make_response(
-            render_template('welcome.html', hunt_name=hunt.name,
+            render_template('welcome.html', hunt=hunt,
                             welcome=hunt.welcome_message,
                             action_url="/get_started/hunts/{}".format(
                                 hunt_id)))
@@ -359,35 +358,35 @@ def find_item(hunt_id, item_id):
                     })
 
                 state = lrs.get_state()
-                logger.debug('state: %s', state)
-                # what happens if get_state does not return state?
 
                 found_again = item_already_found(item.item_id, state)
                 lrs.send_found_item_statement(found_again=found_again)
                 updated_state = {str(item.item_id): True}
 
                 hunt_previously_completed = state.get('hunt_completed')
+                state.update(updated_state)
                 if hunt_requirements_completed(state, hunt):
                     if not hunt_previously_completed:
                         lrs.send_completed_hunt_statement()
                         updated_state['hunt_completed'] = True
+                        state.update(updated_state)
 
                 lrs.update_state_api_doc(updated_state)
 
-                items = get_items(g.db, hunt_id)
+                found_ids = found_ids_list(state)
                 return make_response(render_template(
-                    'items.html', item=item, items=items,
-                    username=session.get('name'), state=state,
-                    num_remaining=num_items_remaining(state, items),
-                    found_again=found_again, hunt_name=hunt.name,
-                    previously_completed=hunt_previously_completed,
-                    congratulations=hunt.congratulations_message))
+                    'items.html', item=item, hunt=hunt,
+                    username=session.get('name'), found_ids=found_ids,
+                    hunt_now_completed=state.get('hunt_completed'),
+                    num_found=len(found_ids), num_items=len(hunt.items),
+                    num_remaining=num_items_remaining(state, hunt.items),
+                    found_again=found_again,
+                    previously_completed=hunt_previously_completed))
             else:
                 session['intended_url'] = '/hunts/{}/items/{}'.format(
                     hunt_id, item_id)
                 return make_response(render_template(
-                    'welcome.html', welcome=hunt.welcome_message,
-                    hunt_name=hunt.name,
+                    'welcome.html', hunt=hunt, welcome=hunt.welcome_message,
                     action_url="/get_started/hunts/{}".format(hunt_id)))
     abort(404)
 

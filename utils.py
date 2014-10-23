@@ -101,27 +101,29 @@ def create_new_participant(db, form, hunt_id):
     db.session.commit()
 
 
-def item_already_found(item_id, state):
-    return state and state.get(item_id)
-
-
 def participant_registered(db, email, hunt_id):
     return email and get_participant(db, email, hunt_id)
 
 
-def num_items_remaining(state, items):
-    return len(items) - len(state.keys()) - 1
+def item_already_found(item_id, state):
+    return state and state.get(str(item_id))
 
 
-def hunt_requirements_completed(state, hunt):
-    required_ids = [item.item_id for item in hunt.items if item.required]
+def found_ids_list(state):
     copied_state = copy.deepcopy(state)
     if copied_state.get('hunt_completed'):
         copied_state.pop('hunt_completed')
-    found_ids = copied_state.keys()
+    return copied_state.keys()
 
-    if required_ids:
-        required_found = required_ids.issubset(found_ids)
-        return len(found_ids) >= hunt.num_required and required_found
-    else:
-        return len(found_ids) >= hunt.num_required
+
+def found_count(state):
+    return len(state) - (1 if state.get('hunt_completed') else 0)
+
+
+def num_items_remaining(state, items):
+    return len(items) - len(found_ids_list(state))
+
+
+def hunt_requirements_completed(state, hunt):
+    required_items = frozenset(str(item.item_id) for item in hunt.items if item.required)
+    return not (required_items - state.viewkeys()) and found_count(state) >= hunt.num_required

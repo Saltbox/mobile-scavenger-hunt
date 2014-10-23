@@ -24,13 +24,6 @@ def example_email():
     return '{}@example.com'.format(identifier())
 
 
-def fake_state():
-    return {
-        'num_found': 1, 'found_ids': [1], 'num_required': 1,
-        'required_ids': [1], 'total_items': 1, 'hunt_completed': False
-    }
-
-
 class HuntTestCase(unittest.TestCase):
     def setUp(self):
         self.request = MagicMock()
@@ -246,22 +239,27 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 404)
 
     @patch('views.get_db')
-    @patch('views.get_items')
+    @patch('views.Hunt.find_by_id')
     @patch('views.WaxCommunicator')
     def test_index_items_displays_all_items(
-            self, LRS, get_items, _get_db):
+            self, LRS, find_by_id, _get_db):
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
 
-            items = [{'name': identifier()}, {'name': identifier()}]
-            get_items.return_value = items
+            item1 = MagicMock()
+            item1.name = identifier()
+            item2 = MagicMock()
+            item2.name = identifier()
+
+            items = [item1, item2]
+            find_by_id.return_value = MagicMock(items=items)
 
             response = c.get('hunts/1/items')
             self.assertEqual(response.status_code, 200)
 
             for item in items:
-                self.assertIn(item['name'], response.data)
+                self.assertIn(item.name, response.data)
 
     @patch('views.login_manager._login_disabled')
     def test_index_items_on_nonexistent_hunt_404s(self, login_disabled):
@@ -418,8 +416,6 @@ class HuntTestCase(unittest.TestCase):
     @patch('views.get_db')
     @patch('views.WaxCommunicator')
     def test_valid_participant_can_register_for_hunt(self, LRS, get_db):
-        LRS().initialize_state_doc.return_value = fake_state()
-
         with app.test_client() as c:
             response = c.post(
                 '/register_participant?hunt_id=1',
@@ -429,12 +425,12 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
 
     @patch('views.WaxCommunicator')
+    @patch('views.hunt_requirements_completed')
     @patch('views.get_db')
     def test_registered_participant_can_resume_hunt(
-            self, get_db, LRS):
-        state = fake_state()
-        state['total_items'] = state['num_required'] = 2
-        LRS().update_item_info.return_value = state
+            self, get_db, hunt_completed, LRS):
+        LRS().get_state.return_value = {'2': True}
+        hunt_completed.return_value = False
 
         with app.test_client() as c:
             name = identifier()
@@ -448,10 +444,15 @@ class HuntTestCase(unittest.TestCase):
             self.assertIn(name, response.data)
 
     @patch('views.WaxCommunicator')
+    @patch('views.hunt_requirements_completed')
+    @patch('views.get_item')
     @patch('views.get_db')
     def test_registered_participant_congratulated_on_hunt_finish(
-            self, get_db, LRS):
-        LRS().update_state_item_information.return_value = fake_state()
+            self, get_db, get_item, hunt_requirements_completed, LRS):
+        LRS().get_state.return_value = {'1': True}
+        get_item.return_value = MagicMock(item_id='1')
+        hunt_requirements_completed.return_value = True
+
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
@@ -471,6 +472,44 @@ class HuntTestCase(unittest.TestCase):
         with app.test_client() as c:
             response = c.get('/hunts/1/items/1')
             self.assertEqual(response.status_code, 404)
+
+    def test_item_already_found(self):
+        item_id = '1'  # json keys are strings
+        state = {item_id: True}
+        assert utils.item_already_found(item_id, state)
+
+    def test_found_count(state):
+        state = {}
+        assert utils.found_count(state) == 0
+
+        state['1'] = True
+        assert utils.found_count(state) == 1
+
+        state['hunt_completed'] = True
+        assert utils.found_count(state) == 1
+
+        state.pop('1')
+        assert utils.found_count(state) == 0
+
+    def test_num_items_remaining(self):
+        state = {'1': True, 'hunt_completed': True}
+
+        items = [MagicMock(item_id='1'), MagicMock(item_id='2')]
+        assert utils.num_items_remaining(state, items) == 1
+
+    def test_hunt_requirements_completed(self):
+        num_required_items = 2
+        items = [
+            MagicMock(item_id=(ii + 1), required=True)
+            for ii in xrange(num_required_items)
+        ]
+        hunt = MagicMock(items=items, num_required=num_required_items)
+
+        state = {'1': True}
+        assert not utils.hunt_requirements_completed(state, hunt)
+
+        state['2'] = True
+        assert utils.hunt_requirements_completed(state, hunt)
 
 
 if __name__ == '__main__':
