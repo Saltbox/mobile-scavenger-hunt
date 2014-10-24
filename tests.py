@@ -506,6 +506,16 @@ class HuntTestCase(unittest.TestCase):
         state['2'] = True
         assert utils.hunt_requirements_completed(state, hunt)
 
+    def test_finished_setting(self):
+        settings = MagicMock(wax_site=None, login=None, password=None)
+        assert not utils.finished_setting(settings)
+
+        settings.wax_site = 'name'
+        assert not utils.finished_setting(settings)
+
+        settings.login = 'login'
+        settings.password = 'password'
+        assert utils.finished_setting(settings)
 
 if __name__ == '__main__':
     unittest.main()
