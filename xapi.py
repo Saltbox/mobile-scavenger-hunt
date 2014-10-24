@@ -68,10 +68,10 @@ class WaxCommunicator:
             headers={"x-experience-api-version": "1.0.0"},
             auth=(self.login, self.password)
         )
+        logger.info('response from state api: %s', response)
         if response:
             return response.json()
-        else:
-            return {}
+        return {}
 
     def post_state(self, data):
         return requests.post(
