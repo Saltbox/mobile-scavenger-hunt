@@ -17,10 +17,14 @@ def get_admin(db, email):
 
 def get_settings(db, admin_id=None, hunt_id=None):
     if admin_id:
-        return db.session.query(Setting).filter(
-            Setting.admin_id == admin_id).first()
+        return db.session.query(Setting) \
+            .filter(Setting.admin_id == admin_id) \
+            .first()
     elif hunt_id:
-        return db.session.query(Setting).join(Admin).join(Hunt).first()
+        return db.session.query(Setting) \
+            .join(Admin).join(Hunt) \
+            .filter(Hunt.hunt_id == hunt_id) \
+            .first()
     return None
 
 
