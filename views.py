@@ -15,7 +15,7 @@ from hunt import app, logger, login_manager, db, bcrypt
 from utils import get_admin, get_settings, get_item, \
     get_participant, item_path, validate_participant, get_intended_url, \
     get_items, initialize_hunt, create_new_participant, \
-    valid_login, finished_setting, item_already_found, participant_registered,\
+    valid_login, finished_setting, participant_registered,\
     num_items_remaining, hunt_requirements_completed, found_ids_list
 
 from xapi import WaxCommunicator
@@ -359,7 +359,7 @@ def find_item(hunt_id, item_id):
 
                 state = lrs.get_state()
 
-                found_again = item_already_found(item.item_id, state)
+                found_again = str(item_id) in state
                 lrs.send_found_item_statement(found_again=found_again)
                 updated_state = {str(item.item_id): True}
 

@@ -473,11 +473,6 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('/hunts/1/items/1')
             self.assertEqual(response.status_code, 404)
 
-    def test_item_already_found(self):
-        item_id = '1'  # json keys are strings
-        state = {item_id: True}
-        assert utils.item_already_found(item_id, state)
-
     def test_found_count(state):
         state = {}
         assert utils.found_count(state) == 0

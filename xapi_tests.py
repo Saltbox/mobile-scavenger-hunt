@@ -81,28 +81,26 @@ class xAPITestCase(unittest.TestCase):
                 " not sent"
 
     @patch('views.Hunt')
-    @patch('views.item_already_found')
     @patch('views.WaxCommunicator')
     @patch('views.get_db')
     def test_refinding_item_sends_refound_item_statement(
-            self, get_db, LRS, already_found, Hunt):
+            self, get_db, LRS, Hunt):
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
             Hunt.find_by_id.return_value = MagicMock(name='some name')
-            already_found.return_value = True
+            LRS().get_state.return_value = {'1': True}
             c.get('/hunts/1/items/1')
 
             LRS().send_found_item_statement.assert_called_with(
                 found_again=True)
 
     @patch('views.Hunt')
-    @patch('views.item_already_found')
     @patch('views.WaxCommunicator')
     @patch('views.hunt_requirements_completed')
     @patch('views.get_db')
     def test_completing_hunt_sends_completed_hunt_statement(
-            self, get_db, req_completed, LRS, already_found, Hunt):
+            self, get_db, req_completed, LRS, Hunt):
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()

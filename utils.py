@@ -109,10 +109,6 @@ def participant_registered(db, email, hunt_id):
     return email and get_participant(db, email, hunt_id)
 
 
-def item_already_found(item_id, state):
-    return state and state.get(str(item_id))
-
-
 def found_ids_list(state):
     copied_state = copy.deepcopy(state)
     if copied_state.get('hunt_completed'):
