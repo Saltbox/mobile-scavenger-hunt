@@ -126,6 +126,11 @@ table td a.btn:hover {
   margin-bottom: 25px;
 }
 
+.userinfo div div:first-child {
+  font-size: 16px;
+  margin: 0;
+}
+
 input[name=endpoint] {
   min-width: 50%;
 }
