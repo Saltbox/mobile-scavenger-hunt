@@ -407,7 +407,7 @@ $(document).ready(function() {
     }
   });
 
-  $('.userinfo-form input').on('keypress', function(e) {
+  $('#userinfo-form input').on('keyup', function(e) {
     // disable submitting form with enter
     if (e.keyCode == 13) {
       e.preventDefault();
