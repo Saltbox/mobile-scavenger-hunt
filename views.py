@@ -253,9 +253,10 @@ def delete_hunt(hunt_id):
 @app.route('/get_started/hunts/<int:hunt_id>', methods=['GET'])
 def get_started(hunt_id):
     # todo: track duration
+    hunt = Hunt.find_by_id(g.db, hunt_id)
+    logger.info("Rendering getting started form for hunt, '%s'.", hunt.name)
     return render_template('get_started.html', form=ParticipantForm(),
-                           hunt_id=hunt_id,
-                           hunt=Hunt.find_by_id(g.db, hunt_id))
+                           hunt_id=hunt_id, hunt=hunt)
 
 
 # validate and register participant before redirecting back to hunt
@@ -268,12 +269,21 @@ def register_participant():
         form = ParticipantForm(request.form)
         if form.validate():
             email = form.email.data
+
+            logger.info(
+                'Participant registration form validated for hunt, "%s", and'
+                ' email, %s.\nPreparing to validate participant against hunt'
+                ' participation rules.', hunt.name, email)
             participant_valid, err_msg = validate_participant(
                 g.db, email, hunt_id, hunt.participant_rule)
             if participant_valid:
+                logger.info('The registering participant, %s, has been'
+                            ' validated against the hunt participation rules.'
+                            ' Preparing to find email in participant database'
+                            ' table.', email)
                 if not get_participant(g.db, email, hunt_id):
                     logger.info(
-                        'preparing to save new participant with email, %s,'
+                        'Preparing to save new participant with email, %s,'
                         ' to hunt, %s', email, hunt.name)
                     create_new_participant(g.db, form, hunt_id)
 
@@ -281,6 +291,10 @@ def register_participant():
                 session.update(scavenger_info)
 
                 admin_settings = get_settings(g.db, hunt_id=hunt_id)
+                logger.info(
+                    "Retrieved settings associated with hunt with id, %s: %s",
+                    hunt_id, admin_settings)
+
                 lrs = WaxCommunicator(
                     admin_settings, request.host_url, hunt, None,
                     scavenger_info=scavenger_info)
@@ -342,13 +356,26 @@ def index_items(hunt_id):
 # information about one item for scavenger to read
 @app.route('/hunts/<int:hunt_id>/items/<int:item_id>', methods=['GET'])
 def find_item(hunt_id, item_id):
+    logger.info(
+        'Participant is visiting route: /hunts/%s/items/%s', hunt_id, item_id)
+
     admin_settings = get_settings(g.db, hunt_id=hunt_id)
     # admin_settings found through hunt_id means hunt exists
+    logger.info("Settings retrieved for hunt with id, %s", hunt_id)
+
     if finished_setting(admin_settings):
+        logger.info(
+            "Settings are complete. Preparing to retrieve item with id, %s",
+            item_id)
         item = get_item(g.db, item_id, hunt_id)
         if item:
+            logger.info(
+                "Item found. Preparing to retrieve hunt with id, %s ", hunt_id)
             hunt = Hunt.find_by_id(g.db, hunt_id)
             if participant_registered(g.db, session.get('email'), hunt_id):
+                logger.info(
+                    "Participant, %s, has registered. Preparing to"
+                    " retrieve data from the state api.", session.get('email'))
                 lrs = WaxCommunicator(
                     admin_settings, request.host_url, hunt, item,
                     scavenger_info={
@@ -365,6 +392,9 @@ def find_item(hunt_id, item_id):
                 hunt_previously_completed = state.get('hunt_completed')
                 state.update(updated_state)
                 if hunt_requirements_completed(state, hunt):
+                    logger.info(
+                        'Requirements for hunt, "%s", have been completed.',
+                        hunt.name)
                     if not hunt_previously_completed:
                         lrs.send_completed_hunt_statement()
                         updated_state['hunt_completed'] = True
@@ -382,6 +412,9 @@ def find_item(hunt_id, item_id):
                     found_again=found_again,
                     previously_completed=hunt_previously_completed))
             else:
+                logger.info(
+                    "Page visitor is not yet registered for this hunt."
+                    " Preparing to redirect to the getting started page.")
                 session['intended_url'] = '/hunts/{}/items/{}'.format(
                     hunt_id, item_id)
                 return make_response(render_template(
