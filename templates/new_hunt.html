@@ -7,15 +7,6 @@
         {% if error %}
           <p class="alert">Error: {{error}}</p>
         {% endif %}
-        {% if form.errors %}
-          <ul class="errors">
-            {% for field_name, field_errors in form.errors|dictsort if field_errors %}
-              {% for error in field_errors %}
-                <li>{{ form[field_name].label }}: {{ error }}</li>
-              {% endfor %}
-            {% endfor %}
-          </ul>
-        {% endif %}
         <div class="row hunt_name panel-rect">
           <div class="form-group">
             <div class="panel-header-container">
@@ -70,7 +61,7 @@
           <div class="form-group">
             <label>Add participant emails</label>
             <div class="input-group">
-              <input class="form-control" type="email" id="participants-template">
+              <input class="form-control" type="email" id="participants-template" maxlength=50>
               <span class="input-group-btn">
                 <button class="btn btn-default" type="button" id="add-participant">
                   Add
@@ -102,9 +93,9 @@
             <input type="number" name="num_required" class="form-control" value=0 min=0>
           </div>
           <div class="form-group" id="items-group">
-            <label>Name an item for the hunt</label>
+            <label>Name an item for the hunt (max 500 characters)</label>
             <div class="input-group">
-              <input class="form-control" type="text" id="items-template">
+              <input class="form-control" type="text" id="items-template" maxlength=500>
               <span class="input-group-btn">
                 <button class="btn btn-default" type="button"
                         id="add-item">

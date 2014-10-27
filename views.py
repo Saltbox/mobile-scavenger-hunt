@@ -159,24 +159,23 @@ def new_hunt():
                 g.db.session.add(hunt)
                 g.db.session.commit()
             except IntegrityError as e:
-                flash('Error creating form: hunt name, "{}", '
-                      'already exists'.format(hunt.name), 'warning')
                 logger.warning(
                     'Exception found while creating hunt with an existing '
                     ' name: %s\n Form data: %s ', e, form.data)
-                abort(400)
+                return jsonify(
+                    {'hunt name': [{'name': ['hunt name already taken']}]}), 400
+            else:
+                flash('New scavenger hunt added', 'success')
+                logger.info('hunt, %s, created for admin with id, %s',
+                            hunt.name, hunt.admin_id)
 
-            flash('New scavenger hunt added', 'success')
-            logger.info('hunt, %s, created for admin with id, %s',
-                        hunt.name, hunt.admin_id)
-
-            saved_hunt = g.db.session.query(Hunt).order_by(
-                Hunt.hunt_id.desc()).first()
-            return jsonify({'hunt_id': saved_hunt.hunt_id})
+                saved_hunt = g.db.session.query(Hunt).order_by(
+                    Hunt.hunt_id.desc()).first()
+                return jsonify({'hunt_id': saved_hunt.hunt_id})
         else:
-            flash('Error creating hunt: {}'.format(form.errors), 'warning')
             logger.warning('Error creating hunt.\nForm errors: %s\nForm data: '
                            '%s ', form.errors, form.data)
+            return jsonify(form.errors), 400
     domain = current_user.email.split('@')[-1]
     return make_response(
         render_template('new_hunt.html', form=form, domain=domain))
