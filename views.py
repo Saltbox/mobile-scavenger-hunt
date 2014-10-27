@@ -427,3 +427,12 @@ def find_item(hunt_id, item_id):
 def oops():
     session.clear()
     return make_response(render_template('goodbye.html'))
+
+
+@app.route('/failblog')
+def failblog():
+    try:
+        return doesnotexistsowillerror
+    except Exception as e:
+        logger.debug("Error for the failblog: %s", e)
+        raise e
