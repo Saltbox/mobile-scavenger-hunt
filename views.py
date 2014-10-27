@@ -182,7 +182,7 @@ def new_hunt():
 
 
 # page to view hunt
-@app.route('/hunts/<hunt_id>', methods=['GET'])
+@app.route('/hunts/<int:hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
     hunt = Hunt.find_by_id(g.db, hunt_id)
@@ -216,13 +216,13 @@ def get_qr_codes_response(hunt_id, item_id, condition):
     abort(404)
 
 
-@app.route('/hunts/<hunt_id>/qrcodes')
+@app.route('/hunts/<int:hunt_id>/qrcodes')
 @login_required
 def show_item_codes(hunt_id):
     return get_qr_codes_response(hunt_id, '', lambda x, y: True)
 
 
-@app.route('/hunts/<hunt_id>/items/<int:item_id>/qrcode', methods=['GET'])
+@app.route('/hunts/<int:hunt_id>/items/<int:item_id>/qrcode', methods=['GET'])
 @login_required
 def show_item_code(hunt_id, item_id):
     return get_qr_codes_response(
@@ -250,7 +250,7 @@ def delete_hunt(hunt_id):
 
 # maybe just get rid of this
 # form for scavenger hunt participant to enter email and name
-@app.route('/get_started/hunts/<hunt_id>', methods=['GET'])
+@app.route('/get_started/hunts/<int:hunt_id>', methods=['GET'])
 def get_started(hunt_id):
     # todo: track duration
     return render_template('get_started.html', form=ParticipantForm(),
@@ -307,7 +307,7 @@ def register_participant():
 
 
 # list of items for scavengers to scavenge
-@app.route('/hunts/<hunt_id>/items', methods=['GET'])
+@app.route('/hunts/<int:hunt_id>/items', methods=['GET'])
 def index_items(hunt_id):
     hunt = Hunt.find_by_id(g.db, hunt_id)
     if hunt:
@@ -340,7 +340,7 @@ def index_items(hunt_id):
 
 
 # information about one item for scavenger to read
-@app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
+@app.route('/hunts/<int:hunt_id>/items/<int:item_id>', methods=['GET'])
 def find_item(hunt_id, item_id):
     admin_settings = get_settings(g.db, hunt_id=hunt_id)
     # admin_settings found through hunt_id means hunt exists
