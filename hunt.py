@@ -9,6 +9,7 @@ import config
 app = Flask(__name__)
 
 app.config.update(config.ENV_VAR)
+app.debug = True  # temp
 
 db = SQLAlchemy(app)
 
