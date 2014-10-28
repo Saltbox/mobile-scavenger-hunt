@@ -41,6 +41,15 @@ class HuntForm(ModelForm):
     items = ModelFieldList(FormField(ItemForm), min_entries=1)
 
 
+def valid_site_name(form, field):
+    if not field.data.isalnum():
+        raise validators.ValidationError(
+            "Your wax site name is required and must only contain letters and"
+            " numbers")
+
+
 class SettingForm(ModelForm):
     class Meta:
         model = models.Setting
+
+    wax_site = StringField('Wax Site Name', [valid_site_name])

@@ -110,11 +110,9 @@ class HuntTestCase(unittest.TestCase):
 
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
-    @patch('views.get_admin')
     @patch('views.get_db')
     def test_create_settings(
-            self, get_db, get_admin, login_disabled, current_user):
-        get_admin.return_value = self.create_mock_admin(get_db)
+            self, get_db, login_disabled, current_user):
         current_user.admin_id = 1
         with app.test_client() as c:
             response = self.create_settings(
@@ -123,6 +121,19 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             # successfully saving settings redirects to hunts page
             self.assertIn("Your Scavenger Hunts", response.data)
+
+    @patch('views.current_user')
+    @patch('views.login_manager._login_disabled')
+    @patch('views.get_db')
+    def test_create_settings_with_invalid_wax_site_fails(
+            self, get_db, login_disabled, current_user):
+        current_user.admin_id = 1
+        with app.test_client() as c:
+            response = self.create_settings(
+                c, 'not all alphanumeric site name!', current_user.admin_id,
+                identifier(), identifier())
+
+            self.assertFalse(get_db.session.add.called)
 
     @patch('views.get_settings')
     @patch('views.current_user')
