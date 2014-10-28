@@ -434,5 +434,5 @@ def failblog():
     try:
         return doesnotexistsowillerror
     except Exception as e:
-        logger.debug("Error for the failblog: %s", e)
+        logger.exception("Error for the failblog: %s", e)
         raise e
