@@ -295,10 +295,22 @@ def register_participant():
                     "Retrieved settings associated with hunt with id, %s: %s",
                     hunt_id, admin_settings)
 
-                lrs = WaxCommunicator(
-                    admin_settings, request.host_url, hunt, None,
-                    scavenger_info=scavenger_info)
-                lrs.send_began_hunt_statement()
+                try:
+                    lrs = WaxCommunicator(
+                        admin_settings, request.host_url, hunt, None,
+                        scavenger_info=scavenger_info)
+                except Exception as e:
+                    logger.exception(
+                        "Error instantiating WaxCommunicator while registering"
+                        " participant: %s", e)
+                    raise e
+
+                try:
+                    lrs.send_began_hunt_statement()
+                except Exception as e:
+                    logger.exception(
+                        "Error sending began hunt statement: %s", e)
+                    raise e
 
                 logger.info(
                     "name and email set to %s, and %s\n"
