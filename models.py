@@ -78,6 +78,14 @@ class Hunt(db.Model):
     def __repr__(self):
         return '<Hunt %r>' % self.name
 
+    @classmethod
+    def list_for_admin_id(cls, db, admin_id):
+        return db.session.query(Hunt).filter(Hunt.admin_id == admin_id).all()
+
+    @classmethod
+    def find_by_id(cls, db, hunt_id):
+        return db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
+
 
 class Participant(db.Model):
     __tablename__ = 'participants'
@@ -94,7 +102,7 @@ class Participant(db.Model):
 class Item(db.Model):
     __tablename__ = 'items'
     item_id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
+    name = db.Column(db.String(500), nullable=False)
     hunt_id = db.Column(db.Integer, db.ForeignKey('hunts.hunt_id'))
     required = db.Column(db.Boolean)
 
@@ -108,7 +116,7 @@ class Setting(db.Model):
     admin_id = db.Column(db.Integer, db.ForeignKey('admins.admin_id'))
     wax_site = db.Column(db.String(500), nullable=False)
     login = db.Column(db.String(50), nullable=False)
-    password = db.Column(db.String(50), nullable=False)  # todo: something more private
+    password = db.Column(db.String(50), nullable=False)
 
     def __repr__(self):
         return '<Settings for admin id: %r>' % self.admin_id

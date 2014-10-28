@@ -12,13 +12,12 @@ from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     ItemForm, SettingForm
 
 from hunt import app, logger, login_manager, db, bcrypt
-from utils import get_admin, get_settings, get_hunt, get_item, \
+from utils import get_admin, get_settings, get_item, \
     get_participant, item_path, validate_participant, get_intended_url, \
-    get_hunts, get_items, initialize_hunt, initialize_registered_participant, \
-    valid_login, finished_setting, item_already_found, participant_registered,\
-    num_items_remaining, hunt_requirements_completed
+    get_items, initialize_hunt, create_new_participant, \
+    valid_login, finished_setting, participant_registered,\
+    num_items_remaining, hunt_requirements_completed, found_ids_list
 
-import xapi
 from xapi import WaxCommunicator
 
 
@@ -111,23 +110,23 @@ def settings():
     form = SettingForm(request.form)
     if request.method == 'POST':
         if form.validate():
-            first_submission = not admin_settings
+            already_completed = finished_setting(admin_settings)
             form.populate_obj(admin_settings)
             admin_settings.admin_id = current_user.admin_id
 
             g.db.session.add(admin_settings)
             g.db.session.commit()
 
-            url = 'new_hunt' if first_submission else 'hunts'
+            url = 'hunts' if already_completed else 'new_hunt'
+            flash('Settings have been updated successfully', 'success')
             return make_response(redirect(url_for(url)))
         else:
             logger.info(
                 '%s attempted to submit settings information'
                 ' resulting in errors: %s', current_user.email, form.errors)
     return make_response(render_template(
-        'settings.html', login=admin_settings.login,
-        password=admin_settings.password, wax_site=admin_settings.wax_site,
-        form=form
+        'settings.html', login=admin_settings.login, form=form,
+        password=admin_settings.password, wax_site=admin_settings.wax_site
     ))
 
 
@@ -135,7 +134,7 @@ def settings():
 @app.route('/hunts', methods=['GET'])
 @login_required
 def hunts():
-    hunts = get_hunts(g.db, current_user.admin_id)
+    hunts = Hunt.list_for_admin_id(g.db, current_user.admin_id)
     return render_template('hunts.html', hunts=hunts)
 
 
@@ -160,34 +159,33 @@ def new_hunt():
                 g.db.session.add(hunt)
                 g.db.session.commit()
             except IntegrityError as e:
-                flash('Error creating form: hunt name, "{}", '
-                      'already exists'.format(hunt.name), 'warning')
                 logger.warning(
                     'Exception found while creating hunt with an existing '
                     ' name: %s\n Form data: %s ', e, form.data)
-                abort(400)
+                return jsonify(
+                    {'hunt name': [{'name': ['hunt name already taken']}]}), 400
+            else:
+                flash('New scavenger hunt added', 'success')
+                logger.info('hunt, %s, created for admin with id, %s',
+                            hunt.name, hunt.admin_id)
 
-            flash('New scavenger hunt added', 'success')
-            logger.info('hunt, %s, created for admin with id, %s',
-                        hunt.name, hunt.admin_id)
-
-            saved_hunt = g.db.session.query(Hunt).order_by(
-                Hunt.hunt_id.desc()).first()
-            return jsonify({'hunt_id': saved_hunt.hunt_id})
+                saved_hunt = g.db.session.query(Hunt).order_by(
+                    Hunt.hunt_id.desc()).first()
+                return jsonify({'hunt_id': saved_hunt.hunt_id})
         else:
-            flash('Error creating hunt: {}'.format(form.errors), 'warning')
             logger.warning('Error creating hunt.\nForm errors: %s\nForm data: '
                            '%s ', form.errors, form.data)
+            return jsonify(form.errors), 400
     domain = current_user.email.split('@')[-1]
     return make_response(
         render_template('new_hunt.html', form=form, domain=domain))
 
 
 # page to view hunt
-@app.route('/hunts/<hunt_id>', methods=['GET'])
+@app.route('/hunts/<int:hunt_id>', methods=['GET'])
 @login_required
 def hunt(hunt_id):
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
     if hunt:
         registered = []
         unregistered = []
@@ -207,7 +205,7 @@ def hunt(hunt_id):
 # check googlecharts infographics api in April 2015 when they may or may
 # not change the qrcode api
 def get_qr_codes_response(hunt_id, item_id, condition):
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
     if hunt:
         item_paths = [
             {'name': item.name, 'path': item_path(hunt_id, item.item_id)}
@@ -218,13 +216,13 @@ def get_qr_codes_response(hunt_id, item_id, condition):
     abort(404)
 
 
-@app.route('/hunts/<hunt_id>/qrcodes')
+@app.route('/hunts/<int:hunt_id>/qrcodes')
 @login_required
 def show_item_codes(hunt_id):
     return get_qr_codes_response(hunt_id, '', lambda x, y: True)
 
 
-@app.route('/hunts/<hunt_id>/items/<int:item_id>/qrcode', methods=['GET'])
+@app.route('/hunts/<int:hunt_id>/items/<int:item_id>/qrcode', methods=['GET'])
 @login_required
 def show_item_code(hunt_id, item_id):
     return get_qr_codes_response(
@@ -234,7 +232,7 @@ def show_item_code(hunt_id, item_id):
 @app.route('/hunts/<int:hunt_id>/delete')
 @login_required
 def delete_hunt(hunt_id):
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
     if hunt and hunt.admin_id == current_user.admin_id:
         logger.info(
             'preparing to delete hunt with hunt_id, {}'.format(hunt_id))
@@ -243,7 +241,7 @@ def delete_hunt(hunt_id):
 
         flash('Successfully deleted hunt: {}'.format(hunt.name), 'success')
 
-        hunts = get_hunts(g.db, current_user.admin_id)
+        hunts = Hunt.list_for_admin_id(g.db, current_user.admin_id)
         return make_response(render_template('hunts.html', hunts=hunts))
     abort(404)
 
@@ -252,47 +250,67 @@ def delete_hunt(hunt_id):
 
 # maybe just get rid of this
 # form for scavenger hunt participant to enter email and name
-@app.route('/get_started/hunts/<hunt_id>', methods=['GET'])
+@app.route('/get_started/hunts/<int:hunt_id>', methods=['GET'])
 def get_started(hunt_id):
     # todo: track duration
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
+    logger.info("Rendering getting started form for hunt, '%s'.", hunt.name)
     return render_template('get_started.html', form=ParticipantForm(),
-                           hunt_id=hunt_id, hunt_name=hunt.name)
+                           hunt_id=hunt_id, hunt=hunt)
 
 
 # validate and register participant before redirecting back to hunt
 @app.route('/register_participant', methods=['POST'])
 def register_participant():
     hunt_id = request.args['hunt_id']
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
 
     if hunt:
         form = ParticipantForm(request.form)
         if form.validate():
             email = form.email.data
+
+            logger.info(
+                'Participant registration form validated for hunt, "%s", and'
+                ' email, %s.\nPreparing to validate participant against hunt'
+                ' participation rules.', hunt.name, email)
             participant_valid, err_msg = validate_participant(
                 g.db, email, hunt_id, hunt.participant_rule)
             if participant_valid:
-                participant = get_participant(g.db, email, hunt_id)
-                if not participant:
+                logger.info('The registering participant, %s, has been'
+                            ' validated against the hunt participation rules.'
+                            ' Preparing to find email in participant database'
+                            ' table.', email)
+                if not get_participant(g.db, email, hunt_id):
                     logger.info(
-                        'preparing to save new participant with email, %s,'
+                        'Preparing to save new participant with email, %s,'
                         ' to hunt, %s', email, hunt.name)
-                    participant = initialize_registered_participant(
-                        form, Participant(), hunt_id)
-
-                    g.db.session.add(participant)
-                    g.db.session.commit()
+                    create_new_participant(g.db, form, hunt_id)
 
                 scavenger_info = {'email': email, 'name': form.name.data}
                 session.update(scavenger_info)
 
                 admin_settings = get_settings(g.db, hunt_id=hunt_id)
-                lrs = WaxCommunicator(
-                    admin_settings, request.host_url, hunt, None,
-                    scavenger_info=scavenger_info)
-                lrs.send_began_hunt_statement()
-                lrs.create_state_doc(get_items(g.db, hunt.hunt_id))
+                logger.info(
+                    "Retrieved settings associated with hunt with id, %s: %s",
+                    hunt_id, admin_settings)
+
+                try:
+                    lrs = WaxCommunicator(
+                        admin_settings, request.host_url, hunt, None,
+                        scavenger_info=scavenger_info)
+                except Exception as e:
+                    logger.exception(
+                        "Error instantiating WaxCommunicator while registering"
+                        " participant: %s", e)
+                    raise e
+
+                try:
+                    lrs.send_began_hunt_statement()
+                except Exception as e:
+                    logger.exception(
+                        "Error sending began hunt statement: %s", e)
+                    raise e
 
                 logger.info(
                     "name and email set to %s, and %s\n"
@@ -315,32 +333,30 @@ def register_participant():
 
 
 # list of items for scavengers to scavenge
-@app.route('/hunts/<hunt_id>/items', methods=['GET'])
+@app.route('/hunts/<int:hunt_id>/items', methods=['GET'])
 def index_items(hunt_id):
-    hunt = get_hunt(g.db, hunt_id)
+    hunt = Hunt.find_by_id(g.db, hunt_id)
     if hunt:
         email = session.get('email')
         if email:
-            logger.info(
-                'preparing to render items from hunt_id, %s, for user, %s',
-                hunt_id, email)
-
             admin_settings = get_settings(g.db, hunt_id=hunt_id)
             lrs = WaxCommunicator(
                 admin_settings, request.host_url, hunt, None,
                 {'email': email, 'name': session.get('name')})
 
-            state = lrs.get_state().json()
+            state = lrs.get_state()
+
+            logger.info(
+                'preparing to render items from hunt_id, %s, for user, %s',
+                hunt_id, email)
 
             return make_response(render_template(
-                'items.html', items=get_items(g.db, hunt_id),
-                state=state, hunt_name=hunt.name,
-                num_remaining=num_items_remaining(state),
-                congratulations=hunt.congratulations_message))
+                'items.html', state=state, hunt=hunt,
+                num_remaining=num_items_remaining(state, hunt.items)))
 
         session['intended_url'] = '/hunts/{}/items'.format(hunt_id)
         return make_response(
-            render_template('welcome.html', hunt_name=hunt.name,
+            render_template('welcome.html', hunt=hunt,
                             welcome=hunt.welcome_message,
                             action_url="/get_started/hunts/{}".format(
                                 hunt_id)))
@@ -350,15 +366,28 @@ def index_items(hunt_id):
 
 
 # information about one item for scavenger to read
-@app.route('/hunts/<hunt_id>/items/<item_id>', methods=['GET'])
+@app.route('/hunts/<int:hunt_id>/items/<int:item_id>', methods=['GET'])
 def find_item(hunt_id, item_id):
+    logger.info(
+        'Participant is visiting route: /hunts/%s/items/%s', hunt_id, item_id)
+
     admin_settings = get_settings(g.db, hunt_id=hunt_id)
     # admin_settings found through hunt_id means hunt exists
+    logger.info("Settings retrieved for hunt with id, %s", hunt_id)
+
     if finished_setting(admin_settings):
+        logger.info(
+            "Settings are complete. Preparing to retrieve item with id, %s",
+            item_id)
         item = get_item(g.db, item_id, hunt_id)
         if item:
-            hunt = get_hunt(g.db, hunt_id)
+            logger.info(
+                "Item found. Preparing to retrieve hunt with id, %s ", hunt_id)
+            hunt = Hunt.find_by_id(g.db, hunt_id)
             if participant_registered(g.db, session.get('email'), hunt_id):
+                logger.info(
+                    "Participant, %s, has registered. Preparing to"
+                    " retrieve data from the state api.", session.get('email'))
                 lrs = WaxCommunicator(
                     admin_settings, request.host_url, hunt, item,
                     scavenger_info={
@@ -367,32 +396,41 @@ def find_item(hunt_id, item_id):
                     })
 
                 state = lrs.get_state()
-                # what happens if get_state does not return state?
 
-                found_again = item_already_found(item.item_id, state)
+                found_again = str(item_id) in state
                 lrs.send_found_item_statement(found_again=found_again)
-                state = lrs.update_state_item_information(state, item_id)
+                updated_state = {str(item.item_id): True}
 
-                hunt_previously_completed = state['hunt_completed']
-                if hunt_requirements_completed(state):
+                hunt_previously_completed = state.get('hunt_completed')
+                state.update(updated_state)
+                if hunt_requirements_completed(state, hunt):
+                    logger.info(
+                        'Requirements for hunt, "%s", have been completed.',
+                        hunt.name)
                     if not hunt_previously_completed:
                         lrs.send_completed_hunt_statement()
-                        state['hunt_completed'] = True
+                        updated_state['hunt_completed'] = True
+                        state.update(updated_state)
 
-                lrs.update_state_api_doc(state)
+                lrs.update_state_api_doc(updated_state)
+
+                found_ids = found_ids_list(state)
                 return make_response(render_template(
-                    'items.html', item=item, items=get_items(g.db, hunt_id),
-                    username=session.get('name'), state=state,
-                    num_remaining=num_items_remaining(state),
-                    found_again=found_again, hunt_name=hunt.name,
-                    previously_completed=hunt_previously_completed,
-                    congratulations=hunt.congratulations_message))
+                    'items.html', item=item, hunt=hunt,
+                    username=session.get('name'), found_ids=found_ids,
+                    hunt_now_completed=state.get('hunt_completed'),
+                    num_found=len(found_ids), num_items=len(hunt.items),
+                    num_remaining=num_items_remaining(state, hunt.items),
+                    found_again=found_again,
+                    previously_completed=hunt_previously_completed))
             else:
+                logger.info(
+                    "Page visitor is not yet registered for this hunt."
+                    " Preparing to redirect to the getting started page.")
                 session['intended_url'] = '/hunts/{}/items/{}'.format(
                     hunt_id, item_id)
                 return make_response(render_template(
-                    'welcome.html', welcome=hunt.welcome_message,
-                    hunt_name=hunt.name,
+                    'welcome.html', hunt=hunt, welcome=hunt.welcome_message,
                     action_url="/get_started/hunts/{}".format(hunt_id)))
     abort(404)
 
@@ -401,3 +439,12 @@ def find_item(hunt_id, item_id):
 def oops():
     session.clear()
     return make_response(render_template('goodbye.html'))
+
+
+@app.route('/failblog')
+def failblog():
+    try:
+        return doesnotexistsowillerror
+    except Exception as e:
+        logger.exception("Error for the failblog: %s", e)
+        raise e

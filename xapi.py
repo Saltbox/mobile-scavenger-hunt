@@ -4,6 +4,31 @@ from flask import request, make_response, render_template
 import json
 import requests
 import uuid
+import urllib
+
+
+def make_mailto(email):
+    ident, domain = email.rsplit('@', 1)
+    ident = urllib.quote_plus(ident)
+    return "mailto:{}@{}".format(ident, domain)
+
+
+def verb_found():
+    return {
+        "id": "http://saltbox.com/xapi/verbs/found",
+        "display": {
+            "en-US": "found"
+        }
+    }
+
+
+def verb_refound():
+    return {
+        "id": "http://saltbox.com/xapi/verbs/refound",
+        "display": {
+            "en-US": "refound"
+        }
+    }
 
 
 class WaxCommunicator:
@@ -43,16 +68,10 @@ class WaxCommunicator:
             headers={"x-experience-api-version": "1.0.0"},
             auth=(self.login, self.password)
         )
-        return response.json()
-
-    def put_state(self, data):
-        return requests.put(
-            self.state_api_endpoint,
-            params=self.default_params(),
-            data=data,
-            headers=self.submission_headers,
-            auth=(self.login, self.password)
-        )
+        logger.info('response from state api: %s', response)
+        if response:
+            return response.json()
+        return {}
 
     def post_state(self, data):
         return requests.post(
@@ -62,6 +81,18 @@ class WaxCommunicator:
             headers=self.submission_headers,
             auth=(self.login, self.password)
         )
+
+    def make_agent(self):
+        agent = {"mbox": make_mailto(self.scavenger['email'])}
+        if self.scavenger.get('name'):
+            agent['name'] = self.scavenger['name']
+        return agent
+
+    def update_state_api_doc(self, state):
+        logger.info(
+            'Updating state document for %s on hunt, "%s".',
+            self.scavenger['email'], self.hunt.name)
+        self.post_state(json.dumps(state))
 
     def send_statement(self, statement):
         return requests.post(
@@ -87,6 +118,12 @@ class WaxCommunicator:
             "objectType": "Activity"
         }
 
+    def send_began_hunt_statement(self):
+        self.send_statement(self.began_hunt_statement())
+        logger.info(
+            '%s began hunt, %s. sending statement to Wax',
+            self.scavenger['email'], self.hunt.name)
+
     def began_hunt_statement(self):
         return {
             "actor": self.make_agent(),
@@ -99,46 +136,24 @@ class WaxCommunicator:
             "object": self.hunt_activity()
         }
 
-    def send_began_hunt_statement(self):
-        self.send_statement(self.began_hunt_statement())
-        logger.info(
-            '%s began hunt, %s. sending statement to Wax',
-            self.scavenger['email'], self.hunt.name)
-
     def send_found_item_statement(self, found_again=False):
         if found_again:
             self.send_statement(self.refound_item_statement())
             logger.info(
-                '%s refound item, %s, from hunt, %s. sending statement to Wax',
+                '%s refound item, "%s", from hunt, "%s". sending statement to Wax',
                 self.scavenger['email'], self.current_item.name,
                 self.hunt.name)
         else:
             self.send_statement(self.found_item_statement())
             logger.info(
-                '%s found item, %s, from hunt, %s. sending statement to Wax',
+                '%s found item, "%s", from hunt, "%s". sending statement to Wax',
                 self.scavenger['email'], self.current_item.name,
                 self.hunt.name)
-
-    def verb_found(self):
-        return {
-            "id": "http://saltbox.com/xapi/verbs/found",
-            "display": {
-                "en-US": "found"
-            }
-        }
-
-    def verb_refound(self):
-        return {
-            "id": "http://saltbox.com/xapi/verbs/refound",
-            "display": {
-                "en-US": "refound"
-            }
-        }
 
     def found_item_statement(self):
         return {
             "actor": self.make_agent(),
-            "verb": self.verb_found(),
+            "verb": verb_found(),
             "object": {
                 "id": "{}hunts/{}/items/{}".format(
                     self.host_url, self.hunt.hunt_id,
@@ -162,10 +177,15 @@ class WaxCommunicator:
 
     def refound_item_statement(self):
         found_statement = self.found_item_statement()
-        found_statement['verb'] = self.verb_refound()
+        found_statement['verb'] = verb_refound()
         return found_statement
 
-    # participant met requirements for completion
+    def send_completed_hunt_statement(self):
+        logger.info(
+            '%s completed hunt, %s. sending statement to Wax',
+            self.scavenger['email'], self.hunt.name)
+        self.send_statement(self.completed_hunt_statement())
+
     def completed_hunt_statement(self):
         return {
             'actor': self.make_agent(),
@@ -181,49 +201,3 @@ class WaxCommunicator:
                 "completion": True,
             }
         }
-
-    def make_agent(self):
-        agent = {"mbox": "mailto:{}".format(self.scavenger['email'])}
-        if self.scavenger['name']:
-            agent['name'] = self.scavenger['name']
-        return agent
-
-    def create_state_doc(self, items):
-        state = self.initialize_state_doc(self.hunt.num_required, items)
-        logger.info(
-            'No state exists for %s on this hunt, %s.'
-            ' Beginning new state document.',
-            self.scavenger['email'], self.hunt.name)
-        self.put_state(json.dumps(state))
-
-    def initialize_state_doc(self, num_required, items):
-        required_ids = [
-            item.item_id for item in items if item.required]
-
-        return {
-            'found_ids': [],
-            'num_found': 0,
-            'required_ids': required_ids,
-            'total_items': len(items),
-            'num_required': num_required,
-            'hunt_completed': False
-        }
-
-    def update_state_item_information(self, state, item_id):
-        item_id = int(item_id)
-        if item_id not in state['found_ids']:
-            state['num_found'] += 1
-        state['found_ids'].append(item_id)
-        return state
-
-    def update_state_api_doc(self, state):
-        logger.info(
-            'Updating state document for %s on hunt, "%s".',
-            self.scavenger['email'], self.hunt.name)
-        self.post_state(json.dumps(state))
-
-    def send_completed_hunt_statement(self):
-        logger.info(
-            '%s completed hunt, %s. sending statement to Wax',
-            self.scavenger['email'], self.hunt.name)
-        self.send_statement(self.completed_hunt_statement())

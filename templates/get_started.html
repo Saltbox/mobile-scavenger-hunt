@@ -2,8 +2,9 @@
 {% block userbody %}
 <div class="userinfo">
   <div>
-    Enter your name and email<br>
-    (your information will be recorded)
+    <div>Enter your name and email</div><br>
+    Your information will be recorded,<br>
+    but we will not send you a confirmation email.
   </div>
   <form action="/register_participant?hunt_id={{hunt_id}}"
         method="POST" id="userinfo-form">

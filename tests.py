@@ -29,6 +29,10 @@ class HuntTestCase(unittest.TestCase):
         self.request = MagicMock()
         self.app = app.test_client()
         self.admin = {'email': example_email(), 'password': identifier()}
+        self.registration_data = {
+            'email': example_email(),
+            'name': identifier()
+        }
 
     def login(self, app, username, password):
         return app.post('/login', data=dict(
@@ -106,11 +110,9 @@ class HuntTestCase(unittest.TestCase):
 
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
-    @patch('views.get_admin')
     @patch('views.get_db')
     def test_create_settings(
-            self, get_db, get_admin, login_disabled, current_user):
-        get_admin.return_value = self.create_mock_admin(get_db)
+            self, get_db, login_disabled, current_user):
         current_user.admin_id = 1
         with app.test_client() as c:
             response = self.create_settings(
@@ -119,6 +121,19 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             # successfully saving settings redirects to hunts page
             self.assertIn("Your Scavenger Hunts", response.data)
+
+    @patch('views.current_user')
+    @patch('views.login_manager._login_disabled')
+    @patch('views.get_db')
+    def test_create_settings_with_invalid_wax_site_fails(
+            self, get_db, login_disabled, current_user):
+        current_user.admin_id = 1
+        with app.test_client() as c:
+            response = self.create_settings(
+                c, 'not all alphanumeric site name!', current_user.admin_id,
+                identifier(), identifier())
+
+            self.assertFalse(get_db.session.add.called)
 
     @patch('views.get_settings')
     @patch('views.current_user')
@@ -150,7 +165,8 @@ class HuntTestCase(unittest.TestCase):
         with app.test_client() as c:
             self.create_admin(c, self.admin['email'], self.admin['password'])
             self.logout(c)
-            response = self.login(c, self.admin['email'], self.admin['password'])
+            response = self.login(
+                c, self.admin['email'], self.admin['password'])
             self.assertEqual(response.status_code, 200)
 
     @patch('views.get_admin')
@@ -197,15 +213,15 @@ class HuntTestCase(unittest.TestCase):
 
             self.assertEqual(create_hunt_response.status_code, 200)
 
-    @patch('views.get_hunt')
-    def test_show_hunt_works(self, get_hunt):
+    @patch('views.Hunt')
+    def test_show_hunt_works(self, Hunt):
         name = identifier()
         participants = [
             MagicMock(email=example_email(), registered=True)
             for _ in xrange(2)
         ]
         items = [{'name': identifier()} for _ in xrange(2)]
-        get_hunt.return_value = MagicMock(
+        Hunt.find_by_id.return_value = MagicMock(
             name=name, participants=participants, items=items,
             participant_rule='by_whitelist'
         )
@@ -234,22 +250,27 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 404)
 
     @patch('views.get_db')
-    @patch('views.get_items')
+    @patch('views.Hunt.find_by_id')
     @patch('views.WaxCommunicator')
     def test_index_items_displays_all_items(
-            self, LRS, get_items, _get_db):
+            self, LRS, find_by_id, _get_db):
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
 
-            items = [{'name': identifier()}, {'name': identifier()}]
-            get_items.return_value = items
+            item1 = MagicMock()
+            item1.name = identifier()
+            item2 = MagicMock()
+            item2.name = identifier()
+
+            items = [item1, item2]
+            find_by_id.return_value = MagicMock(items=items)
 
             response = c.get('hunts/1/items')
             self.assertEqual(response.status_code, 200)
 
             for item in items:
-                self.assertIn(item['name'], response.data)
+                self.assertIn(item.name, response.data)
 
     @patch('views.login_manager._login_disabled')
     def test_index_items_on_nonexistent_hunt_404s(self, login_disabled):
@@ -258,32 +279,30 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('hunts/1/items')
             self.assertEqual(response.status_code, 404)
 
-    @patch('views.get_hunt')
-    def test_get_started(self, get_hunt):
+    @patch('views.Hunt')
+    def test_get_started(self, Hunt):
         response = self.app.get(
             '/get_started/hunts/1', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn('Enter your name and email', response.data)
 
     @patch('views.get_admin')
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     @patch('views.get_db')
     def test_show_all_hunt_item_codes_works(
-            self, get_db, login_disabled, current_user, get_hunt, get_admin):
+            self, get_db, login_disabled, current_user, Hunt, get_admin):
         current_user.admin_id = 1
         login_disabled = True
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            item1 = MagicMock()
+            item1 = MagicMock(item_id=1)
             item1.name = identifier()
-            item1.item_id = 1
-            item2 = MagicMock()
+            item2 = MagicMock(item_id=2)
             item2.name = identifier()
-            item2.item_id = 2
 
-            get_hunt.return_value = MagicMock(items=[item1, item2])
+            Hunt.find_by_id.return_value = MagicMock(items=[item1, item2])
 
             response = c.get('/hunts/1/qrcodes')
             self.assertEqual(response.status_code, 200)
@@ -292,43 +311,41 @@ class HuntTestCase(unittest.TestCase):
                 self.assertIn(item.name, response.data)
 
     @patch('views.get_admin')
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     @patch('views.get_db')
     def test_show_one_hunt_item_code_works(
-            self, get_db, login_disabled, current_user, get_hunt, get_admin):
+            self, get_db, login_disabled, current_user, Hunt, get_admin):
         current_user.admin_id = 1
         login_disabled = True
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            item1 = MagicMock()
+            item1 = MagicMock(item_id=1)
             item1.name = identifier()
-            item1.item_id = 1
-            hunt = MagicMock(items=[item1])
-            get_hunt.return_value = hunt
+
+            Hunt.find_by_id.return_value = MagicMock(items=[item1])
 
             response = c.get('/hunts/1/items/1/qrcode')
             self.assertEqual(response.status_code, 200)
             self.assertIn(item1.name, response.data)
 
     @patch('views.get_admin')
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     @patch('views.get_db')
     def test_delete_hunt_works(
-            self, get_db, login_disabled, current_user, get_hunt, get_admin):
+            self, get_db, login_disabled, current_user, Hunt, get_admin):
         current_user.admin_id = 1
         login_disabled = True
         get_admin.return_value = self.create_mock_admin(get_db, valid=True)
         with app.test_client() as c:
-            hunt = MagicMock(admin_id=1)
-            get_hunt.return_value = hunt
+            Hunt.find_by_id.return_value = MagicMock(admin_id=1)
             response = c.get('/hunts/1/delete', follow_redirects=True)
             self.assertEqual(response.status_code, 200)
 
-            get_hunt.return_value = None
+            Hunt.find_by_id.return_value = None
             response = c.get('/hunts/1', follow_redirects=True)
             self.assertEqual(response.status_code, 404)
 
@@ -341,12 +358,12 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('hunts/1/delete')
             self.assertEqual(response.status_code, 404)
 
-    @patch('views.get_hunt')
+    @patch('views.Hunt')
     @patch('views.current_user')
     @patch('views.login_manager._login_disabled')
     def test_delete_other_admin_hunt_404s(
-            self, login_disabled, current_user, get_hunt):
-        get_hunt().admin_id = 1
+            self, login_disabled, current_user, Hunt):
+        Hunt.find_by_id().admin_id = 1
         current_user.admin_id = 2
         login_disabled = True
         with app.test_client() as c:
@@ -391,40 +408,41 @@ class HuntTestCase(unittest.TestCase):
             get_db(), example_email(), 1, 'anyone')
         self.assertTrue(valid)
 
+    @patch('views.create_new_participant')
+    @patch('views.WaxCommunicator')
+    @patch('views.get_participant')
+    @patch('views.get_db')
+    def test_valid_unsaved_participant_saved_on_registration(
+            self, get_db, get_participant, LRS, create_new_participant):
+        with app.test_client() as c:
+            get_participant.return_value = False
+            c.post(
+                '/register_participant?hunt_id=1', data=self.registration_data)
+        assert create_new_participant.called, "Expected a valid but unsaved" \
+            " participant to be saved to the database after registering for" \
+            " the hunt, but this did not happen."
+
     # Flask-Login calls load_user which uses Admin, around the
     # time response is returned
     @patch('views.get_db')
     @patch('views.WaxCommunicator')
     def test_valid_participant_can_register_for_hunt(self, LRS, get_db):
-        LRS().initialize_state_doc.return_value = {
-            'found_ids': [],
-            'num_found': 1,
-            'required_ids': [1],
-            'total_items': 1
-        }
-
         with app.test_client() as c:
             response = c.post(
                 '/register_participant?hunt_id=1',
-                data={
-                    'email': example_email(),
-                    'name': identifier()
-                },
+                data=self.registration_data,
                 follow_redirects=True
             )
             self.assertEqual(response.status_code, 200)
 
-    @patch('views.WaxCommunicator.update_state_api_doc')
-    @patch('views.WaxCommunicator.get_state')
-    @patch('views.WaxCommunicator.send_found_item_statement')
-    @patch('views.WaxCommunicator.update_state_item_information')
+    @patch('views.WaxCommunicator')
+    @patch('views.hunt_requirements_completed')
     @patch('views.get_db')
     def test_registered_participant_can_resume_hunt(
-            self, get_db, update_item_info, send_found, get_state, update_hunt):
-        update_item_info.return_value = {
-            'num_found': 1, 'found_ids': [1], 'required_ids': [1, 2],
-            'total_items': 2, 'hunt_completed': False, 'num_required': 2
-        }
+            self, get_db, hunt_completed, LRS):
+        LRS().get_state.return_value = {'2': True}
+        hunt_completed.return_value = False
+
         with app.test_client() as c:
             name = identifier()
             # necessary to access item routes
@@ -436,19 +454,16 @@ class HuntTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn(name, response.data)
 
-    @patch('views.WaxCommunicator.update_state_api_doc')
-    @patch('views.WaxCommunicator.get_state')
-    @patch('views.WaxCommunicator.update_state_item_information')
-    @patch('views.WaxCommunicator.send_found_item_statement')
-    @patch('views.WaxCommunicator.send_completed_hunt_statement')
+    @patch('views.WaxCommunicator')
+    @patch('views.hunt_requirements_completed')
+    @patch('views.get_item')
     @patch('views.get_db')
     def test_registered_participant_congratulated_on_hunt_finish(
-            self, get_db, send_compelte, send_found,
-            update_state_item_information, get_state, update_hunt):
-        update_state_item_information.return_value = {
-            'num_found': 1, 'found_ids': [1], 'num_required': 1,
-            'required_ids': [1], 'total_items': 1, 'hunt_completed': False
-        }
+            self, get_db, get_item, hunt_requirements_completed, LRS):
+        LRS().get_state.return_value = {'1': True}
+        get_item.return_value = MagicMock(item_id='1')
+        hunt_requirements_completed.return_value = True
+
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess['email'] = example_email()
@@ -469,6 +484,49 @@ class HuntTestCase(unittest.TestCase):
             response = c.get('/hunts/1/items/1')
             self.assertEqual(response.status_code, 404)
 
+    def test_found_count(state):
+        state = {}
+        assert utils.found_count(state) == 0
+
+        state['1'] = True
+        assert utils.found_count(state) == 1
+
+        state['hunt_completed'] = True
+        assert utils.found_count(state) == 1
+
+        state.pop('1')
+        assert utils.found_count(state) == 0
+
+    def test_num_items_remaining(self):
+        state = {'1': True, 'hunt_completed': True}
+
+        items = [MagicMock(item_id='1'), MagicMock(item_id='2')]
+        assert utils.num_items_remaining(state, items) == 1
+
+    def test_hunt_requirements_completed(self):
+        num_required_items = 2
+        items = [
+            MagicMock(item_id=(ii + 1), required=True)
+            for ii in xrange(num_required_items)
+        ]
+        hunt = MagicMock(items=items, num_required=num_required_items)
+
+        state = {'1': True}
+        assert not utils.hunt_requirements_completed(state, hunt)
+
+        state['2'] = True
+        assert utils.hunt_requirements_completed(state, hunt)
+
+    def test_finished_setting(self):
+        settings = MagicMock(wax_site=None, login=None, password=None)
+        assert not utils.finished_setting(settings)
+
+        settings.wax_site = 'name'
+        assert not utils.finished_setting(settings)
+
+        settings.login = 'login'
+        settings.password = 'password'
+        assert utils.finished_setting(settings)
 
 if __name__ == '__main__':
     unittest.main()

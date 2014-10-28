@@ -7,15 +7,6 @@
         {% if error %}
           <p class="alert">Error: {{error}}</p>
         {% endif %}
-        {% if form.errors %}
-          <ul class="errors">
-            {% for field_name, field_errors in form.errors|dictsort if field_errors %}
-              {% for error in field_errors %}
-                <li>{{ form[field_name].label }}: {{ error }}</li>
-              {% endfor %}
-            {% endfor %}
-          </ul>
-        {% endif %}
         <div class="row hunt_name panel-rect">
           <div class="form-group">
             <div class="panel-header-container">
@@ -41,7 +32,7 @@
               </span>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-4 panel-rect anyone">
-              <button type="button" class="btn btn-lg btn-primary active">Anyone who finds the qrcodes</button>
+              <button type="button" class="btn btn-lg btn-primary active">Anyone who finds the QR codes</button>
               <span style="display: none;">
                 {{ form.participant_rule(type="radio", value="anyone", checked="on") }}
               </span>
@@ -63,14 +54,14 @@
           </div>
           <div class="anyone">This scavenger hunt would be a public event.</div>
           <div class="by_whitelist" style="display: none;">
-            Don't worry. We won't send out an email to all these people. If someone scans a qrcode, they'll be asked to enter then confirm their email. We will never send any emails to these people not triggered by their active participation in the hunt.
+            Don't worry. We won't send out an email to all these people. If someone scans a QR code, they'll be asked to enter then confirm their email. We will never send any emails to these people not triggered by their active participation in the hunt.
           </div>
         </div>
         <div class="row panel-rect" id="participants-group" style="display: none;">
           <div class="form-group">
             <label>Add participant emails</label>
             <div class="input-group">
-              <input class="form-control" type="email" id="participants-template">
+              <input class="form-control" type="email" id="participants-template" maxlength=50>
               <span class="input-group-btn">
                 <button class="btn btn-default" type="button" id="add-participant">
                   Add
@@ -102,9 +93,9 @@
             <input type="number" name="num_required" class="form-control" value=0 min=0>
           </div>
           <div class="form-group" id="items-group">
-            <label>Name an item for the hunt</label>
+            <label>Name an item for the hunt (max 500 characters)</label>
             <div class="input-group">
-              <input class="form-control" type="text" id="items-template">
+              <input class="form-control" type="text" id="items-template" maxlength=500>
               <span class="input-group-btn">
                 <button class="btn btn-default" type="button"
                         id="add-item">

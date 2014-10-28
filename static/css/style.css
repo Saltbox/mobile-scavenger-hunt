@@ -126,6 +126,11 @@ table td a.btn:hover {
   margin-bottom: 25px;
 }
 
+.userinfo div div:first-child {
+  font-size: 16px;
+  margin: 0;
+}
+
 input[name=endpoint] {
   min-width: 50%;
 }
@@ -521,4 +526,8 @@ ul.errors {
     width: 80%;
     margin: auto 10%;
   }
+}
+
+.credentials .form-group span em {
+  color: green;
 }

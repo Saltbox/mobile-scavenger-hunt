@@ -112,7 +112,20 @@ var submitForm = function(formData) {
       window.location.replace("/hunts/" + data['hunt_id']);
     })
     .error(function(xhr, status) {
-      window.location.replace("/new_hunt");
+        var formErrors = JSON.parse(xhr.responseText);
+        for (model in formErrors) {
+          modelErrorsList = formErrors[model];
+          for (index in modelErrorsList) {
+            modelError = modelErrorsList[index]
+            for (modelProperty in modelError) {
+              propErrorsList = modelError[modelProperty];
+              for (errIndex in propErrorsList) {
+                var errorMsg = 'invalid ' + modelProperty + ' in ' + model + ': ' + propErrorsList[errIndex];
+                $('.errors').append('<li class="error">' + errorMsg + '</li>');
+              }
+            }
+          }
+        }
     });
   }
 };
@@ -407,11 +420,25 @@ $(document).ready(function() {
     }
   });
 
-  $('.userinfo-form input').on('keypress', function(e) {
+  $('#userinfo-form input').on('keyup', function(e) {
     // disable submitting form with enter
     if (e.keyCode == 13) {
       e.preventDefault();
       $('#confirm-email').click();
+    }
+  });
+
+  $('input[name=wax_site]').on('keyup', function(e) {
+    var waxSite = $(this).val().toLowerCase();
+    if (waxSite) {
+      if (/^[a-z0-9]+$/i.test(waxSite)) {
+        $('#waxsite-error').hide();
+        $('button[value=submit]').prop('disabled', false);
+      }
+      else {
+        $('#waxsite-error').show();
+        $('button[value=submit]').prop('disabled', true);
+      }
     }
   });
 

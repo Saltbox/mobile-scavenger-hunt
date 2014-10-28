@@ -3,6 +3,8 @@ from flask import request, flash, redirect, url_for
 from models import Hunt, Participant, Item, Admin, db, Setting
 from hunt import bcrypt
 
+import copy
+
 
 def valid_login(admin, email, password):
     return admin and bcrypt.check_password_hash(
@@ -15,19 +17,15 @@ def get_admin(db, email):
 
 def get_settings(db, admin_id=None, hunt_id=None):
     if admin_id:
-        return db.session.query(Setting).filter(
-            Setting.admin_id == admin_id).first()
+        return db.session.query(Setting) \
+            .filter(Setting.admin_id == admin_id) \
+            .first()
     elif hunt_id:
-        return db.session.query(Setting).join(Admin).join(Hunt).first()
+        return db.session.query(Setting) \
+            .join(Admin).join(Hunt) \
+            .filter(Hunt.hunt_id == hunt_id) \
+            .first()
     return None
-
-
-def get_hunts(db, admin_id):
-    return db.session.query(Hunt).filter(Hunt.admin_id == admin_id).all()
-
-
-def get_hunt(db, hunt_id):
-    return db.session.query(Hunt).filter(Hunt.hunt_id == hunt_id).first()
 
 
 def get_items(db, hunt_id):
@@ -97,33 +95,35 @@ def initialize_hunt(form, hunt, admin_id, request):
     return hunt
 
 
-def initialize_registered_participant(form, participant, hunt_id):
+def create_new_participant(db, form, hunt_id):
+    participant = Participant()
     form.populate_obj(participant)
     participant.registered = True
     participant.hunt_id = hunt_id
-    return participant
 
-
-def item_already_found(item_id, state):
-    return int(item_id) in state['found_ids']
+    db.session.add(participant)
+    db.session.commit()
 
 
 def participant_registered(db, email, hunt_id):
     return email and get_participant(db, email, hunt_id)
 
 
-def num_items_remaining(state):
-    return state['total_items'] - state['num_found']
+def found_ids_list(state):
+    copied_state = copy.deepcopy(state)
+    if copied_state.get('hunt_completed'):
+        copied_state.pop('hunt_completed')
+    return copied_state.keys()
 
 
-def hunt_requirements_completed(state):
-    required_ids = set(state['required_ids'])
-    found_ids = set(state['found_ids'])
-    num_found = state['num_found']
-    num_required = state['num_required']
+def found_count(state):
+    return len(state) - (1 if state.get('hunt_completed') else 0)
 
-    if required_ids:
-        required_found = required_ids.issubset(found_ids)
-        return num_found >= num_required and required_found
-    else:
-        return num_found >= num_required
+
+def num_items_remaining(state, items):
+    return len(items) - len(found_ids_list(state))
+
+
+def hunt_requirements_completed(state, hunt):
+    required_items = frozenset(str(item.item_id) for item in hunt.items if item.required)
+    return not (required_items - state.viewkeys()) and found_count(state) >= hunt.num_required
