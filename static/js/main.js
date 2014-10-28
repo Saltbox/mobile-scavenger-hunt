@@ -430,13 +430,15 @@ $(document).ready(function() {
 
   $('input[name=wax_site]').on('keyup', function(e) {
     var waxSite = $(this).val().toLowerCase();
-    if (/^[a-z0-9]+$/i.test(waxSite)) {
-      $('#waxsite-error').hide();
-      $('button[value=submit]').prop('disabled', false);
-    }
-    else {
-      $('#waxsite-error').show();
-      $('button[value=submit]').prop('disabled', true);
+    if (waxSite) {
+      if (/^[a-z0-9]+$/i.test(waxSite)) {
+        $('#waxsite-error').hide();
+        $('button[value=submit]').prop('disabled', false);
+      }
+      else {
+        $('#waxsite-error').show();
+        $('button[value=submit]').prop('disabled', true);
+      }
     }
   });
 
