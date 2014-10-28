@@ -11,7 +11,7 @@ from models import Hunt, Participant, Item, Admin, Setting
 from forms import HuntForm, AdminForm, AdminLoginForm, ParticipantForm, \
     ItemForm, SettingForm
 
-from hunt import app, logger, login_manager, db, bcrypt
+from hunt import app, login_manager, db, bcrypt
 from utils import get_admin, get_settings, get_item, \
     get_participant, item_path, validate_participant, get_intended_url, \
     get_items, initialize_hunt, create_new_participant, \
@@ -21,12 +21,22 @@ from utils import get_admin, get_settings, get_item, \
 from xapi import WaxCommunicator
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 login_manager.login_view = "login"
 
 
 def get_db():
     return db
 
+
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error("Problem!", error)
+    return "500 error"
 
 @app.before_request
 def before_request():
@@ -402,6 +412,8 @@ def find_item(hunt_id, item_id):
                 updated_state = {str(item.item_id): True}
 
                 hunt_previously_completed = state.get('hunt_completed')
+
+                # TODO: Don't send the whole state object, as discussed
                 state.update(updated_state)
                 if hunt_requirements_completed(state, hunt):
                     logger.info(

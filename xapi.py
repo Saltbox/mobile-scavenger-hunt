@@ -1,10 +1,13 @@
-from hunt import logger
 from flask import request, make_response, render_template
 
 import json
 import requests
 import uuid
 import urllib
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def make_mailto(email):
