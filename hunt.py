@@ -8,21 +8,19 @@ import config
 import logging
 import sys
 
+
+
+logging.basicConfig(level=logging.DEBUG)
+
+
 app = Flask(__name__)
 
 app.config.update(config.ENV_VAR)
 
-app.debug = True  # temp
-app.logger.setLevel(logging.DEBUG)
-del app.logger.handlers[:]
-
-handler = logging.StreamHandler(stream=sys.stdout)
-handler.setLevel(logging.DEBUG)
-handler.formatter = logging.Formatter(
-    fmt=u"%(asctime)s level=%(levelname)s %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%SZ",
-)
-app.logger.addHandler(handler)
+@app.before_first_request
+def setup_logging():
+    app.logger.addHandler(logging.StreamHandler())
+    app.logger.setLevel(logging.DEBUG)
 
 db = SQLAlchemy(app)
 

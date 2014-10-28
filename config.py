@@ -1,11 +1,10 @@
 import os
 
 ENV_VAR = {
-    var: os.environ.get(var)
+    var: os.environ[var]
     for var in [
-        'DEBUG',
         'SECRET_KEY',
         'SQLALCHEMY_DATABASE_URI',
         'DATABASE_URL'
-    ]
+    ] if var in os.environ
 }

@@ -1,1 +1,1 @@
-web: gunicorn hunt:app
+web: gunicorn --access-logfile - --error-logfile - hunt:app
