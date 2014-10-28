@@ -527,3 +527,7 @@ ul.errors {
     margin: auto 10%;
   }
 }
+
+.credentials .form-group span em {
+  color: green;
+}
