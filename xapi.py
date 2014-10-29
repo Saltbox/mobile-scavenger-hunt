@@ -106,7 +106,7 @@ class WaxCommunicator:
         )
 
     def hunt_activity_id(self):
-        return "{}hunts/{}".format(self.host_url, self.hunt.hunt_id)
+        return u"{}hunts/{}".format(self.host_url, self.hunt.hunt_id)
 
     def hunt_activity(self):
         return {
@@ -124,7 +124,7 @@ class WaxCommunicator:
     def send_began_hunt_statement(self):
         self.send_statement(self.began_hunt_statement())
         logger.info(
-            '%s began hunt, %s. sending statement to Wax',
+            u'%s began hunt, %s. sending statement to Wax',
             self.scavenger['email'], self.hunt.name)
 
     def began_hunt_statement(self):
@@ -143,13 +143,13 @@ class WaxCommunicator:
         if found_again:
             self.send_statement(self.refound_item_statement())
             logger.info(
-                '%s refound item, "%s", from hunt, "%s". sending statement to Wax',
+                u'%s refound item, "%s", from hunt, "%s". sending statement to Wax',
                 self.scavenger['email'], self.current_item.name,
                 self.hunt.name)
         else:
             self.send_statement(self.found_item_statement())
             logger.info(
-                '%s found item, "%s", from hunt, "%s". sending statement to Wax',
+                u'%s found item, "%s", from hunt, "%s". sending statement to Wax',
                 self.scavenger['email'], self.current_item.name,
                 self.hunt.name)
 
@@ -158,14 +158,14 @@ class WaxCommunicator:
             "actor": self.make_agent(),
             "verb": verb_found(),
             "object": {
-                "id": "{}hunts/{}/items/{}".format(
+                "id": u"{}hunts/{}/items/{}".format(
                     self.host_url, self.hunt.hunt_id,
                     self.current_item.item_id),
                 "definition": {
-                    "type": "{}activities/type/scavengerhunt".format(
+                    "type": u"{}activities/type/scavengerhunt".format(
                         self.host_url),
                     "name": {
-                        "und": "{} from {}".format(
+                        "und": u"{} from {}".format(
                             self.current_item.name, self.hunt.name)
                     }
                 },
