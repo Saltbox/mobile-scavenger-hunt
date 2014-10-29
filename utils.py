@@ -1,9 +1,12 @@
-from flask import request, flash, redirect, url_for
+from flask import request, current_app
 
-from models import Hunt, Participant, Item, Admin, db, Setting
+from sqlalchemy.exc import OperationalError
+
+from models import Hunt, Participant, Item, Admin, Setting
 from hunt import bcrypt
 
 import copy
+import time
 
 
 def valid_login(admin, email, password):
@@ -15,16 +18,27 @@ def get_admin(db, email):
     return db.session.query(Admin).filter(Admin.email == email).first()
 
 
-def get_settings(db, admin_id=None, hunt_id=None):
-    if admin_id:
-        return db.session.query(Setting) \
-            .filter(Setting.admin_id == admin_id) \
-            .first()
-    elif hunt_id:
-        return db.session.query(Setting) \
-            .join(Admin).join(Hunt) \
-            .filter(Hunt.hunt_id == hunt_id) \
-            .first()
+def get_settings(db, admin_id=None, hunt_id=None, retries=3):
+    try:
+        if admin_id:
+            return db.session.query(Setting) \
+                .filter(Setting.admin_id == admin_id) \
+                .first()
+        elif hunt_id:
+            return db.session.query(Setting) \
+                .join(Admin).join(Hunt) \
+                .filter(Hunt.hunt_id == hunt_id) \
+                .first()
+    except OperationalError:
+        if retries > 0:
+            current_app.logger.exception(
+                'Problem getting settings from database. Waiting and retrying'
+            )
+            time.sleep(1)
+            return get_settings(db, admin_id, hunt_id, retries - 1)
+        else:
+            raise
+
     return None
 
 
