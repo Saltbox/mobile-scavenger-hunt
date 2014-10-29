@@ -35,6 +35,7 @@ def get_settings(db, admin_id=None, hunt_id=None, retries=3):
                 'Problem getting settings from database. Waiting and retrying'
             )
             time.sleep(1)
+            db.session.rollback()
             return get_settings(db, admin_id, hunt_id, retries - 1)
         else:
             raise
