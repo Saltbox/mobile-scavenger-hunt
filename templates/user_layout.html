@@ -1,7 +1,7 @@
 {% extends "base_layout.html" %}
 {% block body %}
   <div class="row center">
-    <h1 class="pentary">{{hunt.name}}</h1>
+    {% if hunt %}<h1 class="pentary">{{hunt.name}}</h1>{% endif %}
     <div class="participant">
       {% block userbody %}{% endblock %}
     </div>
